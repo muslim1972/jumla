@@ -24,8 +24,13 @@ export function AddToCartButton({
 
     try {
       setIsLoading(true)
-      await addToCart(productId)
-      alert("تم إضافة المنتج للسلة بنجاح!")
+      const result = await addToCart(productId)
+      
+      if (result?.error) {
+        alert("فشل الإضافة: " + result.error)
+      } else {
+        alert("تم إضافة المنتج للسلة بنجاح!")
+      }
     } catch (error) {
       console.error("Error adding to cart:", error)
       alert("حدث خطأ أثناء الإضافة للسلة. يرجى المحاولة مرة أخرى.")

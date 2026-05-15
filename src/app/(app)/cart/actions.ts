@@ -8,41 +8,48 @@ export async function addToCart(productId: string) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    throw new Error("يجب تسجيل الدخول لإضافة منتجات للسلة")
+    return { error: "يجب تسجيل الدخول لإضافة منتجات للسلة" }
   }
 
-  // Check if item already exists in cart
-  const { data: existingItem } = await supabase
-    .from('cart_items')
-    .select('id, quantity')
-    .eq('user_id', user.id)
-    .eq('product_id', productId)
-    .single()
-
-  if (existingItem) {
-    // Increment quantity
-    const { error } = await supabase
+  try {
+    // Check if item already exists in cart using maybeSingle
+    const { data: existingItem, error: fetchError } = await supabase
       .from('cart_items')
-      .update({ quantity: existingItem.quantity + 1 })
-      .eq('id', existingItem.id)
+      .select('id, quantity')
+      .eq('user_id', user.id)
+      .eq('product_id', productId)
+      .maybeSingle()
 
-    if (error) throw error
-  } else {
-    // Insert new item
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({
-        user_id: user.id,
-        product_id: productId,
-        quantity: 1
-      })
+    if (fetchError) throw fetchError
 
-    if (error) throw error
+    if (existingItem) {
+      // Increment quantity
+      const { error: updateError } = await supabase
+        .from('cart_items')
+        .update({ quantity: existingItem.quantity + 1 })
+        .eq('id', existingItem.id)
+
+      if (updateError) throw updateError
+    } else {
+      // Insert new item
+      const { error: insertError } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          product_id: productId,
+          quantity: 1
+        })
+
+      if (insertError) throw insertError
+    }
+
+    revalidatePath('/cart')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Cart action error:", error)
+    return { error: error.message || "حدث خطأ غير متوقع" }
   }
-
-  revalidatePath('/cart')
-  revalidatePath('/')
-  return { success: true }
 }
 
 export async function removeFromCart(itemId: string) {
