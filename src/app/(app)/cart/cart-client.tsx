@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -49,9 +49,9 @@ export function CartClient({ initialItems }: { initialItems: any[] }) {
         </div>
         <h2 className="text-2xl font-bold mb-2">السلة فارغة حالياً</h2>
         <p className="text-muted-foreground mb-8">ابدأ بالتسوق وأضف بعض المنتجات الرائعة!</p>
-        <Button asChild>
-          <Link href="/">الذهاب للتسوق</Link>
-        </Button>
+        <Link href="/" className={buttonVariants({ variant: "default" })}>
+          الذهاب للتسوق
+        </Link>
       </div>
     )
   }
