@@ -16,7 +16,10 @@ export default async function CartPage() {
     .from('cart_items')
     .select(`
       *,
-      products (*)
+      products (
+        *,
+        profiles (delivery_fee)
+      )
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })

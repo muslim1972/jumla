@@ -6,10 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import Image from "next/image"
+import { DeliveryFeeInput } from "@/components/delivery-fee-input"
+import { AlertCircle } from "lucide-react"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('delivery_fee')
+    .eq('id', user?.id)
+    .single()
 
   const { data: products } = await supabase
     .from('products')
@@ -30,7 +38,21 @@ export default async function DashboardPage() {
 
     if (!user) return
 
+    // Check if delivery fee is set
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('delivery_fee')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.delivery_fee === null || profile?.delivery_fee === undefined) {
+      // In a real app we'd use a better way to show error in server action
+      // for now we'll just not insert
+      return
+    }
+
     let image_url = null
+// ...
 
     // Upload image if provided
     if (image && image.size > 0) {
@@ -79,7 +101,16 @@ export default async function DashboardPage() {
         
         {/* Add Product Form */}
         <div className="w-full md:w-1/3">
-          <Card className="sticky top-24">
+          <DeliveryFeeInput initialValue={profile?.delivery_fee} />
+
+          {profile?.delivery_fee === null && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-2 items-start text-destructive">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <p className="text-sm font-medium">يجب تحديد أجور التوصيل أولاً لتتمكن من إضافة المنتجات.</p>
+            </div>
+          )}
+
+          <Card className={profile?.delivery_fee === null ? "opacity-50 pointer-events-none" : "sticky top-24"}>
             <CardHeader>
               <CardTitle>إضافة منتج جديد</CardTitle>
               <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>
