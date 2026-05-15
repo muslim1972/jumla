@@ -68,10 +68,26 @@ export default async function LoginPage(props: { searchParams: Promise<{ message
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button className="w-full" type="submit">دخول</Button>
-            <div className="text-sm text-center text-muted-foreground">
-              ليس لديك حساب؟{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                إنشاء حساب جديد
+            <div className="text-center space-y-4 w-full">
+              <p className="text-sm text-muted-foreground">
+                ليس لديك حساب؟{" "}
+                <Link href="/register" className="text-primary hover:underline font-medium">
+                  إنشاء حساب جديد
+                </Link>
+              </p>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">أو</span>
+                </div>
+              </div>
+              <Link 
+                href="/" 
+                className={buttonVariants({ variant: "outline", className: "w-full" })}
+              >
+                تصفح كزائر
               </Link>
             </div>
           </CardFooter>
