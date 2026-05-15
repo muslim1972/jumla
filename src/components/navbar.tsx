@@ -8,10 +8,12 @@ import { signOut } from "@/app/(auth)/actions"
 
 export function Navbar({ 
   userRole, 
-  fullName 
+  fullName,
+  cartCount = 0
 }: { 
   userRole?: string | null,
-  fullName?: string | null
+  fullName?: string | null,
+  cartCount?: number
 }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,8 +45,13 @@ export function Navbar({
             </Link>
           )}
 
-          <Link href="/cart" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Link href="/cart" className={buttonVariants({ variant: "outline", size: "sm" }) + " relative"}>
             <ShoppingCart className="h-4 w-4 sm:ml-2" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold animate-in zoom-in">
+                {cartCount}
+              </span>
+            )}
             <span className="hidden sm:inline-block">السلة</span>
           </Link>
 

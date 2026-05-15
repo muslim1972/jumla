@@ -71,7 +71,7 @@ export default async function Home() {
                 </div>
               </CardContent>
               <CardFooter className="p-4 pt-0">
-                <AddToCartButton user={user} />
+                <AddToCartButton user={user} productId={product.id} />
               </CardFooter>
             </Card>
           ))}
