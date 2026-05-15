@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { buttonVariants } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 
