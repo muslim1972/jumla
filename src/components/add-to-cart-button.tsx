@@ -14,7 +14,7 @@ export function AddToCartButton({
 }: { 
   user: any, 
   productId: string,
-  variant?: "default" | "compact"
+  variant?: "default" | "compact" | "icon"
 }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -51,6 +51,29 @@ export function AddToCartButton({
   }
 
   const isCompact = variant === "compact"
+  const isIcon = variant === "icon"
+
+  if (isIcon) {
+    return (
+      <Button 
+        size="icon"
+        className={cn(
+          "h-8 w-8 transition-all duration-300",
+          isSuccess && "bg-green-600 hover:bg-green-700"
+        )} 
+        onClick={handleAddToCart}
+        disabled={isLoading || isSuccess}
+      >
+        {isLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : isSuccess ? (
+          <Check className="w-4 h-4 animate-in zoom-in" />
+        ) : (
+          <ShoppingCart className="w-4 h-4" />
+        )}
+      </Button>
+    )
+  }
 
   return (
     <Button 
@@ -59,7 +82,7 @@ export function AddToCartButton({
         isCompact ? "h-9 sm:h-10 text-xs sm:text-sm gap-1" : "gap-2",
         isSuccess && "bg-green-600 hover:bg-green-700"
       )} 
-      variant={isSuccess ? "default" : "default"} 
+      variant="default" 
       onClick={handleAddToCart}
       disabled={isLoading || isSuccess}
     >
