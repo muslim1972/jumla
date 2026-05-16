@@ -73,16 +73,6 @@ export function ProductExplorer({
     setExpandedMerchants(newSet)
   }
 
-  const isAllExpanded = filteredMerchantNames.every(name => expandedMerchants.has(name))
-
-  const toggleAll = () => {
-    if (isAllExpanded) {
-      setExpandedMerchants(new Set())
-    } else {
-      setExpandedMerchants(new Set(filteredMerchantNames))
-    }
-  }
-
   if (!products || products.length === 0) {
     return (
       <div className="text-center py-20 glass rounded-3xl border-dashed border-2">
@@ -109,28 +99,21 @@ export function ProductExplorer({
           <div className="flex gap-2 shrink-0">
             <Button 
               variant="outline" 
-              size="icon" 
-              className={cn("h-11 w-11 rounded-xl glass", viewMode === "grid" && "bg-primary text-primary-foreground border-primary")}
-              onClick={() => setViewMode("grid")}
-              title="عرض شبكي"
+              className="h-11 px-4 rounded-xl glass flex items-center gap-2 group hover:border-primary/50 transition-all duration-300"
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
+              title={viewMode === "grid" ? "تحويل لعرض القائمة" : "تحويل للعرض الشبكي"}
             >
-              <LayoutGrid className="h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className={cn("h-11 w-11 rounded-xl glass", viewMode === "list" && "bg-primary text-primary-foreground border-primary")}
-              onClick={() => setViewMode("list")}
-              title="عرض قائمة"
-            >
-              <List className="h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-11 px-4 rounded-xl glass text-xs font-bold"
-              onClick={toggleAll}
-            >
-              {isAllExpanded ? "طي الكل" : "توسيع الكل"}
+              {viewMode === "grid" ? (
+                <>
+                  <List className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-bold hidden sm:inline">عرض قائمة</span>
+                </>
+              ) : (
+                <>
+                  <LayoutGrid className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-xs font-bold hidden sm:inline">عرض شبكي</span>
+                </>
+              )}
             </Button>
           </div>
         </div>
