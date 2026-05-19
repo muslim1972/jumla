@@ -121,6 +121,12 @@ export function ProductExplorer({
 
       {/* Merchants List */}
       <div className="space-y-4">
+        {filteredMerchantNames.length > 0 && (
+          <h2 className="text-lg font-bold text-foreground pr-1 mb-2 tracking-tight flex items-center gap-2">
+            <span className="w-1.5 h-5 bg-primary rounded-full inline-block" />
+            التجار المتاحون
+          </h2>
+        )}
         {filteredMerchantNames.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             لا يوجد تجار يطابقون بحثك.
