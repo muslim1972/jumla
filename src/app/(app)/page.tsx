@@ -16,7 +16,7 @@ export default async function Home() {
       .from('products')
       .select(`
         *,
-        profiles(full_name)
+        profiles(full_name, delivery_fee)
       `)
       .order('created_at', { ascending: false })
   ])
