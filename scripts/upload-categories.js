@@ -25,7 +25,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const categoriesDir = path.join(__dirname, '..', 'public', 'categories');
-const files = ['cat_all.png', 'cat_smoking.png', 'cat_grocery.png', 'cat_sweets.png', 'cat_plastics.png', 'cat_dairy.png', 'cat_cleaning.png'];
+const files = ['cat_all.jpg', 'cat_smoking.jpg', 'cat_grocery.jpg', 'cat_sweets.jpg', 'cat_plastics.jpg', 'cat_dairy.jpg', 'cat_cleaning.jpg'];
 
 async function uploadImages() {
   console.log('Starting upload of category images to Supabase...');
@@ -45,7 +45,7 @@ async function uploadImages() {
     const { data, error } = await supabase.storage
       .from('products')
       .upload(storagePath, fileBuffer, {
-        contentType: 'image/png',
+        contentType: 'image/jpeg',
         upsert: true
       });
       

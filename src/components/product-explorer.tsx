@@ -295,7 +295,7 @@ export function ProductExplorer({
                     )}
                   >
                     <Image
-                      src={`/categories/cat_${category.id}.png`}
+                      src={`/categories/cat_${category.id}.jpg`}
                       alt={category.name}
                       fill
                       sizes="(max-width: 640px) 64px, 80px"
