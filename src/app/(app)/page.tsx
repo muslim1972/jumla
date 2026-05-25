@@ -26,7 +26,7 @@ export default async function Home() {
   const products = productsResponse.data
 
   return (
-    <div className="min-h-screen mesh-gradient pb-20">
+    <div className="min-h-screen mesh-gradient pb-32 sm:pb-44">
       {/* Hero Section - Even more compact */}
       <div className="relative overflow-hidden pt-6 pb-4 sm:pt-8 sm:pb-6">
         <div className="container mx-auto px-4 relative z-10">

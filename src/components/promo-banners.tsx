@@ -96,9 +96,9 @@ export function PromoBanners() {
   if (banners.length === 0) return null
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-6 mb-8 px-1">
+    <div className="fixed bottom-0 left-0 right-0 z-40 w-full bg-background/90 dark:bg-background/90 backdrop-blur-md border-t border-border/40 py-2 px-3 sm:px-4 shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
       <div 
-        className="relative overflow-hidden rounded-3xl h-36 sm:h-44 border border-border/40 shadow-premium bg-card group"
+        className="relative overflow-hidden rounded-2xl h-24 sm:h-32 border border-border/40 shadow-premium bg-card group max-w-4xl mx-auto"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
@@ -111,23 +111,23 @@ export function PromoBanners() {
             <div 
               key={banner.id}
               className={cn(
-                "w-full shrink-0 h-full flex flex-col justify-center p-5 sm:p-7 text-white relative select-none bg-gradient-to-r",
+                "w-full shrink-0 h-full flex flex-col justify-center p-3.5 sm:p-5 text-white relative select-none bg-gradient-to-r",
                 banner.bg_gradient || "from-brand-blue to-blue-600"
               )}
             >
               {/* Glass overlay grid */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-black/10 pointer-events-none" />
               
-              <div className="relative z-10 max-w-lg space-y-1 sm:space-y-2">
-                <h3 className="text-lg sm:text-2xl font-black tracking-tight leading-tight">
+              <div className="relative z-10 max-w-lg space-y-0.5 sm:space-y-1">
+                <h3 className="text-sm sm:text-lg font-black tracking-tight leading-tight">
                   {banner.title}
                 </h3>
                 {banner.description && (
-                  <p className="text-[10px] sm:text-sm text-white/90 font-medium line-clamp-2 leading-relaxed max-w-md sm:max-w-xl">
+                  <p className="text-[9px] sm:text-xs text-white/90 font-medium line-clamp-1 sm:line-clamp-2 leading-relaxed max-w-md sm:max-w-xl">
                     {banner.description}
                   </p>
                 )}
-                <button className="mt-1 sm:mt-2.5 px-3 py-1 bg-white text-foreground hover:bg-white/90 active:scale-95 transition-all text-[10px] sm:text-xs font-extrabold rounded-lg shadow-sm w-fit cursor-pointer">
+                <button className="mt-1 sm:mt-2 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-white text-foreground hover:bg-white/90 active:scale-95 transition-all text-[9px] sm:text-[10px] font-extrabold rounded-lg shadow-sm w-fit cursor-pointer">
                   تسوق العرض الآن
                 </button>
               </div>
@@ -155,7 +155,7 @@ export function PromoBanners() {
 
         {/* Indicators Dots */}
         {banners.length > 1 && (
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
             {banners.map((_, index) => (
               <button
                 key={index}
