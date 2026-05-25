@@ -3,6 +3,7 @@ import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import { PackageOpen } from "lucide-react"
 import { ProductExplorer } from "@/components/product-explorer"
+import { PromoBanners } from "@/components/promo-banners"
 
 export const revalidate = 0
 
@@ -47,6 +48,7 @@ export default async function Home() {
 
       <div className="container mx-auto px-3 sm:px-4">
         <ProductExplorer products={products} user={user} />
+        <PromoBanners />
       </div>
     </div>
   )

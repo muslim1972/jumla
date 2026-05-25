@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ShoppingCart, User, PackageOpen, LayoutDashboard, LogOut } from "lucide-react"
+import { ShoppingCart, User, PackageOpen, LayoutDashboard, LogOut, UserCheck } from "lucide-react"
 import { ModeToggle } from "./mode-toggle"
 import { buttonVariants } from "./ui/button"
 import { signOut } from "@/app/(auth)/actions"
@@ -42,6 +42,13 @@ export function Navbar({
             <Link href="/dashboard" className={buttonVariants({ variant: "ghost", size: "sm" }) + " rounded-full"}>
               <LayoutDashboard className="h-4 w-4 sm:ml-2" />
               <span className="hidden sm:inline-block">لوحة التاجر</span>
+            </Link>
+          )}
+
+          {userRole === 'admin' && (
+            <Link href="/admin" className={buttonVariants({ variant: "ghost", size: "sm" }) + " rounded-full text-brand-orange hover:text-brand-orange hover:bg-brand-orange/10"}>
+              <UserCheck className="h-4 w-4 sm:ml-2" />
+              <span className="hidden sm:inline-block">لوحة الإدارة</span>
             </Link>
           )}
 
