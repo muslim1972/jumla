@@ -28,17 +28,23 @@ const DEFAULT_ANNOUNCEMENTS = [
   {
     id: "def-1",
     text: "هل تريد مضاعفة مبيعاتك؟ أعلن معنا في صدارة التطبيق لتصل عروضك مباشرة إلى آلاف تجار الجملة والمشترين يومياً! 🚀",
-    link_url: "#advertise"
+    link_url: "#advertise",
+    isDefault: true,
+    images: ["cat_grocery.jpg", "cat_sweets.jpg", "cat_dairy.jpg", "cat_all.jpg"]
   },
   {
     id: "def-2",
     text: "مساحة إعلانية مميزة وحصرية للشركات، المصانع، وموزعي الجملة. احجز مساحتك الترويجية وتصدر الواجهة الآن! 📈",
-    link_url: "#advertise"
+    link_url: "#advertise",
+    isDefault: true,
+    images: ["cat_cleaning.jpg", "cat_plastics.jpg", "cat_smoking.jpg", "cat_all.jpg"]
   },
   {
     id: "def-3",
     text: "انضم إلى كبار التجار المميزين في منصة 'جملة' واعرض خصوماتك هنا. تواصل مع إدارة التسويق والمبيعات فوراً 📞",
-    link_url: "#advertise"
+    link_url: "#advertise",
+    isDefault: true,
+    images: ["cat_grocery.jpg", "cat_smoking.jpg", "cat_plastics.jpg", "cat_sweets.jpg"]
   }
 ]
 
@@ -157,12 +163,12 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
           <div className="relative overflow-hidden h-full w-full flex items-center justify-center z-10">
             <div 
               className="absolute flex flex-col w-full transition-transform duration-700 ease-in-out text-center"
-              style={{ transform: `translateY(-${activeIndex * 100}%)` }}
+              style={{ transform: `translateY(-${(activeIndex * 100) / activeItems.length}%)` }}
             >
-              {activeItems.map((item) => (
+              {activeItems.map((item: any) => (
                 <div 
                   key={item.id} 
-                  className="h-36 sm:h-44 flex flex-col items-center justify-center px-6 sm:px-16 text-center select-none space-y-3 sm:space-y-4"
+                  className="h-36 sm:h-44 flex flex-col items-center justify-center px-6 sm:px-16 text-center select-none space-y-2 sm:space-y-3"
                 >
                   {/* Badge */}
                   <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-brand-orange/10 text-brand-orange border border-brand-orange/20 px-3 py-1 rounded-full flex items-center gap-1">
@@ -171,9 +177,24 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
                   </span>
                   
                   {/* Big Headline */}
-                  <h2 className="text-sm sm:text-lg md:text-xl font-black text-brand-blue dark:text-foreground leading-relaxed max-w-2xl px-2">
+                  <h2 className="text-xs sm:text-base md:text-lg font-black text-brand-blue dark:text-foreground leading-relaxed max-w-2xl px-2 line-clamp-2">
                     {item.text}
                   </h2>
+                  
+                  {/* Category Images for Default Invitation Slides */}
+                  {item.isDefault ? (
+                    <div className="flex gap-2 justify-center my-1 pointer-events-none">
+                      {item.images.map((imgName: string, imgIdx: number) => (
+                        <img 
+                          key={imgIdx}
+                          src={`/categories/${imgName}`} 
+                          alt="category" 
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-border bg-card shadow-sm object-cover animate-bounce" 
+                          style={{ animationDelay: `${imgIdx * 150}ms`, animationDuration: '2s' }}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                   
                   {/* Action Link/Badge */}
                   <div className="inline-flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black text-white bg-primary hover:bg-primary/90 px-4 py-1.5 rounded-xl shadow-md transition-all active:scale-95 hover:shadow-lg shadow-primary/10">
