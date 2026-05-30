@@ -14,13 +14,35 @@ import {
   Package, 
   Image as ImageIcon,
   DollarSign,
-  UserCheck
+  UserCheck,
+  Megaphone,
+  Clock,
+  Phone
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+
+interface TopBanner {
+  id: string
+  text: string
+  link_url: string | null
+  start_date: string
+  end_date: string
+  is_active: boolean
+  created_at: string
+}
+
+interface AdRequest {
+  id: string
+  name: string
+  phone: string
+  duration: string
+  message: string | null
+  created_at: string
+}
 
 interface Profile {
   id: string
@@ -47,7 +69,7 @@ const GRADIENT_PRESETS = [
 ]
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "users">("overview")
+  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users">("overview")
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -56,13 +78,31 @@ export default function AdminPage() {
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
+  const [topBanners, setTopBanners] = useState<TopBanner[]>([])
+  const [adRequests, setAdRequests] = useState<AdRequest[]>([])
   const [productsCount, setProductsCount] = useState(0)
   
-  // Forms States
+  // Forms States (Free Banners)
   const [newAdTitle, setNewAdTitle] = useState("")
   const [newAdDesc, setNewAdDesc] = useState("")
   const [newAdGradient, setNewAdAdGradient] = useState(GRADIENT_PRESETS[0].value)
   const [newAdLink, setNewAdLink] = useState("/")
+
+  // Forms States (Paid Top Banners)
+  const [newTopText, setNewTopText] = useState("")
+  const [newTopLink, setNewTopLink] = useState("/")
+  const [newTopStartDate, setNewTopStartDate] = useState(() => {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+    return now.toISOString().slice(0, 16)
+  })
+  const [newTopEndDate, setNewTopEndDate] = useState(() => {
+    const nextWeek = new Date()
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    nextWeek.setMinutes(nextWeek.getMinutes() - nextWeek.getTimezoneOffset())
+    return nextWeek.toISOString().slice(0, 16)
+  })
+  const [newTopIsActive, setNewTopIsActive] = useState(true)
 
   // Supabase client instance
   const supabase = createClient()
@@ -122,6 +162,20 @@ export default function AdminPage() {
           .select("*")
           .order("created_at", { ascending: false })
         if (bannerList) setBanners(bannerList)
+
+        // Fetch top banners (paid)
+        const { data: topBannerList } = await supabase
+          .from("top_banners")
+          .select("*")
+          .order("created_at", { ascending: false })
+        if (topBannerList) setTopBanners(topBannerList)
+
+        // Fetch ad requests from users
+        const { data: adRequestList } = await supabase
+          .from("ad_requests")
+          .select("*")
+          .order("created_at", { ascending: false })
+        if (adRequestList) setAdRequests(adRequestList)
       } catch (err) {
         console.log("Error loading DB details inside admin, using local fallbacks:", err)
       }
@@ -131,6 +185,7 @@ export default function AdminPage() {
 
   // Mock data fallbacks for overview when DB is empty
   const mockBannersCount = banners.length || 4
+  const mockTopBannersCount = topBanners.length || 3
   const mockMerchantsCount = profiles.filter(p => p.role === "merchant").length || 3
   const mockUsersCount = profiles.length || 5
 
@@ -158,6 +213,80 @@ export default function AdminPage() {
         .update({ delivery_fee: fee })
         .eq("id", userId)
       if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
+    }
+  }
+
+  // Manage Top Paid Banners
+  const handleAddTopBanner = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTopText) return
+
+    const newBanner = {
+      id: Math.random().toString(),
+      text: newTopText,
+      link_url: newTopLink,
+      start_date: new Date(newTopStartDate).toISOString(),
+      end_date: new Date(newTopEndDate).toISOString(),
+      is_active: newTopIsActive,
+      created_at: new Date().toISOString()
+    }
+
+    // Optimistic update
+    setTopBanners(prev => [newBanner, ...prev])
+
+    if (!isDemoMode) {
+      const { error } = await supabase
+        .from("top_banners")
+        .insert({
+          text: newTopText,
+          link_url: newTopLink,
+          start_date: new Date(newTopStartDate).toISOString(),
+          end_date: new Date(newTopEndDate).toISOString(),
+          is_active: newTopIsActive
+        })
+      if (error) {
+        alert("فشل إضافة الإعلان في قاعدة البيانات (تأكد من إنشاء جدول top_banners): " + error.message)
+      }
+    }
+
+    // Reset Form
+    setNewTopText("")
+    setNewTopLink("/")
+  }
+
+  const handleDeleteTopBanner = async (id: string) => {
+    setTopBanners(prev => prev.filter(b => b.id !== id))
+
+    if (!isDemoMode) {
+      const { error } = await supabase
+        .from("top_banners")
+        .delete()
+        .eq("id", id)
+      if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
+    }
+  }
+
+  const handleToggleTopBannerActive = async (id: string, currentActive: boolean) => {
+    setTopBanners(prev => prev.map(b => b.id === id ? { ...b, is_active: !currentActive } : b))
+
+    if (!isDemoMode) {
+      const { error } = await supabase
+        .from("top_banners")
+        .update({ is_active: !currentActive })
+        .eq("id", id)
+      if (error) alert("فشل تحديث حالة الإعلان: " + error.message)
+    }
+  }
+
+  const handleDeleteAdRequest = async (id: string) => {
+    setAdRequests(prev => prev.filter(r => r.id !== id))
+
+    if (!isDemoMode) {
+      const { error } = await supabase
+        .from("ad_requests")
+        .delete()
+        .eq("id", id)
+      if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
     }
   }
 
@@ -244,29 +373,38 @@ export default function AdminPage() {
         </div>
         
         {/* Tabs Control */}
-        <div className="flex bg-muted/65 p-1 rounded-xl w-full sm:w-auto shadow-inner">
+        <div className="flex bg-muted/65 p-1 rounded-xl w-full sm:w-auto shadow-inner flex-wrap gap-1">
           <button 
             onClick={() => setActiveTab("overview")}
             className={cn(
-              "flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "overview" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             الإحصائيات
           </button>
           <button 
+            onClick={() => setActiveTab("paidBanners")}
+            className={cn(
+              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              activeTab === "paidBanners" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            الإعلانات المدفوعة العليا
+          </button>
+          <button 
             onClick={() => setActiveTab("banners")}
             className={cn(
-              "flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "banners" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            إعلانات السلايدر
+            إعلانات السلايدر السفلي
           </button>
           <button 
             onClick={() => setActiveTab("users")}
             className={cn(
-              "flex-grow sm:flex-grow-0 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "users" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -279,7 +417,7 @@ export default function AdminPage() {
       {activeTab === "overview" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Metrics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="border border-border/40 shadow-premium">
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">إجمالي المبيعات</CardTitle>
@@ -321,14 +459,27 @@ export default function AdminPage() {
 
             <Card className="border border-border/40 shadow-premium">
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">إعلانات البانر</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">السلايدر السفلي</CardTitle>
                 <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl">
                   <ImageIcon className="w-4 h-4" />
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{mockBannersCount}</div>
-                <p className="text-[10px] text-muted-foreground mt-1">إعلانات نشطة بالسلايدر</p>
+                <p className="text-[10px] text-muted-foreground mt-1">إعلانات نشطة بالأسفل</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-border/40 shadow-premium">
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">الإعلانات العليا</CardTitle>
+                <div className="p-2 bg-indigo-500/10 text-indigo-550 rounded-xl">
+                  <Megaphone className="w-4 h-4 text-indigo-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{mockTopBannersCount}</div>
+                <p className="text-[10px] text-muted-foreground mt-1">إعلانات مدفوعة نشطة</p>
               </CardContent>
             </Card>
           </div>
@@ -535,6 +686,226 @@ export default function AdminPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PAID TOP BANNERS TAB */}
+      {activeTab === "paidBanners" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Add Top Paid Banner Form */}
+            <Card className="border border-border/40 shadow-premium h-fit">
+              <CardHeader>
+                <CardTitle className="text-lg font-black text-brand-blue dark:text-foreground flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-brand-orange" /> إضافة إعلان علوي مدفوع
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  سيظهر هذا الإعلان في شريط الإعلانات المدفوعة في أعلى كافة صفحات التسوق بالتطبيق.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddTopBanner} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="top-text" className="text-xs font-bold">نص الإعلان</Label>
+                    <textarea 
+                      id="top-text" 
+                      rows={2}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      placeholder="اكتب العرض الترويجي الجذاب هنا..."
+                      value={newTopText}
+                      onChange={(e) => setNewTopText(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label htmlFor="top-link" className="text-xs font-bold">رابط التوجيه (اختياري)</Label>
+                    <Input 
+                      id="top-link" 
+                      placeholder="مثال: /products أو رابط خارجي..." 
+                      value={newTopLink}
+                      onChange={(e) => setNewTopLink(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="start-date" className="text-[11px] font-bold">تاريخ البدء</Label>
+                      <Input 
+                        id="start-date" 
+                        type="datetime-local"
+                        value={newTopStartDate}
+                        onChange={(e) => setNewTopStartDate(e.target.value)}
+                        required
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="end-date" className="text-[11px] font-bold">تاريخ الانتهاء</Label>
+                      <Input 
+                        id="end-date" 
+                        type="datetime-local"
+                        value={newTopEndDate}
+                        onChange={(e) => setNewTopEndDate(e.target.value)}
+                        required
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <input 
+                      type="checkbox" 
+                      id="top-active"
+                      checked={newTopIsActive}
+                      onChange={(e) => setNewTopIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-brand-orange focus:ring-brand-orange cursor-pointer"
+                    />
+                    <Label htmlFor="top-active" className="text-xs font-bold cursor-pointer">تفعيل الإعلان فوراً</Label>
+                  </div>
+
+                  <Button type="submit" className="w-full mt-2 cursor-pointer shadow-lg shadow-brand-orange/20">
+                    <Plus className="w-4 h-4 ml-1.5" /> نشر وجدولة الإعلان
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Active Top Paid Banners List */}
+            <div className="lg:col-span-2 space-y-4">
+              <h2 className="text-base sm:text-lg font-black text-brand-blue dark:text-foreground pr-1 flex items-center gap-2">
+                <span className="w-1.5 h-5 bg-brand-orange rounded-full inline-block" />
+                قائمة الإعلانات العليا الجارية والجدولة ({topBanners.length})
+              </h2>
+
+              {topBanners.length === 0 ? (
+                <div className="text-center py-12 bg-card rounded-2xl border border-dashed text-muted-foreground text-sm">
+                  لا توجد إعلانات مدفوعة عليا منشأة حالياً. استخدم النموذج لإنشاء إعلانك الأول.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {topBanners.map((banner) => {
+                    const isExpired = new Date(banner.end_date) < new Date()
+                    const isUpcoming = new Date(banner.start_date) > new Date()
+                    
+                    return (
+                      <Card key={banner.id} className={cn(
+                        "overflow-hidden border border-border/40 shadow-premium p-4 flex flex-col justify-between gap-3 relative",
+                        isExpired ? "opacity-60 bg-muted/20" : ""
+                      )}>
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1 flex-grow">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={cn(
+                                "text-[9px] font-black px-2 py-0.5 rounded-full border",
+                                isExpired 
+                                  ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                                  : isUpcoming 
+                                    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                    : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              )}>
+                                {isExpired ? "منتهي الصلاحية" : isUpcoming ? "مجدول لاحقاً" : "نشط حالياً"}
+                              </span>
+                              {!isExpired && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTopBannerActive(banner.id, banner.is_active)}
+                                  className={cn(
+                                    "text-[9px] font-bold px-2 py-0.5 rounded-full border cursor-pointer",
+                                    banner.is_active 
+                                      ? "bg-brand-blue/15 text-brand-blue border-brand-blue/30" 
+                                      : "bg-muted text-muted-foreground border-border/60"
+                                  )}
+                                >
+                                  {banner.is_active ? "تعطيل مؤقت" : "تفعيل"}
+                                </button>
+                              )}
+                            </div>
+                            <p className="font-bold text-xs sm:text-sm text-foreground pt-1.5">{banner.text}</p>
+                          </div>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => handleDeleteTopBanner(banner.id)}
+                            className="h-8 w-8 cursor-pointer shrink-0"
+                            title="حذف الإعلان"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-2 flex flex-col sm:flex-row justify-between text-[10px] text-muted-foreground gap-2">
+                          <div>
+                            <strong>رابط التوجيه:</strong> <span className="underline">{banner.link_url || "/"}</span>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>من: {new Date(banner.start_date).toLocaleString("ar-IQ")}</span>
+                            <span>إلى: {new Date(banner.end_date).toLocaleString("ar-IQ")}</span>
+                          </div>
+                        </div>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Ad requests from users */}
+          <div className="space-y-4 pt-4">
+            <h2 className="text-base sm:text-lg font-black text-brand-blue dark:text-foreground pr-1 flex items-center gap-2">
+              <span className="w-1.5 h-5 bg-brand-orange rounded-full inline-block" />
+              طلبات الإعلان الواردة من المستخدمين ({adRequests.length})
+            </h2>
+
+            {adRequests.length === 0 ? (
+              <div className="text-center py-10 bg-card rounded-2xl border text-muted-foreground text-sm">
+                لا توجد طلبات إعلان واردة حالياً. تظهر هنا الطلبات المرسلة من مودال "أعلن معنا".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {adRequests.map((req) => (
+                  <Card key={req.id} className="border border-border/40 shadow-premium p-4 flex flex-col justify-between gap-3">
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <h4 className="font-black text-sm text-brand-blue">{req.name}</h4>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          <Phone className="w-3 h-3 text-brand-orange animate-pulse" />
+                          <span dir="ltr">{req.phone}</span>
+                          <span className="bg-brand-orange/10 text-brand-orange font-bold text-[10px] px-1.5 py-0.5 rounded mr-2">
+                            المدة: {
+                              req.duration === "week" ? "أسبوع" :
+                              req.duration === "two_weeks" ? "أسبوعين" :
+                              req.duration === "month" ? "شهر" : "فترة مخصصة"
+                            }
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteAdRequest(req.id)}
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10 cursor-pointer"
+                        title="حذف الطلب"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {req.message && (
+                      <p className="bg-muted/30 p-2.5 rounded-lg text-xs leading-relaxed text-foreground/80 border border-border/20">
+                        {req.message}
+                      </p>
+                    )}
+                    <div className="text-[10px] text-muted-foreground text-left">
+                      أُرسل بتاريخ: {new Date(req.created_at).toLocaleString("ar-IQ")}
                     </div>
                   </Card>
                 ))}
