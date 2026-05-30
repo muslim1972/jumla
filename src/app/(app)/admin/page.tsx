@@ -386,11 +386,16 @@ export default function AdminPage() {
           <button 
             onClick={() => setActiveTab("paidBanners")}
             className={cn(
-              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              "relative flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
               activeTab === "paidBanners" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             الإعلانات المدفوعة العليا
+            {adRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-orange text-[9px] font-black text-white shadow-sm animate-pulse border-2 border-background">
+                {adRequests.length}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => setActiveTab("banners")}
