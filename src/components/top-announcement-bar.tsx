@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Volume2, Sparkles, X, Megaphone, CheckCircle2 } from "lucide-react"
+import { Sparkles, Megaphone, CheckCircle2, Trash2, Clock, Phone } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -27,17 +27,17 @@ interface TopBanner {
 const DEFAULT_ANNOUNCEMENTS = [
   {
     id: "def-1",
-    text: "📢 هل تريد مضاعفة مبيعاتك؟ أعلن معنا هنا لتصل إلى آلاف تجار الجملة والمشترين يومياً! 🚀",
+    text: "هل تريد مضاعفة مبيعاتك؟ أعلن معنا في صدارة التطبيق لتصل عروضك مباشرة إلى آلاف تجار الجملة والمشترين يومياً! 🚀",
     link_url: "#advertise"
   },
   {
     id: "def-2",
-    text: "💡 مساحة إعلانية مميزة للشركات والمصانع وموزعي الجملة. احجز مساحتك الآن وتصدر الواجهة! 📈",
+    text: "مساحة إعلانية مميزة وحصرية للشركات، المصانع، وموزعي الجملة. احجز مساحتك الترويجية وتصدر الواجهة الآن! 📈",
     link_url: "#advertise"
   },
   {
     id: "def-3",
-    text: "🎉 انضم إلى كبار التجار المميزين في منصة 'جملة' واعرض عروضك وخصوماتك هنا. اتصل بنا 📞",
+    text: "انضم إلى كبار التجار المميزين في منصة 'جملة' واعرض خصوماتك هنا. تواصل مع إدارة التسويق والمبيعات فوراً 📞",
     link_url: "#advertise"
   }
 ]
@@ -140,48 +140,49 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
 
   return (
     <>
-      {/* Creative Announcement Bar */}
+      {/* Creative Hero Billboard Banner */}
       <div 
         onClick={handleBannerClick}
-        className="w-full bg-gradient-to-r from-indigo-950 via-brand-blue to-indigo-900 border-b border-indigo-800/40 text-white cursor-pointer relative overflow-hidden group shadow-md"
+        className="w-full max-w-4xl mx-auto mt-6 mb-8 px-3 sm:px-4 cursor-pointer"
       >
-        {/* Animated ambient light lines */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03),rgba(255,255,255,0.08)_50%,rgba(255,255,255,0.03))] translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />
-        
-        <div className="container mx-auto px-4 flex items-center justify-between h-8 sm:h-9">
-          {/* Badge indicator on the right (RTL Layout) */}
-          <div className="flex items-center gap-1.5 z-10 shrink-0">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-orange"></span>
-            </span>
-            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-brand-orange/20 text-brand-orange border border-brand-orange/30 px-2 py-0.5 rounded-full">
-              إعلان مميز
-            </span>
-          </div>
+        <div className="relative overflow-hidden rounded-3xl h-36 sm:h-44 border border-border/40 shadow-premium bg-card/60 backdrop-blur-sm group flex items-center justify-center transition-all duration-300 hover:border-primary/30">
+          {/* Creative ambient glows */}
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/15 transition-all duration-700 pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-brand-orange/5 rounded-full blur-3xl group-hover:bg-brand-orange/10 transition-all duration-700 pointer-events-none" />
+          
+          {/* Animated light line sweep */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0),rgba(255,255,255,0.03)_50%,rgba(255,255,255,0))] translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />
 
-          {/* Sliding Text Area */}
-          <div className="relative overflow-hidden h-full flex-grow flex items-center justify-center mx-4">
+          {/* Slides Content */}
+          <div className="relative overflow-hidden h-full w-full flex items-center justify-center z-10">
             <div 
-              className="absolute flex flex-col w-full transition-transform duration-500 ease-in-out text-center"
+              className="absolute flex flex-col w-full transition-transform duration-700 ease-in-out text-center"
               style={{ transform: `translateY(-${activeIndex * 100}%)` }}
             >
               {activeItems.map((item) => (
                 <div 
                   key={item.id} 
-                  className="h-8 sm:h-9 flex items-center justify-center text-[10px] sm:text-xs font-bold leading-none select-none text-white/95 group-hover:text-white transition-colors truncate max-w-[280px] sm:max-w-xl md:max-w-3xl"
+                  className="h-36 sm:h-44 flex flex-col items-center justify-center px-6 sm:px-16 text-center select-none space-y-3 sm:space-y-4"
                 >
-                  <Sparkles className="w-3.5 h-3.5 ml-1.5 text-brand-orange shrink-0 animate-pulse" />
-                  {item.text}
+                  {/* Badge */}
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-brand-orange/10 text-brand-orange border border-brand-orange/20 px-3 py-1 rounded-full flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-brand-orange animate-pulse" />
+                    إعلان مميز
+                  </span>
+                  
+                  {/* Big Headline */}
+                  <h2 className="text-sm sm:text-lg md:text-xl font-black text-brand-blue dark:text-foreground leading-relaxed max-w-2xl px-2">
+                    {item.text}
+                  </h2>
+                  
+                  {/* Action Link/Badge */}
+                  <div className="inline-flex items-center gap-1.5 text-[9px] sm:text-[10px] font-black text-white bg-primary hover:bg-primary/90 px-4 py-1.5 rounded-xl shadow-md transition-all active:scale-95 hover:shadow-lg shadow-primary/10">
+                    <Megaphone className="w-3.5 h-3.5 text-white" />
+                    احجز مساحتك هنا
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Action Call-to-action on the left */}
-          <div className="z-10 shrink-0 hidden xs:flex items-center gap-1 text-[9px] sm:text-[10px] font-extrabold text-brand-orange group-hover:underline transition-all bg-white/5 group-hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/5">
-            <Megaphone className="w-3 h-3 text-brand-orange" />
-            أعلن معنا
           </div>
         </div>
       </div>

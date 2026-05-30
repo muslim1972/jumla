@@ -1,5 +1,4 @@
 import { Navbar } from "@/components/navbar"
-import { TopAnnouncementBar } from "@/components/top-announcement-bar"
 import { createClient } from "@/utils/supabase/server"
 
 export default async function AppLayout({
@@ -12,24 +11,10 @@ export default async function AppLayout({
   let role = null
   let fullName = null
   let cartCount = 0
-  let topBanners: any[] = []
 
-  // خطوة 1: جلب بيانات الجلسة وقائمة الإعلانات المدفوعة العليا بشكل متوازٍ لتجنب الـ Waterfalls
-  const [userResponse, topBannersResponse] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from('top_banners')
-      .select('*')
-      .eq('is_active', true)
-      .lte('start_date', new Date().toISOString())
-      .gte('end_date', new Date().toISOString())
-      .order('created_at', { ascending: false })
-  ])
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const user = userResponse.data?.user
-  topBanners = topBannersResponse.data || []
-
-  // خطوة 2: جلب الملف الشخصي وعدد عناصر السلة بشكل متوازٍ إذا كان المستخدم مسجلاً
+  // جلب الملف الشخصي وعدد عناصر السلة بشكل متوازٍ لتجنب الـ Waterfalls
   if (user) {
     const [profileResponse, cartCountResponse] = await Promise.all([
       supabase
@@ -50,7 +35,6 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <TopAnnouncementBar initialBanners={topBanners} />
       <Navbar userRole={role} fullName={fullName} cartCount={cartCount} />
       <main className="flex-1">
         {children}
