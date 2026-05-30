@@ -160,9 +160,9 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0),rgba(255,255,255,0.03)_50%,rgba(255,255,255,0))] translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />
 
           {/* Slides Content */}
-          <div className="relative overflow-hidden h-full w-full flex items-center justify-center z-10">
+          <div className="relative overflow-hidden h-full w-full z-10">
             <div 
-              className="absolute flex flex-col w-full transition-transform duration-700 ease-in-out text-center"
+              className="absolute top-0 left-0 flex flex-col w-full transition-transform duration-700 ease-in-out text-center"
               style={{ transform: `translateY(-${(activeIndex * 100) / activeItems.length}%)` }}
             >
               {activeItems.map((item: any) => (
