@@ -168,7 +168,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
               {activeItems.map((item: any) => (
                 <div 
                   key={item.id} 
-                  className="h-36 sm:h-44 flex flex-col items-center justify-center px-6 sm:px-16 text-center select-none space-y-2 sm:space-y-3"
+                  className="w-full shrink-0 h-36 sm:h-44 flex flex-col items-center justify-center px-6 sm:px-16 text-center select-none space-y-2 sm:space-y-3"
                 >
                   {/* Badge */}
                   <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-brand-orange/10 text-brand-orange border border-brand-orange/20 px-3 py-1 rounded-full flex items-center gap-1">
