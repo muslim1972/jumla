@@ -224,7 +224,7 @@ export async function createOrder(data: {
 
     revalidatePath('/cart')
     revalidatePath('/')
-    return { success: true, orderId: order.id }
+    return { success: true, orderId: orderId }
   } catch (error: any) {
     console.error("Create order error:", error)
     return { error: error.message || "حدث خطأ في إنشاء الطلب" }
