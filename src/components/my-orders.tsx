@@ -35,6 +35,7 @@ export interface OrderData {
   status: string
   created_at: string
   merchant_name?: string
+  delivery_worker_name?: string
   items?: OrderItemData[]
 }
 
@@ -133,14 +134,17 @@ function OrderCard({ order }: { order: OrderData }) {
       {expanded && (
         <div className="border-t p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
           {/* كود التحقق */}
-          <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
+          <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center space-y-2">
+            <div className="flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">كود التحقق</span>
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">كود التحقق السري</span>
             </div>
-            <div className="font-mono text-2xl font-black tracking-[0.3em] text-emerald-700 dark:text-emerald-300" dir="ltr">
+            <div className="font-mono text-2xl sm:text-3xl font-black tracking-[0.3em] text-emerald-700 dark:text-emerald-300" dir="ltr">
               {order.verification_code}
             </div>
+            <p className="text-[10px] text-destructive bg-destructive/10 inline-block px-2 py-1 rounded-md font-bold">
+              ⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها
+            </p>
           </div>
 
           {/* بيانات التوصيل */}
@@ -157,6 +161,12 @@ function OrderCard({ order }: { order: OrderData }) {
               <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
               <span className="font-mono">{order.phone}</span>
             </div>
+            {order.status === 'delivered' && order.delivery_worker_name && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border/50 mt-2">
+                <Truck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">تم التوصيل بواسطة: {order.delivery_worker_name}</span>
+              </div>
+            )}
           </div>
 
           {/* عناصر الطلب */}

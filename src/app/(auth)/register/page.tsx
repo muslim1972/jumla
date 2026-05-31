@@ -95,6 +95,7 @@ export default async function RegisterPage(props: { searchParams: Promise<{ mess
                 <SelectContent dir="rtl">
                   <SelectItem value="guest">مشتري (مفرد)</SelectItem>
                   <SelectItem value="merchant">تاجر (جملة)</SelectItem>
+                  <SelectItem value="delivery">عامل توصيل</SelectItem>
                 </SelectContent>
               </Select>
             </div>

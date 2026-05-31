@@ -1,17 +1,14 @@
 import { createClient } from "@/utils/supabase/server"
-import { AddToCartButton } from "@/components/add-to-cart-button"
-import Image from "next/image"
-import { PackageOpen } from "lucide-react"
 import { ProductExplorer } from "@/components/product-explorer"
 import { PromoBanners } from "@/components/promo-banners"
 import { TopAnnouncementBar } from "@/components/top-announcement-bar"
+import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
 
 export const revalidate = 0
 
 export default async function Home() {
   const supabase = await createClient()
   
-  // جلب الجلسة والمنتجات والإعلانات العليا بالتوازي لمنع الـ Waterfall
   const [userResponse, productsResponse, topBannersResponse] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -31,6 +28,19 @@ export default async function Home() {
   ])
 
   const user = userResponse.data.user
+  let userRole = "guest"
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile) {
+      userRole = profile.role
+    }
+  }
+
   const products = productsResponse.data
   const topBanners = topBannersResponse.data || []
 
@@ -40,8 +50,16 @@ export default async function Home() {
       <TopAnnouncementBar initialBanners={topBanners} />
 
       <div className="container mx-auto px-3 sm:px-4">
-        <ProductExplorer products={products} user={user} />
-        <PromoBanners />
+        {userRole === "delivery" ? (
+          <div className="pt-4">
+            <DeliveryDashboard />
+          </div>
+        ) : (
+          <>
+            <ProductExplorer products={products} user={user} />
+            <PromoBanners />
+          </>
+        )}
       </div>
     </div>
   )
