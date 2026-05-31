@@ -61,7 +61,14 @@ export async function getMerchantPendingOrders(merchantId: string) {
       phone,
       total_rounded,
       status,
-      created_at
+      created_at,
+      items:order_items(
+        id,
+        product_name,
+        product_price,
+        quantity,
+        unit_type
+      )
     `)
     .eq("merchant_id", merchantId)
     .eq("status", "pending")

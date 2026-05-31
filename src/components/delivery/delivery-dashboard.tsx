@@ -203,6 +203,35 @@ function OrderDeliveryCard({ order: initialOrder }: { order: any }) {
 
       {isExpanded && (
         <div className="p-4 border-t bg-muted/10 animate-in slide-in-from-top-2">
+          {/* عناصر الطلب */}
+          {order.items && order.items.length > 0 && (
+            <div className="border border-border/50 shadow-sm rounded-lg overflow-hidden bg-card mb-4">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/30 text-muted-foreground">
+                    <th className="text-right p-2 font-semibold">المنتج</th>
+                    <th className="text-center p-2 font-semibold">الكمية</th>
+                    <th className="text-left p-2 font-semibold">المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((item: any, idx: number) => (
+                    <tr key={item.id} className={idx < order.items.length - 1 ? "border-b border-dashed border-border/50" : ""}>
+                      <td className="p-2">
+                        <span className="font-medium text-brand-blue dark:text-foreground">{item.product_name}</span>
+                        <span className="text-[10px] text-muted-foreground mr-1">({item.unit_type})</span>
+                      </td>
+                      <td className="text-center p-2 font-bold tabular-nums text-brand-orange">{item.quantity}</td>
+                      <td className="text-left p-2 font-bold tabular-nums text-brand-blue dark:text-foreground">
+                        {(item.product_price * item.quantity).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {isDelivered ? (
             <div className="text-center p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
               <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
