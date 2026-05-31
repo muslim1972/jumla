@@ -60,6 +60,12 @@ export default function SupportPage() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isSupport, setIsSupport] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
+  const [auditLogRecordId, setAuditLogRecordId] = useState("")
+
+  const openAuditLogFor = (id: string) => {
+    setAuditLogRecordId(id)
+    setShowAuditLogs(true)
+  }
   const [isLoading, setIsLoading] = useState(true)
   
   // Data States
@@ -226,7 +232,7 @@ export default function SupportPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-violet-600 dark:text-violet-400">لوحة دعم العملاء</h1>
             <Button 
-              onClick={() => setShowAuditLogs(true)}
+              onClick={() => openAuditLogFor("")}
               variant="outline"
               size="sm"
               className="rounded-full shadow-sm gap-2 border-violet-500/30 text-violet-700 hover:text-violet-800 hover:bg-violet-500/10"
@@ -329,7 +335,16 @@ export default function SupportPage() {
                           <option value="archived">مؤرشف</option>
                         </select>
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center flex justify-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openAuditLogFor(order.id)}
+                          className="h-8 w-8 text-violet-600 hover:bg-violet-500/10"
+                          title="سجل الحركات لهذا الطلب"
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -382,6 +397,7 @@ export default function SupportPage() {
                     <th className="p-3 font-bold">اسم المتجر / الشركة</th>
                     <th className="p-3 font-bold">رقم الهاتف</th>
                     <th className="p-3 font-bold">العنوان</th>
+                    <th className="p-3 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -418,6 +434,17 @@ export default function SupportPage() {
                           className="h-8 text-xs border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
                         />
                       </td>
+                      <td className="p-3 text-center flex justify-center">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openAuditLogFor(profile.id)}
+                          className="h-8 w-8 text-violet-600 hover:bg-violet-500/10"
+                          title="سجل الحركات لهذا المستخدم"
+                        >
+                          <History className="w-4 h-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -430,7 +457,11 @@ export default function SupportPage() {
       {/* حوار سجل الحركات */}
       <AuditLogViewer 
         open={showAuditLogs} 
-        onOpenChange={setShowAuditLogs} 
+        onOpenChange={(open) => {
+          setShowAuditLogs(open)
+          if (!open) setAuditLogRecordId("")
+        }} 
+        initialRecordId={auditLogRecordId}
       />
     </div>
   )

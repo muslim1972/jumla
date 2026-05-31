@@ -10,7 +10,8 @@ import {
   Database,
   ArrowRightLeft,
   User,
-  Clock
+  Clock,
+  Filter
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,17 +37,28 @@ interface AuditLog {
 
 export function AuditLogViewer({ 
   open, 
-  onOpenChange 
+  onOpenChange,
+  initialRecordId = ""
 }: { 
   open: boolean
   onOpenChange: (open: boolean) => void 
+  initialRecordId?: string
 }) {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState(initialRecordId)
   const [selectedTable, setSelectedTable] = useState<string>("all")
   
+  const [fromDate, setFromDate] = useState<string>("")
+  const [toDate, setToDate] = useState<string>("")
+  
   const supabase = createClient()
+
+  useEffect(() => {
+    if (open) {
+      setSearchTerm(initialRecordId)
+    }
+  }, [open, initialRecordId])
 
   const fetchLogs = async () => {
     setIsLoading(true)
@@ -55,14 +67,20 @@ export function AuditLogViewer({
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(200) // جلب عدد أكبر للبحث الداخلي
 
       if (selectedTable !== 'all') {
         query = query.eq('table_name', selectedTable)
       }
 
-      if (searchTerm) {
-        query = query.eq('record_id', searchTerm)
+      if (fromDate) {
+        query = query.gte('created_at', new Date(fromDate).toISOString())
+      }
+      
+      if (toDate) {
+        const end = new Date(toDate)
+        end.setHours(23, 59, 59, 999)
+        query = query.lte('created_at', end.toISOString())
       }
 
       const { data, error } = await query
@@ -75,11 +93,11 @@ export function AuditLogViewer({
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, store_name')
             .in('id', userIds)
           
           if (profiles) {
-            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]))
+            const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name || p.store_name]))
             data.forEach(log => {
               if (log.changed_by) {
                 log.changer_name = profileMap[log.changed_by] || 'مستخدم غير معروف'
@@ -89,7 +107,21 @@ export function AuditLogViewer({
         }
       }
 
-      setLogs(data || [])
+      // الفلترة الذكية (النصية) محلياً
+      let filteredData = data || []
+      const term = searchTerm.trim().toLowerCase()
+      if (term) {
+        filteredData = filteredData.filter(log => {
+          return (
+            log.record_id.toLowerCase().includes(term) ||
+            (log.changer_name && log.changer_name.toLowerCase().includes(term)) ||
+            JSON.stringify(log.old_data || {}).toLowerCase().includes(term) ||
+            JSON.stringify(log.new_data || {}).toLowerCase().includes(term)
+          )
+        })
+      }
+
+      setLogs(filteredData)
     } catch (error) {
       console.error("Error fetching audit logs:", error)
     } finally {
@@ -101,11 +133,11 @@ export function AuditLogViewer({
     if (open) {
       fetchLogs()
     }
-  }, [open, selectedTable])
+  }, [open, selectedTable]) // نعيد الجلب فقط عند تغيير الجدول أو الفتح
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto" showCloseButton={true}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" showCloseButton={true}>
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <div className="bg-slate-500/10 p-2 rounded-lg">
@@ -115,41 +147,70 @@ export function AuditLogViewer({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="ابحث برقم المعرف (ID) للسجل..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-9"
-              dir="ltr"
-            />
+        <div className="bg-muted/30 p-4 rounded-xl border border-border/50 space-y-3 mb-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground mb-2">
+            <Filter className="w-4 h-4" />
+            فلاتر البحث
           </div>
-          <select 
-            value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value)}
-            className="h-10 px-3 bg-card border rounded-md text-sm outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="all">كل الجداول</option>
-            <option value="orders">الطلبات (orders)</option>
-            <option value="profiles">المستخدمين (profiles)</option>
-            <option value="products">المنتجات (products)</option>
-          </select>
-          <Button onClick={fetchLogs} disabled={isLoading} className="gap-2">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-            بحث
-          </Button>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-[2]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="ابحث بأي معلومة (اسم المشتري، رقم الهاتف، رقم الوصل...)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchLogs()}
+                className="pr-9 h-10 border-brand-orange/30 focus-visible:ring-brand-orange text-xs sm:text-sm"
+              />
+            </div>
+            <select 
+              value={selectedTable}
+              onChange={(e) => setSelectedTable(e.target.value)}
+              className="h-10 px-3 bg-card border border-border/50 rounded-md text-sm outline-none focus:ring-2 focus:ring-brand-orange flex-1"
+            >
+              <option value="all">كل الجداول</option>
+              <option value="orders">الطلبات (orders)</option>
+              <option value="profiles">المستخدمين (profiles)</option>
+              <option value="products">المنتجات (products)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="text-[10px] text-muted-foreground font-bold px-1">من تاريخ</label>
+              <Input 
+                type="date" 
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="flex-1 space-y-1.5">
+              <label className="text-[10px] text-muted-foreground font-bold px-1">إلى تاريخ</label>
+              <Input 
+                type="date" 
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <Button onClick={fetchLogs} disabled={isLoading} className="h-9 bg-brand-orange hover:bg-brand-orange/90 text-white w-full sm:w-auto px-8">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Search className="w-4 h-4 ml-2" />}
+              تطبيق البحث
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center p-8">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <Loader2 className="w-8 h-8 animate-spin text-brand-orange" />
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              لا توجد حركات مسجلة
+            <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
+              <History className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              لا توجد حركات مسجلة تطابق بحثك
             </div>
           ) : (
             logs.map((log) => (
