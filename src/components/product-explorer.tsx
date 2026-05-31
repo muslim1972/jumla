@@ -53,10 +53,12 @@ const CATEGORIES: Category[] = [
 
 export function ProductExplorer({ 
   products, 
-  user 
+  user,
+  cartItems = []
 }: { 
   products: Product[] | null,
-  user: any 
+  user: any,
+  cartItems?: { id: string; product_id: string; quantity: number }[]
 }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [searchQuery, setSearchQuery] = useState("")
@@ -441,6 +443,8 @@ export function ProductExplorer({
                             <AddToCartButton 
                               user={user} 
                               productId={product.id} 
+                              productPrice={product.price}
+                              initialCartItem={cartItems.find(i => i.product_id === product.id)}
                               variant="compact"
                             />
                           </CardFooter>
@@ -487,6 +491,8 @@ export function ProductExplorer({
                             <AddToCartButton 
                               user={user} 
                               productId={product.id} 
+                              productPrice={product.price}
+                              initialCartItem={cartItems.find(i => i.product_id === product.id)}
                               variant="icon"
                             />
                           </div>

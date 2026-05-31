@@ -21,7 +21,9 @@ import {
   ChevronUp,
   CheckCircle2,
   X,
+  Loader2
 } from "lucide-react"
+import { editOrder } from "@/app/(app)/cart/actions"
 
 export interface OrderData {
   id: string
@@ -37,6 +39,8 @@ export interface OrderData {
   merchant_name?: string
   delivery_worker_name?: string
   items?: OrderItemData[]
+  invoice_number?: number
+  support_phone?: string
 }
 
 export interface OrderItemData {
@@ -60,9 +64,9 @@ function OrderCard({ order }: { order: OrderData }) {
   const statusConfig = useMemo(() => {
     const configs: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
       pending: {
-        label: "قيد التوصيل",
+        label: "بإنتظار تأكيد التاجر",
         color: "text-amber-600 bg-amber-500/10 border-amber-500/30",
-        icon: <Truck className="w-3.5 h-3.5" />,
+        icon: <Clock className="w-3.5 h-3.5" />,
       },
       delivered: {
         label: "تم التسليم",
@@ -105,9 +109,10 @@ function OrderCard({ order }: { order: OrderData }) {
           </div>
           <div className="text-right">
             <p className="font-bold text-sm">
-              {order.merchant_name || "طلب"}
+              {order.merchant_name || "طلب"} 
+              {order.invoice_number && <span className="text-muted-foreground ml-1">#{String(order.invoice_number).padStart(5, '0')}</span>}
             </p>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
               <Clock className="w-3 h-3" />
               {dateStr}
             </p>
@@ -213,6 +218,49 @@ function OrderCard({ order }: { order: OrderData }) {
               <span className="text-primary tabular-nums">{order.total_rounded.toLocaleString()} د.ع</span>
             </div>
           </div>
+
+          {/* رقم الدعم وزر التعديل (في حالة الانتظار) */}
+          {order.status === 'pending' && (
+            <div className="pt-3 border-t space-y-3">
+              {order.support_phone && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
+                  <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">
+                    لديك استفسار؟ لا تتردد بالاتصال
+                  </p>
+                  <p className="font-mono text-sm font-bold text-blue-800 dark:text-blue-300" dir="ltr">
+                    {order.support_phone}
+                  </p>
+                </div>
+              )}
+              
+              <Button 
+                variant="outline" 
+                className="w-full text-amber-600 border-amber-600 hover:bg-amber-50"
+                disabled={expanded && (globalThis as any).isEditingOrder === order.id}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm("سيتم إرجاع هذه القائمة إلى السلة لتعديلها ثم يجب عليك إرسالها مجدداً. هل أنت متأكد؟")) {
+                    try {
+                      (globalThis as any).isEditingOrder = order.id;
+                      const res = await editOrder(order.id);
+                      if (res.error) {
+                        alert(res.error);
+                      } else {
+                        alert("تم إرجاع المنتجات إلى السلة بنجاح. يمكنك التعديل وإرسال القائمة من جديد.");
+                        // It will auto-refresh due to revalidatePath
+                      }
+                    } catch (error) {
+                      alert("حدث خطأ");
+                    } finally {
+                      delete (globalThis as any).isEditingOrder;
+                    }
+                  }
+                }}
+              >
+                تعديل المشتريات
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

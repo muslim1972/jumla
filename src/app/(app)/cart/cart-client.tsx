@@ -43,7 +43,13 @@ interface MerchantGroup {
   lastAddedAt: string
 }
 
-export function CartClient({ initialItems }: { initialItems: CartItemType[] }) {
+export function CartClient({ 
+  initialItems, 
+  buyerProfile 
+}: { 
+  initialItems: CartItemType[],
+  buyerProfile?: { store_name?: string, address?: string, phone?: string }
+}) {
   const [items, setItems] = useState<CartItemType[]>(initialItems)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
@@ -58,7 +64,11 @@ export function CartClient({ initialItems }: { initialItems: CartItemType[] }) {
     storeName: string
     address: string
     phone: string
-  } | null>(null)
+  } | null>(buyerProfile ? {
+    storeName: buyerProfile.store_name || "",
+    address: buyerProfile.address || "",
+    phone: buyerProfile.phone || ""
+  } : null)
   const [verificationCode, setVerificationCode] = useState("")
 
   // حالة تتبع المشتريات
@@ -396,6 +406,9 @@ export function CartClient({ initialItems }: { initialItems: CartItemType[] }) {
                                 لكل {item.products.unit_type}
                               </span>
                             </div>
+                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                              المجموع: {(item.products.price * item.quantity).toLocaleString()} د.ع
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between mt-2">
@@ -491,6 +504,7 @@ export function CartClient({ initialItems }: { initialItems: CartItemType[] }) {
           onOpenChange={setShowCheckoutDialog}
           merchantName={currentGroup.merchantName}
           onConfirm={handleDeliveryInfoConfirm}
+          initialData={buyerProfile}
         />
       )}
 

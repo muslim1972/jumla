@@ -19,6 +19,7 @@ interface CheckoutDialogProps {
   onOpenChange: (open: boolean) => void
   merchantName: string
   onConfirm: (data: { storeName: string; address: string; phone: string }) => void
+  initialData?: { store_name?: string; address?: string; phone?: string }
 }
 
 const PHONE_REGEX = /^07\d{9}$/
@@ -28,10 +29,11 @@ export function CheckoutDialog({
   onOpenChange,
   merchantName,
   onConfirm,
+  initialData,
 }: CheckoutDialogProps) {
-  const [storeName, setStoreName] = useState("")
-  const [address, setAddress] = useState("")
-  const [phone, setPhone] = useState("")
+  const [storeName, setStoreName] = useState(initialData?.store_name || "")
+  const [address, setAddress] = useState(initialData?.address || "")
+  const [phone, setPhone] = useState(initialData?.phone || "")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 

@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function addToCart(productId: string) {
+export async function addToCart(productId: string, quantity: number = 1) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -23,10 +23,10 @@ export async function addToCart(productId: string) {
     if (fetchError) throw fetchError
 
     if (existingItem) {
-      // Increment quantity
+      // Increment or set quantity (depending on how we use it, if it's already there we'll just add the new quantity)
       const { error: updateError } = await supabase
         .from('cart_items')
-        .update({ quantity: existingItem.quantity + 1 })
+        .update({ quantity: existingItem.quantity + quantity })
         .eq('id', existingItem.id)
 
       if (updateError) throw updateError
@@ -37,7 +37,7 @@ export async function addToCart(productId: string) {
         .insert({
           user_id: user.id,
           product_id: productId,
-          quantity: 1
+          quantity: quantity
         })
 
       if (insertError) throw insertError
@@ -112,7 +112,27 @@ export async function createOrder(data: {
   }
 
   try {
-    // 1. إنشاء الطلب
+    // 1. تحديث بيانات المشتري
+    await supabase.from('profiles').update({
+      store_name: data.storeName,
+      address: data.address,
+      phone: data.phone
+    }).eq('id', user.id);
+
+    // 2. جلب هاتف الدعم الخاص بالتاجر
+    const { data: merchantProfile } = await supabase
+      .from('profiles')
+      .select('support_phone')
+      .eq('id', data.merchantId)
+      .single();
+
+    // 3. جلب رقم الفاتورة التسلسلي
+    const { data: nextInvoiceNumber, error: rpcError } = await supabase
+      .rpc('get_next_invoice_number', { p_merchant_id: data.merchantId });
+    
+    if (rpcError) throw rpcError;
+
+    // 4. إنشاء الطلب
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -125,9 +145,11 @@ export async function createOrder(data: {
         subtotal: data.subtotal,
         delivery_fee: data.deliveryFee,
         total_rounded: data.totalRounded,
-        status: 'pending'
+        status: 'pending',
+        support_phone: merchantProfile?.support_phone,
+        invoice_number: nextInvoiceNumber
       })
-      .select('id')
+      .select('id, invoice_number')
       .single()
 
     if (orderError) throw orderError
@@ -216,5 +238,73 @@ export async function getMyOrders() {
   } catch (error: any) {
     console.error("Get orders error:", error)
     return { error: error.message, orders: [] }
+  }
+}
+
+/**
+ * إلغاء وتعديل طلب
+ * يغير حالة الطلب إلى ملغي (أو معدل)، يعيد العناصر إلى السلة، ويرسل إشعاراً للتاجر.
+ */
+export async function editOrder(orderId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "يجب تسجيل الدخول" }
+
+  try {
+    // 1. جلب تفاصيل الطلب مع العناصر
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (*)
+      `)
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (orderError || !order) throw new Error("لم يتم العثور على الطلب")
+    
+    if (order.status !== 'pending') {
+      throw new Error("لا يمكن تعديل طلب تمت الموافقة عليه أو تم توصيله")
+    }
+
+    // 2. تغيير حالة الطلب
+    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
+
+    // 3. إعادة العناصر إلى السلة
+    const cartItemsToInsert = order.order_items.map((item: any) => ({
+      user_id: user.id,
+      product_id: item.product_id,
+      quantity: item.quantity
+    }))
+
+    // نحذف المنتجات من السلة إذا كانت موجودة مسبقاً لكي لا تتكرر
+    const productIds = cartItemsToInsert.map((i: any) => i.product_id)
+    await supabase.from('cart_items').delete().eq('user_id', user.id).in('product_id', productIds)
+
+    const { error: insertError } = await supabase.from('cart_items').insert(cartItemsToInsert)
+    if (insertError) throw insertError
+
+    // 4. إرسال إشعار للتاجر
+    // جلب اسم المشتري (نأخذ اسم المتجر الخاص بالطلب أو اسم المشتري)
+    const { data: buyerProfile } = await supabase.from('profiles').select('full_name, store_name').eq('id', user.id).single()
+    const buyerName = buyerProfile?.store_name || buyerProfile?.full_name || "مشتري"
+    
+    const orderDate = new Date(order.created_at).toLocaleDateString("ar-IQ", { year: 'numeric', month: 'short', day: 'numeric' })
+    const message = `قام المشتري (${buyerName}) بإلغاء/تعديل القائمة رقم #${order.invoice_number} المؤرخة في ${orderDate}. ستصله قائمة جديدة إذا أتم التعديل.`
+
+    await supabase.from('notifications').insert({
+      user_id: order.merchant_id,
+      title: "تعديل طلب",
+      message: message
+    })
+
+    revalidatePath('/cart')
+    revalidatePath('/')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Edit order error:", error)
+    return { error: error.message || "حدث خطأ أثناء تعديل الطلب" }
   }
 }

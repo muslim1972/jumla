@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import Image from "next/image"
-import { DeliveryFeeInput } from "@/components/delivery-fee-input"
+import { MerchantSettings } from "@/components/merchant-settings"
 import { AlertCircle } from "lucide-react"
 
 export default async function DashboardPage() {
@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('delivery_fee')
+    .select('delivery_fee, support_phone')
     .eq('id', user?.id)
     .single()
 
@@ -38,16 +38,14 @@ export default async function DashboardPage() {
 
     if (!user) return
 
-    // Check if delivery fee is set
+    // Check if delivery fee and support phone are set
     const { data: profile } = await supabase
       .from('profiles')
-      .select('delivery_fee')
+      .select('delivery_fee, support_phone')
       .eq('id', user.id)
       .single()
 
-    if (profile?.delivery_fee === null || profile?.delivery_fee === undefined) {
-      // In a real app we'd use a better way to show error in server action
-      // for now we'll just not insert
+    if (profile?.delivery_fee === null || profile?.delivery_fee === undefined || !profile?.support_phone) {
       return
     }
 
@@ -95,22 +93,27 @@ export default async function DashboardPage() {
     revalidatePath("/")
   }
 
+  const isProfileComplete = profile?.delivery_fee !== null && profile?.delivery_fee !== undefined && profile?.support_phone;
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col md:flex-row gap-8">
         
         {/* Add Product Form */}
         <div className="w-full md:w-1/3">
-          <DeliveryFeeInput initialValue={profile?.delivery_fee} />
+          <MerchantSettings 
+            initialDeliveryFee={profile?.delivery_fee} 
+            initialSupportPhone={profile?.support_phone} 
+          />
 
-          {profile?.delivery_fee === null && (
+          {!isProfileComplete && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-2 items-start text-destructive">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <p className="text-sm font-medium">يجب تحديد أجور التوصيل أولاً لتتمكن من إضافة المنتجات.</p>
+              <p className="text-sm font-medium">يجب تحديد أجور التوصيل ورقم الدعم أولاً لتتمكن من إضافة المنتجات.</p>
             </div>
           )}
 
-          <Card className={profile?.delivery_fee === null ? "opacity-50 pointer-events-none" : "sticky top-24"}>
+          <Card className={!isProfileComplete ? "opacity-50 pointer-events-none" : "sticky top-24"}>
             <CardHeader>
               <CardTitle>إضافة منتج جديد</CardTitle>
               <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>

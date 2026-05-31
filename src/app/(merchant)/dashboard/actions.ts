@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function updateDeliveryFee(fee: number) {
+export async function updateMerchantSettings(fee: number, phone: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -11,7 +11,7 @@ export async function updateDeliveryFee(fee: number) {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ delivery_fee: fee })
+    .update({ delivery_fee: fee, support_phone: phone })
     .eq('id', user.id)
 
   if (error) return { success: false, error: error.message }

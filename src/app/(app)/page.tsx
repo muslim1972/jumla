@@ -44,6 +44,18 @@ export default async function Home() {
   const products = productsResponse.data
   const topBanners = topBannersResponse.data || []
 
+  // Fetch cart items for the user if logged in
+  let cartItems: { id: string; product_id: string; quantity: number }[] = []
+  if (user) {
+    const { data: cartData } = await supabase
+      .from('cart_items')
+      .select('id, product_id, quantity')
+      .eq('user_id', user.id)
+    if (cartData) {
+      cartItems = cartData
+    }
+  }
+
   return (
     <div className="min-h-screen mesh-gradient pb-32 sm:pb-44">
       {/* استبدال البانر الترحيبي القديم باللوحة الإعلانية المدفوعة العليا ذات التصميم الإبداعي */}
@@ -56,7 +68,7 @@ export default async function Home() {
           </div>
         ) : (
           <>
-            <ProductExplorer products={products} user={user} />
+            <ProductExplorer products={products} user={user} cartItems={cartItems} />
             <PromoBanners />
           </>
         )}
