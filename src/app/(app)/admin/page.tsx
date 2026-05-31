@@ -17,13 +17,15 @@ import {
   UserCheck,
   Megaphone,
   Clock,
-  Phone
+  Phone,
+  History
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { AuditLogViewer } from "@/components/audit-log-viewer"
 
 interface TopBanner {
   id: string
@@ -74,6 +76,7 @@ export default function AdminPage() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [showAuditLogs, setShowAuditLogs] = useState(false)
   
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -368,7 +371,18 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-brand-blue dark:text-foreground">لوحة إدارة النظام</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black text-brand-blue dark:text-foreground">لوحة إدارة النظام</h1>
+            <Button 
+              onClick={() => setShowAuditLogs(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm gap-2 border-slate-500/30 text-slate-700 hover:text-slate-800 hover:bg-slate-500/10"
+            >
+              <History className="w-4 h-4" />
+              سجل الحركات
+            </Button>
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">تتبع الأداء، وأدر المتاجر، وخصص الإعلانات الترويجية.</p>
         </div>
         
@@ -956,6 +970,8 @@ export default function AdminPage() {
                           <option value="guest">زائر تجاري (Guest)</option>
                           <option value="merchant">تاجر جملتي (Merchant)</option>
                           <option value="admin">مدير نظام (Admin)</option>
+                          <option value="support">موظف دعم (Support)</option>
+                          <option value="delivery">عامل توصيل (Delivery)</option>
                         </select>
                       </td>
                       <td className="p-3 text-center flex items-center justify-center gap-2">
@@ -981,6 +997,12 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* حوار سجل الحركات */}
+      <AuditLogViewer 
+        open={showAuditLogs} 
+        onOpenChange={setShowAuditLogs} 
+      />
     </div>
   )
 }

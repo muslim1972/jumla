@@ -52,6 +52,13 @@ export function Navbar({
             </Link>
           )}
 
+          {userRole === 'support' && (
+            <Link href="/support" className={buttonVariants({ variant: "ghost", size: "sm" }) + " rounded-full text-violet-600 hover:text-violet-700 hover:bg-violet-500/10"}>
+              <UserCheck className="h-4 w-4 sm:ml-2" />
+              <span className="hidden sm:inline-block">لوحة الدعم</span>
+            </Link>
+          )}
+
           <Link href="/cart" className={buttonVariants({ variant: "outline", size: "sm" }) + " relative rounded-full group hover:border-primary/50"}>
             <ShoppingCart className="h-4 w-4 sm:ml-2 group-hover:text-primary transition-colors" />
             {cartCount > 0 && (
