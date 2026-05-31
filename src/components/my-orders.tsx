@@ -61,6 +61,9 @@ interface MyOrdersProps {
 // دالة طباعة القائمة
 function handlePrintOrder(order: OrderData, dateStr: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
+  const maskedCode = order.verification_code.length > 2 
+    ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
+    : order.verification_code;
   
   const itemsRows = (order.items || []).map(item => `
     <tr>
@@ -172,7 +175,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
 
     <div class="verification">
       <div class="label">كود التحقق السري</div>
-      <div class="code">${order.verification_code}</div>
+      <div class="code">${maskedCode}</div>
       <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
     </div>
 
