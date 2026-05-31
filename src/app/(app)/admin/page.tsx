@@ -445,7 +445,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{mockMerchantsCount}</div>
-                <p className="text-[10px] text-muted-foreground mt-1">تاجر جملة نشط</p>
+                <p className="text-[10px] text-muted-foreground mt-1">تاجر جملتي نشط</p>
               </CardContent>
             </Card>
 
@@ -954,7 +954,7 @@ export default function AdminPage() {
                           className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none"
                         >
                           <option value="guest">زائر تجاري (Guest)</option>
-                          <option value="merchant">تاجر جملة (Merchant)</option>
+                          <option value="merchant">تاجر جملتي (Merchant)</option>
                           <option value="admin">مدير نظام (Admin)</option>
                         </select>
                       </td>

@@ -23,7 +23,7 @@ export function Navbar({
             <div className="bg-primary/10 p-2 rounded-xl group-hover:bg-primary/20 transition-all duration-300 shadow-inner">
               <PackageOpen className="h-6 w-6 text-primary animate-in zoom-in duration-500" />
             </div>
-            <span className="font-black text-2xl tracking-tighter text-gradient">جملة</span>
+            <span className="font-black text-2xl tracking-tighter text-gradient">جملتي</span>
           </Link>
         </div>
 

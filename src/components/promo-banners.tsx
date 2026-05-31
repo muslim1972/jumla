@@ -25,7 +25,7 @@ const DEFAULT_BANNERS: Banner[] = [
   },
   {
     id: "2",
-    title: "جملة السجائر ومستلزمات التدخين 🚬",
+    title: "جملتي السجائر ومستلزمات التدخين 🚬",
     description: "تسوّق الآن بأقل الأسعار الحقيقية في الأسواق. جميع الماركات متوفرة مع توصيل فوري لمكانك.",
     bg_gradient: "from-blue-600 via-indigo-600 to-brand-blue",
     image_url: null,

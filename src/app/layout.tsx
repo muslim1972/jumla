@@ -9,7 +9,7 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "Jumla - تطبيق الجملة",
+  title: "Jumlati - تطبيق جملتي",
   description: "منصة لبيع وشراء المنتجات بالجملة والمفرد",
 };
 

@@ -252,6 +252,7 @@ export async function getMyOrders() {
       .eq('user_id', user.id)
       .neq('status', 'cancelled')
       .neq('status', 'editing')
+      .neq('status', 'archived')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -361,5 +362,105 @@ export async function editOrder(orderId: string) {
   } catch (error: any) {
     console.error("Edit order error:", error)
     return { error: error.message || "حدث خطأ أثناء تعديل الطلب" }
+  }
+}
+
+/**
+ * أرشفة طلب - نقله من التتبع إلى الأرشيف
+ */
+export async function archiveOrder(orderId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "يجب تسجيل الدخول" }
+
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'archived' })
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+
+    revalidatePath('/cart')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Archive order error:", error)
+    return { error: error.message || "حدث خطأ أثناء الأرشفة" }
+  }
+}
+
+/**
+ * البحث في الأرشيف حسب رقم الوصل أو الفترة الزمنية
+ */
+export async function searchArchivedOrders(params: {
+  invoiceNumber?: string
+  dateFrom?: string
+  dateTo?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "يجب تسجيل الدخول", orders: [] }
+
+  try {
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (*)
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'archived')
+      .order('created_at', { ascending: false })
+
+    // فلترة حسب رقم الوصل
+    if (params.invoiceNumber) {
+      query = query.eq('invoice_number', parseInt(params.invoiceNumber))
+    }
+
+    // فلترة حسب الفترة
+    if (params.dateFrom) {
+      query = query.gte('created_at', params.dateFrom)
+    }
+    if (params.dateTo) {
+      // إضافة يوم واحد لتشمل اليوم المحدد بالكامل
+      const toDate = new Date(params.dateTo)
+      toDate.setDate(toDate.getDate() + 1)
+      query = query.lt('created_at', toDate.toISOString())
+    }
+
+    const { data: orders, error } = await query
+
+    if (error) throw error
+
+    // جلب أسماء التجار
+    const merchantIds = [...new Set((orders || []).map(o => o.merchant_id))]
+    let merchantNames: Record<string, string> = {}
+
+    if (merchantIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', merchantIds)
+
+      if (profiles) {
+        merchantNames = Object.fromEntries(
+          profiles.map(p => [p.id, p.full_name])
+        )
+      }
+    }
+
+    const enrichedOrders = (orders || []).map(order => ({
+      ...order,
+      merchant_name: merchantNames[order.merchant_id] || 'تاجر',
+      items: order.order_items || [],
+    }))
+
+    return { orders: enrichedOrders }
+  } catch (error: any) {
+    console.error("Search archived orders error:", error)
+    return { error: error.message, orders: [] }
   }
 }

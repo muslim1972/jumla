@@ -41,7 +41,7 @@ const DEFAULT_ANNOUNCEMENTS = [
   },
   {
     id: "def-3",
-    text: "انضم إلى كبار التجار المميزين في منصة 'جملة' واعرض خصوماتك هنا. تواصل مع إدارة التسويق والمبيعات فوراً 📞",
+    text: "انضم إلى كبار التجار المميزين في منصة 'جملتي' واعرض خصوماتك هنا. تواصل مع إدارة التسويق والمبيعات فوراً 📞",
     link_url: "#advertise",
     isDefault: true,
     images: ["cat_grocery.jpg", "cat_smoking.jpg", "cat_plastics.jpg", "cat_sweets.jpg"]
@@ -213,7 +213,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
         <DialogContent className="max-w-md w-[92%] sm:w-full rounded-2xl p-6 overflow-hidden border border-indigo-900/10 shadow-premium" dir="rtl">
           <DialogHeader className="text-right space-y-1">
             <DialogTitle className="text-xl font-black text-brand-blue flex items-center gap-2">
-              <Megaphone className="w-5 h-5 text-brand-orange" /> أعلن في صدارة تطبيق جملة
+              <Megaphone className="w-5 h-5 text-brand-orange" /> أعلن في صدارة تطبيق جملتي
             </DialogTitle>
             <DialogDescription className="text-xs">
               احجز مساحة إعلانية مدفوعة في صدارة التطبيق لتصل عروضك مباشرة إلى آلاف تجار الجملة والمشترين.

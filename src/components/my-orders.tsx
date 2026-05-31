@@ -22,9 +22,10 @@ import {
   CheckCircle2,
   X,
   Loader2,
-  Printer
+  Printer,
+  Archive
 } from "lucide-react"
-import { editOrder } from "@/app/(app)/cart/actions"
+import { editOrder, archiveOrder } from "@/app/(app)/cart/actions"
 
 export interface OrderData {
   id: string
@@ -83,7 +84,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>قائمة #${invoiceNum} - ${order.merchant_name || 'جملة'}</title>
+  <title>قائمة #${invoiceNum} - ${order.merchant_name || 'جملتي'}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -126,7 +127,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
 <body>
   <div class="invoice">
     <div class="header">
-      <h1>جُملة</h1>
+      <h1>جُملتي</h1>
       <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
       <div class="date">${dateStr}</div>
     </div>
@@ -180,7 +181,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
     </div>
 
     <div class="footer">
-      <p>تم إنشاء هذه القائمة عبر منصة جُملة</p>
+      <p>تم إنشاء هذه القائمة عبر منصة جُملتي</p>
     </div>
 
     <div class="no-print" style="text-align:center;margin-top:20px;">
@@ -198,8 +199,9 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
 }
 
 // مكون بطاقة الطلب الفردي
-function OrderCard({ order, onOrderEdited }: { order: OrderData, onOrderEdited?: () => void }) {
+function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean }) {
   const [expanded, setExpanded] = useState(false)
+  const [isArchiving, setIsArchiving] = useState(false)
 
   const statusConfig = useMemo(() => {
     const configs: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -360,17 +362,47 @@ function OrderCard({ order, onOrderEdited }: { order: OrderData, onOrderEdited?:
           </div>
 
           {/* زر طباعة القائمة */}
-          <Button
-            variant="outline"
-            className="w-full gap-2 text-primary border-primary/30 hover:bg-primary/5"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrintOrder(order, dateStr);
-            }}
-          >
-            <Printer className="w-4 h-4" />
-            طباعة القائمة
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 gap-2 text-primary border-primary/30 hover:bg-primary/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrintOrder(order, dateStr);
+              }}
+            >
+              <Printer className="w-4 h-4" />
+              طباعة
+            </Button>
+
+            {!isArchiveView && (
+              <Button
+                variant="outline"
+                className="flex-1 gap-2 text-violet-600 border-violet-500/30 hover:bg-violet-500/5"
+                disabled={isArchiving}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setIsArchiving(true);
+                  try {
+                    const res = await archiveOrder(order.id);
+                    if (res.error) {
+                      alert(res.error);
+                    } else {
+                      if (onOrderEdited) onOrderEdited();
+                      window.location.reload();
+                    }
+                  } catch {
+                    alert("حدث خطأ");
+                  } finally {
+                    setIsArchiving(false);
+                  }
+                }}
+              >
+                {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                أرشفة
+              </Button>
+            )}
+          </div>
 
           {/* رقم الدعم وزر التعديل (في حالة الانتظار) */}
           {order.status === 'pending' && (

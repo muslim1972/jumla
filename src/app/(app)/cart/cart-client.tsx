@@ -14,6 +14,8 @@ import { generateVerificationCode } from "@/lib/generate-code"
 import { CheckoutDialog } from "@/components/checkout-dialog"
 import { InvoicePreview, type InvoiceItem } from "@/components/invoice-preview"
 import { MyOrders, type OrderData } from "@/components/my-orders"
+import { ArchiveDialog } from "@/components/archive-dialog"
+import { Archive } from "lucide-react"
 
 // نوع عنصر السلة
 interface CartItemType {
@@ -75,6 +77,9 @@ export function CartClient({
   const [showMyOrders, setShowMyOrders] = useState(false)
   const [myOrders, setMyOrders] = useState<OrderData[]>([])
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
+
+  // حالة الأرشيف
+  const [showArchive, setShowArchive] = useState(false)
 
   // تجميع العناصر حسب التاجر
   const merchantGroups = useMemo((): MerchantGroup[] => {
@@ -257,8 +262,17 @@ export function CartClient({
   if (items.length === 0) {
     return (
       <>
-        {/* زر تتبع المشتريات حتى لو السلة فارغة */}
-        <div className="mb-6 flex justify-end">
+        {/* زر تتبع المشتريات والأرشيف حتى لو السلة فارغة */}
+        <div className="mb-6 flex justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowArchive(true)}
+            className="gap-2 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700"
+          >
+            <Archive className="w-4 h-4" />
+            الأرشيف
+          </Button>
+
           <Button
             variant="outline"
             onClick={handleOpenMyOrders}
@@ -291,14 +305,29 @@ export function CartClient({
           onOpenChange={setShowMyOrders}
           orders={myOrders}
         />
+
+        {/* حوار الأرشيف */}
+        <ArchiveDialog
+          open={showArchive}
+          onOpenChange={setShowArchive}
+        />
       </>
     )
   }
 
   return (
     <>
-      {/* زر تتبع المشتريات في الأعلى */}
-      <div className="mb-6 flex justify-end">
+      {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
+      <div className="mb-6 flex justify-end gap-3">
+        <Button
+          variant="outline"
+          onClick={() => setShowArchive(true)}
+          className="gap-2 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700"
+        >
+          <Archive className="w-4 h-4" />
+          الأرشيف
+        </Button>
+
         <Button
           variant="outline"
           onClick={handleOpenMyOrders}
@@ -533,6 +562,12 @@ export function CartClient({
         open={showMyOrders}
         onOpenChange={setShowMyOrders}
         orders={myOrders}
+      />
+
+      {/* حوار الأرشيف */}
+      <ArchiveDialog
+        open={showArchive}
+        onOpenChange={setShowArchive}
       />
     </>
   )

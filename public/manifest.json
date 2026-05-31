@@ -1,6 +1,6 @@
 {
-  "name": "Jumla App",
-  "short_name": "Jumla",
+  "name": "Jumlati App",
+  "short_name": "Jumlati",
   "description": "منصة لبيع وشراء المنتجات بالجملة والمفرد",
   "start_url": "/",
   "display": "standalone",
