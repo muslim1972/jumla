@@ -248,6 +248,7 @@ function OrderCard({ order, onOrderEdited }: { order: OrderData, onOrderEdited?:
                       } else {
                         alert("تم إرجاع المنتجات إلى السلة بنجاح. يمكنك التعديل وإرسال القائمة من جديد.");
                         if (onOrderEdited) onOrderEdited();
+                        window.location.reload();
                       }
                     } catch (error) {
                       alert("حدث خطأ");
