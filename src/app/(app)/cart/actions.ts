@@ -126,42 +126,85 @@ export async function createOrder(data: {
       .eq('id', data.merchantId)
       .single();
 
-    // 3. جلب رقم الفاتورة التسلسلي
-    const { data: nextInvoiceNumber, error: rpcError } = await supabase
-      .rpc('get_next_invoice_number', { p_merchant_id: data.merchantId });
-    
-    if (rpcError) throw rpcError;
-
-    // 4. إنشاء الطلب
-    const { data: order, error: orderError } = await supabase
+    // Check if there is an 'editing' order for this merchant
+    const { data: editingOrder } = await supabase
       .from('orders')
-      .insert({
-        user_id: user.id,
-        merchant_id: data.merchantId,
-        verification_code: data.verificationCode,
-        store_name: data.storeName,
-        address: data.address,
-        phone: data.phone,
-        subtotal: data.subtotal,
-        delivery_fee: data.deliveryFee,
-        total_rounded: data.totalRounded,
-        status: 'pending',
-        support_phone: merchantProfile?.support_phone,
-        invoice_number: nextInvoiceNumber
-      })
-      .select('id, invoice_number')
-      .single()
+      .select('id, invoice_number, created_at')
+      .eq('user_id', user.id)
+      .eq('merchant_id', data.merchantId)
+      .eq('status', 'editing')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (orderError) throw orderError
+    let orderId = "";
+    let invoiceNumber = null;
 
-    // 2. إنشاء عناصر الطلب
+    if (editingOrder) {
+      // Update existing editing order
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          verification_code: data.verificationCode,
+          store_name: data.storeName,
+          address: data.address,
+          phone: data.phone,
+          subtotal: data.subtotal,
+          delivery_fee: data.deliveryFee,
+          total_rounded: data.totalRounded,
+          status: 'pending',
+          support_phone: merchantProfile?.support_phone
+        })
+        .eq('id', editingOrder.id);
+
+      if (updateError) throw updateError;
+      
+      orderId = editingOrder.id;
+      invoiceNumber = editingOrder.invoice_number;
+
+      // Delete old order items
+      await supabase.from('order_items').delete().eq('order_id', orderId);
+
+    } else {
+      // 3. جلب رقم الفاتورة التسلسلي الجديد
+      const { data: nextInvoiceNumber, error: rpcError } = await supabase
+        .rpc('get_next_invoice_number', { p_merchant_id: data.merchantId });
+      
+      if (rpcError) throw rpcError;
+      invoiceNumber = nextInvoiceNumber;
+
+      // 4. إنشاء الطلب الجديد
+      const { data: newOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          merchant_id: data.merchantId,
+          verification_code: data.verificationCode,
+          store_name: data.storeName,
+          address: data.address,
+          phone: data.phone,
+          subtotal: data.subtotal,
+          delivery_fee: data.deliveryFee,
+          total_rounded: data.totalRounded,
+          status: 'pending',
+          support_phone: merchantProfile?.support_phone,
+          invoice_number: invoiceNumber
+        })
+        .select('id')
+        .single();
+
+      if (orderError) throw orderError;
+      orderId = newOrder.id;
+    }
+
+    // 5. إضافة عناصر الطلب
     const orderItems = data.items.map(item => ({
-      order_id: order.id,
+      order_id: orderId,
       product_id: item.productId,
       product_name: item.productName,
       product_price: item.productPrice,
       quantity: item.quantity,
-      unit_type: item.unitType,
+      unit_type: item.unitType
     }))
 
     const { error: itemsError } = await supabase
@@ -208,6 +251,7 @@ export async function getMyOrders() {
       `)
       .eq('user_id', user.id)
       .neq('status', 'cancelled')
+      .neq('status', 'editing')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -271,7 +315,17 @@ export async function editOrder(orderId: string) {
     }
 
     // 2. تغيير حالة الطلب
-    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId)
+    // إلغاء أي طلبات قيد التعديل مسبقاً لنفس التاجر
+    await supabase.from('orders')
+      .update({ status: 'cancelled' })
+      .eq('user_id', user.id)
+      .eq('merchant_id', order.merchant_id)
+      .eq('status', 'editing');
+
+    // جعل هذا الطلب قيد التعديل ليحتفظ برقمه
+    await supabase.from('orders')
+      .update({ status: 'editing' })
+      .eq('id', orderId);
 
     // 3. إعادة العناصر إلى السلة
     const cartItemsToInsert = order.order_items.map((item: any) => ({
