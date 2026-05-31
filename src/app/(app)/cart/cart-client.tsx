@@ -395,52 +395,57 @@ export function CartClient({
                           )}
                         </div>
 
-                        <div className="flex-grow flex flex-col justify-between">
-                          <div>
+                        <div className="flex-grow flex justify-between items-start">
+                          {/* Right Side: Product Info */}
+                          <div className="text-right">
                             <h3 className="font-bold text-sm line-clamp-1">{item.products.name}</h3>
                             <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs font-bold text-primary">
-                                {item.products.price.toLocaleString()} د.ع
-                              </p>
                               <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
                                 لكل {item.products.unit_type}
                               </span>
-                            </div>
-                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">
-                              المجموع: {(item.products.price * item.quantity).toLocaleString()} د.ع
+                              <p className="text-xs font-bold text-primary">
+                                {item.products.price.toLocaleString()} د.ع
+                              </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
-                              <button
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                disabled={isUpdating === item.id || item.quantity <= 1}
-                                className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                disabled={isUpdating === item.id}
-                                className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
+                          {/* Left Side: Quantity & Total & Actions */}
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                              المجموع: {(item.products.price * item.quantity).toLocaleString()} د.ع
                             </div>
 
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemove(item.id)}
-                              disabled={isUpdating === item.id}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemove(item.id)}
+                                disabled={isUpdating === item.id}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+
+                              <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                  disabled={isUpdating === item.id}
+                                  className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                                <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm">
+                                  {item.quantity}
+                               </span>
+                                <button
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                                  disabled={isUpdating === item.id || item.quantity <= 1}
+                                  className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

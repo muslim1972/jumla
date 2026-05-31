@@ -58,7 +58,7 @@ interface MyOrdersProps {
 }
 
 // مكون بطاقة الطلب الفردي
-function OrderCard({ order }: { order: OrderData }) {
+function OrderCard({ order, onOrderEdited }: { order: OrderData, onOrderEdited?: () => void }) {
   const [expanded, setExpanded] = useState(false)
 
   const statusConfig = useMemo(() => {
@@ -225,7 +225,7 @@ function OrderCard({ order }: { order: OrderData }) {
               {order.support_phone && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
                   <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">
-                    لديك استفسار؟ لا تتردد بالاتصال
+                    لديك استفسار؟ لا تتردد بالاتصال بهاتف الدعم
                   </p>
                   <p className="font-mono text-sm font-bold text-blue-800 dark:text-blue-300" dir="ltr">
                     {order.support_phone}
@@ -247,7 +247,7 @@ function OrderCard({ order }: { order: OrderData }) {
                         alert(res.error);
                       } else {
                         alert("تم إرجاع المنتجات إلى السلة بنجاح. يمكنك التعديل وإرسال القائمة من جديد.");
-                        // It will auto-refresh due to revalidatePath
+                        if (onOrderEdited) onOrderEdited();
                       }
                     } catch (error) {
                       alert("حدث خطأ");
@@ -307,7 +307,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
                   قيد التوصيل ({pendingOrders.length})
                 </p>
                 {pendingOrders.map(order => (
-                  <OrderCard key={order.id} order={order} />
+                  <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} />
                 ))}
               </div>
             )}

@@ -109,24 +109,31 @@ export function AddToCartButton({
   if (isIcon) {
     return (
       <div className="flex flex-col items-end gap-2">
-        <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">
-          <button
-            onClick={() => handleUpdateQuantity(localQuantity + 1)}
-            disabled={isLoading}
-            className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
-          <span className="px-2 font-bold min-w-[24px] text-center border-x text-xs">
-            {localQuantity}
-          </span>
-          <button
-            onClick={() => handleUpdateQuantity(localQuantity - 1)}
-            disabled={isLoading || localQuantity <= 1}
-            className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
-          >
-            <Minus className="w-3 h-3" />
-          </button>
+        <div className="flex items-center gap-2">
+          {localQuantity > 0 && (
+            <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 min-w-fit">
+              = {(productPrice * localQuantity).toLocaleString()}
+            </div>
+          )}
+          <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">
+            <button
+              onClick={() => handleUpdateQuantity(localQuantity + 1)}
+              disabled={isLoading}
+              className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+            <span className="px-2 font-bold min-w-[24px] text-center border-x text-xs">
+              {localQuantity}
+            </span>
+            <button
+              onClick={() => handleUpdateQuantity(localQuantity - 1)}
+              disabled={isLoading || localQuantity <= 1}
+              className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
         <Button 
