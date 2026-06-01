@@ -217,7 +217,7 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: {
               onClick={onReject} 
               disabled={isProcessing}
               variant="destructive"
-              className="flex-[0.4] bg-red-500 hover:bg-red-600"
+              className="flex-[0.4] bg-red-500 hover:bg-red-600 text-white"
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
               رفض
