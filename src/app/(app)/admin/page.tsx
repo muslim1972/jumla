@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/components/audit-log-viewer"
+import { MerchantBillingAdmin } from "@/components/merchant-billing-admin"
 
 interface TopBanner {
   id: string
@@ -71,7 +72,7 @@ const GRADIENT_PRESETS = [
 ]
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users">("overview")
+  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling">("overview")
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -428,6 +429,16 @@ export default function AdminPage() {
             )}
           >
             المستخدمين والتوصيل
+          </button>
+          <button 
+            onClick={() => setActiveTab("merchantBilling")}
+            className={cn(
+              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+              activeTab === "merchantBilling" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            التحاسب والفواتير
           </button>
         </div>
       </div>
@@ -996,6 +1007,13 @@ export default function AdminPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* MERCHANT BILLING TAB */}
+      {activeTab === "merchantBilling" && (
+        <div className="animate-in fade-in duration-300">
+          <MerchantBillingAdmin />
+        </div>
       )}
 
       {/* حوار سجل الحركات */}

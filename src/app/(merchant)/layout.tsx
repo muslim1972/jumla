@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
+import { MerchantTabs } from "@/components/merchant-tabs"
 
 export default async function MerchantLayout({
   children,
@@ -27,6 +28,7 @@ export default async function MerchantLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar userRole={profile?.role} fullName={profile?.full_name} />
+      <MerchantTabs />
       <main className="flex-1 bg-muted/20">
         {children}
       </main>
