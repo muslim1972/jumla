@@ -17,7 +17,7 @@ export async function getDeliveryMerchants(searchQuery?: string) {
   const { data: orders, error: ordersError } = await supabase
     .from("orders")
     .select("merchant_id")
-    .eq("status", "pending")
+    .eq("status", "approved")
 
   if (ordersError) {
     return { error: ordersError.message }
@@ -71,7 +71,7 @@ export async function getMerchantPendingOrders(merchantId: string) {
       )
     `)
     .eq("merchant_id", merchantId)
-    .eq("status", "pending")
+    .eq("status", "approved")
     .order("created_at", { ascending: false })
 
   if (error) {
