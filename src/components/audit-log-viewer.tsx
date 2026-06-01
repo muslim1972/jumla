@@ -44,6 +44,29 @@ export function AuditLogViewer({
   onOpenChange: (open: boolean) => void 
   initialRecordId?: string
 }) {
+  const renderDataList = (data: any) => {
+    if (!data) return <div className="text-muted-foreground italic text-xs">لا توجد بيانات</div>;
+    
+    return (
+      <ul className="space-y-1.5 w-full">
+        {Object.entries(data).map(([key, value]) => {
+          let displayValue = String(value);
+          if (value === null) displayValue = "فارغ (null)";
+          else if (typeof value === "object") displayValue = JSON.stringify(value);
+          
+          return (
+            <li key={key} className="flex flex-col sm:flex-row sm:gap-2 text-[11px] border-b border-border/30 pb-1.5 last:border-0 last:pb-0">
+              <span className="font-bold text-muted-foreground sm:w-1/3 truncate" title={key}>{key}:</span>
+              <span className="text-foreground flex-1 break-all sm:break-words font-mono" dir="ltr" title={String(value)}>
+                {displayValue}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState(initialRecordId)
@@ -137,7 +160,7 @@ export function AuditLogViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" showCloseButton={true}>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6" showCloseButton={true}>
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <div className="bg-slate-500/10 p-2 rounded-lg">
@@ -237,31 +260,31 @@ export function AuditLogViewer({
                   </div>
                 </div>
                 <CardContent className="p-4 space-y-3">
-                  <div className="text-xs text-muted-foreground font-mono mb-2" dir="ltr">
+                  <div className="text-[10px] text-muted-foreground font-mono mb-3 bg-muted/50 p-1.5 rounded inline-block break-all max-w-full" dir="ltr">
                     ID: {log.record_id}
                   </div>
                   
                   {log.action === 'UPDATE' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-xs font-bold text-muted-foreground">قبل التعديل</div>
-                        <pre className="text-[10px] bg-red-500/5 text-red-700/80 p-3 rounded-lg overflow-x-auto border border-red-500/10" dir="ltr">
-                          {JSON.stringify(log.old_data, null, 2)}
-                        </pre>
+                      <div className="space-y-2 min-w-0">
+                        <div className="text-xs font-bold text-muted-foreground bg-red-500/10 text-red-700 px-2 py-1 rounded-md inline-block">قبل التعديل</div>
+                        <div className="bg-red-500/5 p-3 rounded-lg border border-red-500/10 w-full overflow-hidden">
+                          {renderDataList(log.old_data)}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="text-xs font-bold text-muted-foreground">بعد التعديل</div>
-                        <pre className="text-[10px] bg-emerald-500/5 text-emerald-700/80 p-3 rounded-lg overflow-x-auto border border-emerald-500/10" dir="ltr">
-                          {JSON.stringify(log.new_data, null, 2)}
-                        </pre>
+                      <div className="space-y-2 min-w-0">
+                        <div className="text-xs font-bold text-muted-foreground bg-emerald-500/10 text-emerald-700 px-2 py-1 rounded-md inline-block">بعد التعديل</div>
+                        <div className="bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10 w-full overflow-hidden">
+                          {renderDataList(log.new_data)}
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="text-xs font-bold text-muted-foreground">البيانات المحذوفة</div>
-                      <pre className="text-[10px] bg-red-500/5 text-red-700/80 p-3 rounded-lg overflow-x-auto border border-red-500/10" dir="ltr">
-                        {JSON.stringify(log.old_data, null, 2)}
-                      </pre>
+                    <div className="space-y-2 min-w-0">
+                      <div className="text-xs font-bold text-muted-foreground bg-red-500/10 text-red-700 px-2 py-1 rounded-md inline-block">البيانات المحذوفة</div>
+                      <div className="bg-red-500/5 p-3 rounded-lg border border-red-500/10 w-full overflow-hidden">
+                        {renderDataList(log.old_data)}
+                      </div>
                     </div>
                   )}
                 </CardContent>
