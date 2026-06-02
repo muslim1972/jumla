@@ -12,6 +12,21 @@ export default async function CartPage() {
     redirect("/login?message=" + encodeURIComponent("يجب تسجيل الدخول للوصول إلى السلة"))
   }
 
+  // Fetch buyer profile for checkout info & role check
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('store_name, address, phone, role')
+    .eq('id', user.id)
+    .single()
+
+  const userRole = profile?.role || "guest"
+  
+  // منع الحسابات الإدارية والتجار وعمال التوصيل من دخول السلة
+  if (userRole === "admin") return redirect("/admin")
+  if (userRole === "support") return redirect("/support")
+  if (userRole === "merchant") return redirect("/dashboard")
+  if (userRole === "delivery") return redirect("/")
+
   // Fetch cart items
   const { data: cartItems, error } = await supabase
     .from('cart_items')
@@ -28,13 +43,6 @@ export default async function CartPage() {
   if (error) {
     console.error("Error fetching cart items:", error)
   }
-
-  // Fetch buyer profile for checkout info
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('store_name, address, phone')
-    .eq('id', user.id)
-    .single()
 
   return (
     <div className="container mx-auto px-4 py-12">

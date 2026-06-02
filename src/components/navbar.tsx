@@ -59,15 +59,17 @@ export function Navbar({
             </Link>
           )}
 
-          <Link href="/cart" className={buttonVariants({ variant: "outline", size: "sm" }) + " relative rounded-full group hover:border-primary/50"}>
-            <ShoppingCart className="h-4 w-4 sm:ml-2 group-hover:text-primary transition-colors" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-black shadow-lg animate-in zoom-in duration-300">
-                {cartCount}
-              </span>
-            )}
-            <span className="hidden sm:inline-block">السلة</span>
-          </Link>
+          {(!userRole || userRole === 'guest' || userRole === 'buyer') && (
+            <Link href="/cart" className={buttonVariants({ variant: "outline", size: "sm" }) + " relative rounded-full group hover:border-primary/50"}>
+              <ShoppingCart className="h-4 w-4 sm:ml-2 group-hover:text-primary transition-colors" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-black shadow-lg animate-in zoom-in duration-300">
+                  {cartCount}
+                </span>
+              )}
+              <span className="hidden sm:inline-block">السلة</span>
+            </Link>
+          )}
 
           {fullName ? (
             <form action={signOut}>
