@@ -50,7 +50,7 @@ export default async function CartPage() {
         سلة المشتريات
       </h1>
       
-      <CartClient initialItems={cartItems || []} buyerProfile={profile || {}} />
+      <CartClient initialItems={cartItems || []} buyerProfile={profile || {}} userId={user.id} />
     </div>
   )
 }

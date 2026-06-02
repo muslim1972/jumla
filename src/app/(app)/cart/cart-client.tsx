@@ -8,7 +8,8 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { removeFromCart, updateQuantity, createOrder, getMyOrders } from "./actions"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
 import { generateVerificationCode } from "@/lib/generate-code"
 import { CheckoutDialog } from "@/components/checkout-dialog"
@@ -47,10 +48,12 @@ interface MerchantGroup {
 
 export function CartClient({ 
   initialItems, 
-  buyerProfile 
+  buyerProfile,
+  userId
 }: { 
   initialItems: CartItemType[],
-  buyerProfile?: { store_name?: string, address?: string, phone?: string }
+  buyerProfile?: { store_name?: string, address?: string, phone?: string },
+  userId: string
 }) {
   const [items, setItems] = useState<CartItemType[]>(initialItems)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
@@ -80,6 +83,39 @@ export function CartClient({
 
   // حالة الأرشيف
   const [showArchive, setShowArchive] = useState(false)
+
+  const supabase = createClient()
+
+  // Realtime Orders Listener
+  useEffect(() => {
+    if (!showMyOrders) return
+
+    const channel = supabase
+      .channel('my_orders_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders',
+          filter: `buyer_id=eq.${userId}`,
+        },
+        async () => {
+          // جلب الطلبات من جديد لتحديث الحالة
+          try {
+            const result = await getMyOrders()
+            setMyOrders(result.orders as OrderData[])
+          } catch (e) {
+            console.error("Error fetching orders:", e)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [showMyOrders, supabase, userId])
 
   // تجميع العناصر حسب التاجر
   const merchantGroups = useMemo((): MerchantGroup[] => {
