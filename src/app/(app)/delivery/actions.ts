@@ -27,8 +27,20 @@ export async function getDeliveryMerchants(searchQuery?: string) {
     return { merchants: [] }
   }
 
+  // جلب التجار المخصصين لهذا المندوب
+  const { data: profile } = await supabase.from('profiles').select('assigned_merchants').eq('id', userResponse.user.id).single()
+  const assignedMerchants = profile?.assigned_merchants || []
+
   // استخراج الايديات الفريدة للتجار
-  const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
+  let merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
+
+  if (assignedMerchants.length > 0) {
+    merchantIds = merchantIds.filter(id => assignedMerchants.includes(id))
+  }
+
+  if (merchantIds.length === 0) {
+    return { merchants: [] }
+  }
 
   let query = supabase
     .from("profiles")

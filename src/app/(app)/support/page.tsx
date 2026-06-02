@@ -289,13 +289,14 @@ export default function SupportPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto p-0 sm:p-6">
+          <CardContent className="p-0 sm:p-6">
             {filteredOrders.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
                 لم يتم العثور على طلبات مطابقة.
               </div>
             ) : (
-              <table className="w-full text-right border-collapse text-xs sm:text-sm min-w-[800px]">
+              <div className="w-full overflow-x-auto pb-4">
+                <table className="w-full text-right border-collapse text-xs sm:text-sm min-w-[800px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-muted-foreground text-xs">
                     <th className="p-3 font-bold">رقم الوصل</th>
@@ -359,6 +360,7 @@ export default function SupportPage() {
                   ))}
                 </tbody>
               </table>
+             </div>
             )}
           </CardContent>
         </Card>
@@ -384,13 +386,14 @@ export default function SupportPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto p-0 sm:p-6">
+          <CardContent className="p-0 sm:p-6">
             {filteredProfiles.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
                 لم يتم العثور على مستخدمين مطابقين.
               </div>
             ) : (
-              <table className="w-full text-right border-collapse text-xs sm:text-sm min-w-[800px]">
+              <div className="w-full overflow-x-auto pb-4">
+                <table className="w-full text-right border-collapse text-xs sm:text-sm min-w-[800px]">
                 <thead>
                   <tr className="border-b border-border bg-muted/30 text-muted-foreground text-xs">
                     <th className="p-3 font-bold">الاسم الكامل / الرتبة</th>
@@ -449,6 +452,7 @@ export default function SupportPage() {
                   ))}
                 </tbody>
               </table>
+             </div>
             )}
           </CardContent>
         </Card>
