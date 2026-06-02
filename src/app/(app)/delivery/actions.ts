@@ -108,18 +108,20 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
 
   const userId = userResponse.user.id
 
-  // جلب معلومات عامل التوصيل لتخزين اسمه
+  // جلب معلومات عامل التوصيل لتخزين اسمه (نقرأ الرتبة من metadata كاحتياط في حال فشل Trigger)
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, role")
     .eq("id", userId)
     .single()
 
-  if (profile?.role !== "delivery" && profile?.role !== "admin") {
+  const userRole = userResponse.user.user_metadata?.role || profile?.role || "guest"
+
+  if (userRole !== "delivery" && userRole !== "admin") {
     return { error: "صلاحيات غير كافية لإتمام التوصيل" }
   }
 
-  const deliveryName = profile.full_name || "عامل توصيل"
+  const deliveryName = profile?.full_name || userResponse.user.user_metadata?.full_name || "عامل توصيل"
 
   // جلب الطلب للتحقق من الكود
   const { data: order, error: orderError } = await supabase
