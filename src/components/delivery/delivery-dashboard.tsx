@@ -1,13 +1,58 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery } from "@/app/(app)/delivery/actions"
-import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory } from "@/app/(app)/delivery/actions"
+import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2, Clock, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export function DeliveryDashboard() {
+  const [activeTab, setActiveTab] = useState<"current" | "history">("current")
+
+  return (
+    <div className="space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <h2 className="text-xl sm:text-2xl font-black text-brand-blue flex items-center gap-2">
+          <Truck className="w-6 h-6 text-brand-orange" />
+          لوحة عامل التوصيل
+        </h2>
+        
+        {/* Tabs */}
+        <div className="flex border-b border-border/40 gap-4">
+          <button 
+            onClick={() => setActiveTab("current")}
+            className={cn(
+              "flex items-center gap-2 pb-3 px-2 border-b-2 font-bold text-sm transition-colors whitespace-nowrap",
+              activeTab === "current" 
+                ? "border-brand-orange text-brand-orange" 
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            <Clock className="w-4 h-4" />
+            الطلبات الحالية
+          </button>
+          <button 
+            onClick={() => setActiveTab("history")}
+            className={cn(
+              "flex items-center gap-2 pb-3 px-2 border-b-2 font-bold text-sm transition-colors whitespace-nowrap",
+              activeTab === "history" 
+                ? "border-brand-orange text-brand-orange" 
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            سجل التوصيل
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "current" ? <CurrentDeliveries /> : <DeliveryHistoryView />}
+    </div>
+  )
+}
+
+function CurrentDeliveries() {
   const [merchants, setMerchants] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -33,11 +78,6 @@ export function DeliveryDashboard() {
     <div className="space-y-6">
       {/* Search Header */}
       <div className="max-w-3xl mx-auto space-y-4">
-        <h2 className="text-xl sm:text-2xl font-black text-brand-blue flex items-center gap-2">
-          <Truck className="w-6 h-6 text-brand-orange" />
-          لوحة عامل التوصيل
-        </h2>
-        
         <div className="relative group">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-brand-orange transition-colors" />
           <Input 
@@ -105,6 +145,63 @@ export function DeliveryDashboard() {
   )
 }
 
+function DeliveryHistoryView() {
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [dateFilter, setDateFilter] = useState(() => new Date().toISOString().split('T')[0])
+
+  const loadHistory = useCallback(async () => {
+    setIsLoading(true)
+    const result = await getDeliveryHistory(dateFilter)
+    if (result.orders) {
+      setOrders(result.orders)
+    }
+    setIsLoading(false)
+  }, [dateFilter])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="bg-card p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-brand-blue font-bold">
+          <Calendar className="w-5 h-5" />
+          تاريخ التوصيل
+        </div>
+        <Input 
+          type="date"
+          className="w-full sm:w-auto"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+        />
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="text-center py-16 bg-card/50 backdrop-blur-sm rounded-2xl border border-dashed border-border/50 text-muted-foreground">
+          <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+          لا توجد طلبات تم توصيلها في هذا التاريخ.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center bg-muted/20 px-4 py-2 rounded-lg text-sm font-bold text-muted-foreground">
+            <span>إجمالي الطلبات: {orders.length}</span>
+            <span>إجمالي المبالغ المستلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
+          </div>
+          {orders.map(order => (
+            <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MerchantOrders({ merchantId }: { merchantId: string }) {
   const [orders, setOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -136,7 +233,7 @@ function MerchantOrders({ merchantId }: { merchantId: string }) {
   )
 }
 
-function OrderDeliveryCard({ order: initialOrder }: { order: any }) {
+function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { order: any, isHistoryMode?: boolean }) {
   const [order, setOrder] = useState(initialOrder)
   const [isExpanded, setIsExpanded] = useState(false)
   const [secretCode, setSecretCode] = useState("")
@@ -158,7 +255,7 @@ function OrderDeliveryCard({ order: initialOrder }: { order: any }) {
     if (result.error) {
       setErrorMsg(result.error)
     } else {
-      setOrder({ ...order, status: "delivered" })
+      setOrder({ ...order, status: "delivered", delivered_at: new Date().toISOString() })
     }
   }
 
@@ -195,6 +292,11 @@ function OrderDeliveryCard({ order: initialOrder }: { order: any }) {
           <div className="font-black text-brand-orange tabular-nums">
             {order.total_rounded.toLocaleString()} د.ع
           </div>
+          {isHistoryMode && order.delivered_at && (
+            <div className="text-[10px] mt-1 text-muted-foreground text-left">
+              {new Date(order.delivered_at).toLocaleTimeString('ar-IQ')}
+            </div>
+          )}
           <div className="text-muted-foreground mt-2 flex justify-end">
             {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </div>

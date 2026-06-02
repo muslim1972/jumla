@@ -145,3 +145,51 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
 
   return { success: true }
 }
+
+// 4. سجل التوصيل للعامل
+export async function getDeliveryHistory(dateFilter?: string) {
+  const supabase = await createClient()
+
+  const { data: userResponse, error: authError } = await supabase.auth.getUser()
+  if (authError || !userResponse?.user) {
+    return { error: "يجب تسجيل الدخول كعامل توصيل" }
+  }
+
+  const userId = userResponse.user.id
+
+  let query = supabase
+    .from("orders")
+    .select(`
+      id,
+      store_name,
+      address,
+      phone,
+      total_rounded,
+      status,
+      delivered_at,
+      items:order_items(
+        id,
+        product_name,
+        product_price,
+        quantity,
+        unit_type
+      )
+    `)
+    .eq("delivery_worker_id", userId)
+    .eq("status", "delivered")
+    .order("delivered_at", { ascending: false })
+
+  if (dateFilter) {
+    const startOfDay = new Date(`${dateFilter}T00:00:00.000Z`).toISOString()
+    const endOfDay = new Date(`${dateFilter}T23:59:59.999Z`).toISOString()
+    query = query.gte("delivered_at", startOfDay).lte("delivered_at", endOfDay)
+  }
+
+  const { data: orders, error } = await query
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { orders }
+}
