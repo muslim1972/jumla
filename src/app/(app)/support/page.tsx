@@ -271,7 +271,7 @@ export default function SupportPage() {
 
       {/* ORDERS TAB */}
       {activeTab === "orders" && (
-        <Card className="border border-border/40 shadow-premium animate-in fade-in duration-300">
+        <Card className="border border-border/40 shadow-premium animate-in fade-in duration-300 overflow-hidden">
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <div>
@@ -368,7 +368,7 @@ export default function SupportPage() {
 
       {/* USERS TAB */}
       {activeTab === "users" && (
-        <Card className="border border-border/40 shadow-premium animate-in fade-in duration-300">
+        <Card className="border border-border/40 shadow-premium animate-in fade-in duration-300 overflow-hidden">
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <div>
