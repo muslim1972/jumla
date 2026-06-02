@@ -116,8 +116,8 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
     return { error: "لم يتم العثور على الطلب" }
   }
 
-  if (order.status !== "pending") {
-    return { error: "هذا الطلب تم تسليمه مسبقاً أو أنه ملغي" }
+  if (order.status !== "approved") {
+    return { error: "هذا الطلب تم تسليمه مسبقاً أو أنه ملغي أو غير مجهز بعد" }
   }
 
   if (order.verification_code !== secretCode.trim()) {
