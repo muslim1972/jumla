@@ -86,6 +86,10 @@ export default function AdminPage() {
   const [adRequests, setAdRequests] = useState<AdRequest[]>([])
   const [productsCount, setProductsCount] = useState(0)
   
+  // App Revenue State
+  const [totalPaidRevenue, setTotalPaidRevenue] = useState(0)
+  const [totalUnpaidRevenue, setTotalUnpaidRevenue] = useState(0)
+  
   // Forms States (Free Banners)
   const [newAdTitle, setNewAdTitle] = useState("")
   const [newAdDesc, setNewAdDesc] = useState("")
@@ -128,12 +132,10 @@ export default function AdminPage() {
         if (profile?.role === "admin") {
           setIsAdmin(true)
         } else {
-          // If not admin, activate Demo mode so the user can easily view and test the dashboard!
-          setIsAdmin(true) // Set to true to bypass blocking layout
+          setIsAdmin(true)
           setIsDemoMode(true)
         }
       } else {
-        // Guest users also get Demo mode to evaluate the dashboard
         setIsAdmin(true)
         setIsDemoMode(true)
       }
@@ -180,6 +182,26 @@ export default function AdminPage() {
           .select("*")
           .order("created_at", { ascending: false })
         if (adRequestList) setAdRequests(adRequestList)
+
+        // Fetch merchant billings to calculate revenue
+        const { data: billingList } = await supabase
+          .from("merchant_billings")
+          .select("amount_due, status")
+        
+        if (billingList) {
+          let paid = 0
+          let unpaid = 0
+          billingList.forEach(bill => {
+            if (bill.status === 'paid') {
+              paid += (bill.amount_due || 0)
+            } else {
+              unpaid += (bill.amount_due || 0)
+            }
+          })
+          setTotalPaidRevenue(paid)
+          setTotalUnpaidRevenue(unpaid)
+        }
+
       } catch (err) {
         console.log("Error loading DB details inside admin, using local fallbacks:", err)
       }
@@ -448,16 +470,29 @@ export default function AdminPage() {
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Metrics Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <Card className="border border-border/40 shadow-premium">
+            <Card className="border border-border/40 shadow-premium lg:col-span-1">
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">إجمالي المبيعات</CardTitle>
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">أرباح التطبيق (مسددة)</CardTitle>
                 <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
                   <DollarSign className="w-4 h-4" />
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">12,450,000</div>
-                <p className="text-[10px] text-muted-foreground mt-1">د.ع (طلب نشط ومكتمل)</p>
+                <div className="text-lg sm:text-2xl font-black text-emerald-600">{totalPaidRevenue.toLocaleString()}</div>
+                <p className="text-[10px] text-muted-foreground mt-1">د.ع تم استلامها من التجار</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-border/40 shadow-premium lg:col-span-1">
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">أرباح التطبيق (غير مسددة)</CardTitle>
+                <div className="p-2 bg-brand-orange/10 text-brand-orange rounded-xl">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg sm:text-2xl font-black text-brand-orange">{totalUnpaidRevenue.toLocaleString()}</div>
+                <p className="text-[10px] text-muted-foreground mt-1">د.ع بانتظار دفعها من التجار</p>
               </CardContent>
             </Card>
 

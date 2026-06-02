@@ -21,6 +21,7 @@ export function MerchantBillingAdmin() {
   const [merchants, setMerchants] = useState<any[]>([])
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
   const [billings, setBillings] = useState<any[]>([])
+  const [allBillings, setAllBillings] = useState<any[]>([])
   const [unbilledOrders, setUnbilledOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isIssuing, setIsIssuing] = useState(false)
@@ -33,6 +34,15 @@ export function MerchantBillingAdmin() {
 
   const supabase = createClient()
 
+  const loadAllBillings = async () => {
+    const { data } = await supabase
+      .from('merchant_billings')
+      .select('*, profiles!inner(store_name, full_name, phone)')
+      .order('created_at', { ascending: false })
+    
+    if (data) setAllBillings(data)
+  }
+
   // Fetch merchants on load
   useEffect(() => {
     async function loadMerchants() {
@@ -44,6 +54,7 @@ export function MerchantBillingAdmin() {
       if (data) setMerchants(data)
     }
     loadMerchants()
+    loadAllBillings()
   }, [])
 
   // When merchant or date changes, fetch preview and history
@@ -141,6 +152,7 @@ export function MerchantBillingAdmin() {
     } else {
       alert("تم إصدار الفاتورة بنجاح!")
       loadMerchantData() // Refresh
+      loadAllBillings()
     }
     
     setIsIssuing(false)
@@ -161,6 +173,7 @@ export function MerchantBillingAdmin() {
       alert("خطأ: " + error.message)
     } else {
       setBillings(prev => prev.map(b => b.id === billId ? { ...b, status: 'paid', paid_at: new Date().toISOString() } : b))
+      setAllBillings(prev => prev.map(b => b.id === billId ? { ...b, status: 'paid', paid_at: new Date().toISOString() } : b))
     }
   }
 
@@ -298,55 +311,83 @@ export function MerchantBillingAdmin() {
             <CardTitle className="text-lg">فواتير التاجر السابقة</CardTitle>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <table className="w-full text-right text-sm">
-              <thead className="bg-muted/50 text-muted-foreground">
-                <tr>
-                  <th className="p-4 font-bold">تاريخ الإصدار</th>
-                  <th className="p-4 font-bold">المبيعات</th>
-                  <th className="p-4 font-bold">النسبة</th>
-                  <th className="p-4 font-bold">المستحق للتطبيق</th>
-                  <th className="p-4 font-bold text-center">الحالة</th>
-                  <th className="p-4 font-bold text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {billings.map(bill => (
-                  <tr key={bill.id} className="hover:bg-muted/20">
-                    <td className="p-4 text-xs font-mono" dir="ltr">{new Date(bill.created_at).toLocaleDateString('ar-IQ')}</td>
-                    <td className="p-4 font-bold">{bill.total_sales.toLocaleString()}</td>
-                    <td className="p-4 text-muted-foreground">{bill.commission_percentage}%</td>
-                    <td className="p-4 font-black text-brand-orange">{bill.amount_due.toLocaleString()} د.ع</td>
-                    <td className="p-4 text-center">
-                      {bill.status === 'paid' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          تم التسديد
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          <Clock className="w-3.5 h-3.5" />
-                          بانتظار الدفع
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center">
-                      {bill.status === 'pending' && (
-                        <Button 
-                          onClick={() => handleMarkAsPaid(bill.id)}
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        >
-                          استلام المبلغ
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <BillingTable billings={billings} onMarkAsPaid={handleMarkAsPaid} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All Billings */}
+      {!selectedMerchantId && allBillings.length > 0 && (
+        <Card className="shadow-sm border-brand-blue/20">
+          <CardHeader className="bg-brand-blue/5 border-b">
+            <CardTitle className="text-lg text-brand-blue flex items-center gap-2">
+              <History className="w-5 h-5" />
+              سجل جميع الفواتير المصدرة
+            </CardTitle>
+            <CardDescription>هذه القائمة تعرض جميع الفواتير الصادرة لجميع التجار</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <BillingTable billings={allBillings} onMarkAsPaid={handleMarkAsPaid} showMerchant />
           </CardContent>
         </Card>
       )}
     </div>
+  )
+}
+
+function BillingTable({ billings, onMarkAsPaid, showMerchant = false }: { billings: any[], onMarkAsPaid: (id: string) => void, showMerchant?: boolean }) {
+  return (
+    <table className="w-full text-right text-sm">
+      <thead className="bg-muted/50 text-muted-foreground">
+        <tr>
+          <th className="p-4 font-bold">تاريخ الإصدار</th>
+          {showMerchant && <th className="p-4 font-bold">التاجر</th>}
+          <th className="p-4 font-bold">المبيعات</th>
+          <th className="p-4 font-bold">النسبة</th>
+          <th className="p-4 font-bold">المستحق للتطبيق</th>
+          <th className="p-4 font-bold text-center">الحالة</th>
+          <th className="p-4 font-bold text-center">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y">
+        {billings.map(bill => (
+          <tr key={bill.id} className="hover:bg-muted/20">
+            <td className="p-4 text-xs font-mono" dir="ltr">{new Date(bill.created_at).toLocaleDateString('ar-IQ')}</td>
+            {showMerchant && (
+              <td className="p-4 font-bold">
+                {bill.profiles?.store_name || bill.profiles?.full_name || bill.profiles?.phone || 'غير معروف'}
+              </td>
+            )}
+            <td className="p-4 font-bold">{bill.total_sales.toLocaleString()}</td>
+            <td className="p-4 text-muted-foreground">{bill.commission_percentage}%</td>
+            <td className="p-4 font-black text-brand-orange">{bill.amount_due.toLocaleString()} د.ع</td>
+            <td className="p-4 text-center">
+              {bill.status === 'paid' ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  تم التسديد
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                  <Clock className="w-3.5 h-3.5" />
+                  بانتظار الدفع
+                </span>
+              )}
+            </td>
+            <td className="p-4 text-center">
+              {bill.status === 'pending' && (
+                <Button 
+                  onClick={() => onMarkAsPaid(bill.id)}
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  استلام المبلغ
+                </Button>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
