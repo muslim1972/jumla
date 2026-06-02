@@ -27,9 +27,13 @@ export async function getDeliveryMerchants(searchQuery?: string) {
     return { merchants: [] }
   }
 
-  // جلب التجار المخصصين لهذا المندوب
+  // جلب التجار المخصصين لهذا المندوب (من user_metadata لتجنب مشاكل Trigger، ومن profile كاحتياط)
   const { data: profile } = await supabase.from('profiles').select('assigned_merchants').eq('id', userResponse.user.id).single()
-  const assignedMerchants = profile?.assigned_merchants || []
+  const metaMerchants = userResponse.user.user_metadata?.assigned_merchants || []
+  const profileMerchants = profile?.assigned_merchants || []
+  
+  // دمج الايديات من المصدرين
+  const assignedMerchants = [...new Set([...metaMerchants, ...profileMerchants])]
 
   // استخراج الايديات الفريدة للتجار
   let merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
