@@ -76,7 +76,9 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
   `).join('');
 
   const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
-    : order.status === 'delivered' ? 'تم التسليم' 
+    : order.status === 'approved' ? 'مجهز للمندوب'
+    : order.status === 'delivered' ? 'تم التسليم'
+    : order.status === 'rejected' ? 'مرفوض من التاجر'
     : 'ملغي';
 
   const html = `
@@ -210,10 +212,20 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
         color: "text-amber-600 bg-amber-500/10 border-amber-500/30",
         icon: <Clock className="w-3.5 h-3.5" />,
       },
+      approved: {
+        label: "مجهز للمندوب",
+        color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
+        icon: <Truck className="w-3.5 h-3.5" />,
+      },
       delivered: {
         label: "تم التسليم",
-        color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
+        color: "text-brand-blue bg-brand-blue/10 border-brand-blue/30",
         icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      },
+      rejected: {
+        label: "مرفوض من التاجر",
+        color: "text-red-600 bg-red-500/10 border-red-500/30",
+        icon: <X className="w-3.5 h-3.5" />,
       },
       cancelled: {
         label: "ملغي",
@@ -456,11 +468,11 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
 // المكون الرئيسي
 export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
   const pendingOrders = useMemo(() =>
-    orders.filter(o => o.status === 'pending'),
+    orders.filter(o => ['pending', 'approved'].includes(o.status)),
     [orders]
   )
   const completedOrders = useMemo(() =>
-    orders.filter(o => o.status !== 'pending'),
+    orders.filter(o => !['pending', 'approved'].includes(o.status)),
     [orders]
   )
 
