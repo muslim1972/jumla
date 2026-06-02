@@ -98,7 +98,7 @@ export function CartClient({
           event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'orders',
-          filter: `buyer_id=eq.${userId}`,
+          filter: `user_id=eq.${userId}`,
         },
         async () => {
           // جلب الطلبات من جديد لتحديث الحالة
