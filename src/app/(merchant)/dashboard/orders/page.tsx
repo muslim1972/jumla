@@ -41,11 +41,23 @@ export default function MerchantOrdersPage() {
 
   const loadOrders = async () => {
     setIsLoading(true)
-    const result = await getMerchantOrders()
-    if (result.orders) {
-      setOrders(result.orders)
-    } else if (result.error) {
-      setErrorMsg(result.error)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      const { data: fetchedOrders, error } = await supabase
+        .from("orders")
+        .select(`
+          id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
+          invoice_number, verification_code, status, created_at,
+          items:order_items(id, product_name, product_price, quantity, unit_type)
+        `)
+        .eq("merchant_id", user.id)
+        .in("status", ["pending", "approved"])
+        .order("created_at", { ascending: false })
+
+      if (fetchedOrders) setOrders(fetchedOrders)
+      if (error) setErrorMsg(error.message)
     }
     setIsLoading(false)
   }

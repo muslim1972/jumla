@@ -19,7 +19,6 @@ export function RealtimeBillingListener({ merchantId }: { merchantId: string }) 
           event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'merchant_billings',
-          filter: `merchant_id=eq.${merchantId}`,
         },
         () => {
           // Whenever the billing data changes (e.g. admin marks it as paid),
