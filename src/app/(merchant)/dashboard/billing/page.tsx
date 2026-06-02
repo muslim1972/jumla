@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { DollarSign, CheckCircle, Clock, AlertTriangle, FileText, Receipt } from "lucide-react"
+import { RealtimeBillingListener } from "@/components/realtime-billing-listener"
 
 export default async function MerchantBillingPage() {
   const supabase = await createClient()
@@ -20,6 +21,8 @@ export default async function MerchantBillingPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+      <RealtimeBillingListener merchantId={user.id} />
+      
       <div>
         <h1 className="text-2xl font-black text-brand-blue flex items-center gap-2">
           <DollarSign className="w-6 h-6 text-brand-orange" />
