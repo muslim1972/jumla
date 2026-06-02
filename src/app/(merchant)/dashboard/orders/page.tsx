@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder } from "./actions"
-import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2 } from "lucide-react"
+import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -153,6 +153,140 @@ export default function MerchantOrdersPage() {
   )
 }
 
+// دالة طباعة القائمة
+function handlePrintOrder(order: any, dateStr: string) {
+  const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
+  const maskedCode = order.verification_code.length > 2 
+    ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
+    : order.verification_code;
+  
+  const itemsRows = (order.items || []).map((item: any) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString()}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString()}</td>
+    </tr>
+  `).join('');
+
+  const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
+    : order.status === 'approved' ? 'مجهز للمندوب'
+    : order.status === 'delivered' ? 'تم التسليم'
+    : order.status === 'rejected' ? 'مرفوض من التاجر'
+    : 'ملغي';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>قائمة #${invoiceNum} - ${order.store_name}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Cairo',sans-serif; background:#fff; color:#1a1a1a; padding:20px; direction:rtl; }
+    .invoice { max-width:520px; margin:0 auto; }
+    .header { text-align:center; padding-bottom:16px; border-bottom:3px solid #e85d26; margin-bottom:20px; }
+    .header h1 { font-size:28px; font-weight:800; color:#e85d26; margin-bottom:4px; }
+    .header .invoice-num { font-size:14px; color:#666; }
+    .header .date { font-size:12px; color:#999; margin-top:2px; }
+    .section { margin-bottom:16px; }
+    .section-title { font-size:12px; font-weight:700; color:#e85d26; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #f0f0f0; }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
+    .info-item { font-size:12px; }
+    .info-label { color:#888; }
+    .info-value { font-weight:600; }
+    table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+    thead tr { background:#f8f8f8; }
+    thead th { padding:8px 12px; font-size:11px; font-weight:700; color:#666; text-align:right; border-bottom:2px solid #e85d26; }
+    thead th:nth-child(2), thead th:nth-child(3) { text-align:center; }
+    thead th:last-child { text-align:left; }
+    .totals { background:#fafafa; border-radius:8px; padding:12px 16px; }
+    .total-row { display:flex; justify-content:space-between; font-size:12px; color:#666; padding:3px 0; }
+    .total-row.grand { font-size:16px; font-weight:800; color:#1a1a1a; border-top:2px solid #e85d26; padding-top:8px; margin-top:6px; }
+    .total-row.grand .amount { color:#e85d26; }
+    .verification { text-align:center; margin:20px 0 16px; padding:16px; border:2px dashed #22c55e; border-radius:12px; background:#f0fdf4; }
+    .verification .label { font-size:11px; font-weight:700; color:#15803d; margin-bottom:6px; }
+    .verification .code { font-family:monospace; font-size:28px; font-weight:900; letter-spacing:0.3em; color:#15803d; }
+    .verification .warning { font-size:10px; color:#dc2626; margin-top:8px; font-weight:600; }
+    .status { text-align:center; font-size:11px; font-weight:700; padding:6px; border-radius:6px; margin-bottom:16px; }
+    .status.pending { background:#fef3c7; color:#92400e; }
+    .status.approved { background:#dbeafe; color:#1e40af; }
+    .status.delivered { background:#d1fae5; color:#065f46; }
+    .status.cancelled { background:#fee2e2; color:#991b1b; }
+    .footer { text-align:center; font-size:10px; color:#aaa; border-top:1px solid #eee; padding-top:12px; margin-top:20px; }
+    @media print {
+      body { padding:10px; }
+      .no-print { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <div class="header">
+      <h1>جُملتي</h1>
+      <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
+      <div class="date">${dateStr}</div>
+    </div>
+
+    <div class="status ${order.status}">${statusLabel}</div>
+
+    <div class="section">
+      <div class="section-title">معلومات التوصيل للمشتري</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
+        <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
+        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">تفاصيل المنتجات</div>
+      <table>
+        <thead>
+          <tr>
+            <th>المنتج</th>
+            <th style="text-align:center;">الكمية</th>
+            <th style="text-align:center;">سعر الوحدة</th>
+            <th style="text-align:left;">المجموع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="totals">
+      <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString()} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString()} د.ع</span></div>
+    </div>
+
+    <div class="verification">
+      <div class="label">كود التحقق السري للطلب</div>
+      <div class="code">${maskedCode}</div>
+      <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
+    </div>
+
+    <div class="footer">
+      <p>تم إنشاء هذه القائمة عبر منصة جُملتي</p>
+    </div>
+
+    <div class="no-print" style="text-align:center;margin-top:20px;">
+      <button onclick="window.print()" style="background:#e85d26;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-family:Cairo;font-size:14px;font-weight:700;cursor:pointer;">🖨️ طباعة</button>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+}
+
 function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: { 
   order: any, 
   onApprove?: () => void, 
@@ -225,24 +359,44 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: {
         </div>
 
         {/* الإجراءات */}
-        {!isApproved && (
-          <div className="pt-2 flex items-center gap-3 border-t border-border/50">
+        {!isApproved ? (
+          <div className="pt-2 flex items-center gap-2 border-t border-border/50">
             <Button 
               onClick={onApprove} 
               disabled={isProcessing}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-              قبول وتجهيز
+              تجهيز
             </Button>
             <Button 
               onClick={onReject} 
               disabled={isProcessing}
               variant="destructive"
-              className="flex-[0.4] bg-red-500 hover:bg-red-600 text-white"
+              className="flex-[0.3] bg-red-500 hover:bg-red-600 text-white"
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
               رفض
+            </Button>
+            <Button 
+              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
+              variant="outline" 
+              size="icon"
+              title="طباعة القائمة"
+              className="shrink-0"
+            >
+              <Printer className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-border/50">
+            <Button 
+              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
+              variant="outline" 
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              طباعة القائمة
             </Button>
           </div>
         )}
