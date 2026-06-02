@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { DollarSign, CheckCircle, Clock, AlertTriangle, FileText, Receipt } from "lucide-react"
 import { RealtimeBillingListener } from "@/components/realtime-billing-listener"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function MerchantBillingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
