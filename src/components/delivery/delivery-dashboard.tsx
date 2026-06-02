@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory } from "@/app/(app)/delivery/actions"
 import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2, Clock, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -73,6 +74,24 @@ function CurrentDeliveries() {
     }, 300)
     return () => clearTimeout(timer)
   }, [searchQuery, loadMerchants])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('delivery_merchants_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          loadMerchants()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadMerchants])
 
   return (
     <div className="space-y-6">
@@ -206,14 +225,40 @@ function MerchantOrders({ merchantId }: { merchantId: string }) {
   const [orders, setOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  const load = useCallback(async () => {
+    setIsLoading(true)
+    const result = await getMerchantPendingOrders(merchantId)
+    if (result.orders) setOrders(result.orders)
+    setIsLoading(false)
+  }, [merchantId])
+
   useEffect(() => {
-    async function load() {
-      setIsLoading(true)
-      const result = await getMerchantPendingOrders(merchantId)
-      if (result.orders) setOrders(result.orders)
-      setIsLoading(false)
-    }
     load()
+  }, [load])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`delivery_orders_changes_${merchantId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders',
+          filter: `merchant_id=eq.${merchantId}` 
+        },
+        async () => {
+          // جلب الطلبات من جديد لتحديث الحالة صامتاً
+          const result = await getMerchantPendingOrders(merchantId)
+          if (result.orders) setOrders(result.orders)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [merchantId])
 
   if (isLoading) {
