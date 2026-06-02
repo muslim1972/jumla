@@ -156,16 +156,16 @@ export default function MerchantOrdersPage() {
 // دالة طباعة القائمة
 function handlePrintOrder(order: any, dateStr: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
-  const maskedCode = order.verification_code.length > 2 
+  const maskedCode = order.verification_code && order.verification_code.length > 2 
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
-    : order.verification_code;
+    : order.verification_code || '---';
   
   const itemsRows = (order.items || []).map((item: any) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString()}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString()}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price?.toLocaleString() || 0}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${((item.product_price || 0) * item.quantity).toLocaleString()}</td>
     </tr>
   `).join('');
 
@@ -258,9 +258,9 @@ function handlePrintOrder(order: any, dateStr: string) {
     </div>
 
     <div class="totals">
-      <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString()} د.ع</span></div>
-      <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString()} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
     </div>
 
     <div class="verification">

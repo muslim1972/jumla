@@ -20,6 +20,10 @@ export async function getMerchantOrders() {
       address,
       phone,
       total_rounded,
+      subtotal,
+      delivery_fee,
+      invoice_number,
+      verification_code,
       status,
       created_at,
       items:order_items(
