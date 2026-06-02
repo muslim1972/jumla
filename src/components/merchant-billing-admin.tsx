@@ -11,7 +11,8 @@ import {
   Search,
   Loader2,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  History
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
