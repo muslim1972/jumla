@@ -3,6 +3,9 @@ import { ProductExplorer } from "@/components/product-explorer"
 import { PromoBanners } from "@/components/promo-banners"
 import { TopAnnouncementBar } from "@/components/top-announcement-bar"
 import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
+import Link from "next/link"
+import { ShoppingCart } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export const revalidate = 0
 
@@ -69,6 +72,18 @@ export default async function Home() {
         ) : (
           <>
             <ProductExplorer products={products} user={user} cartItems={cartItems} />
+            
+            {cartItems.length > 0 && (
+              <div className="sticky bottom-4 z-50 my-6 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                <Link href="/cart" className="block">
+                  <Button className="w-full h-14 sm:h-16 text-lg sm:text-xl font-black bg-brand-orange hover:bg-brand-orange/90 text-white shadow-[0_8px_30px_rgb(249,115,22,0.3)] rounded-2xl flex items-center justify-center gap-3 border-2 border-white/20">
+                    <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7" />
+                    الذهاب إلى السلة ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             <PromoBanners />
           </>
         )}
