@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server"
+import { redirect } from "next/navigation"
 import { ProductExplorer } from "@/components/product-explorer"
 import { PromoBanners } from "@/components/promo-banners"
 import { TopAnnouncementBar } from "@/components/top-announcement-bar"
@@ -18,8 +19,9 @@ export default async function Home() {
       .from('products')
       .select(`
         *,
-        profiles(full_name, delivery_fee)
+        profiles!inner(full_name, delivery_fee, role)
       `)
+      .eq('profiles.role', 'merchant')
       .order('created_at', { ascending: false }),
     supabase
       .from('top_banners')
@@ -42,6 +44,17 @@ export default async function Home() {
     if (profile) {
       userRole = profile.role
     }
+  }
+
+  // توجيه المستخدمين إلى لوحات التحكم الخاصة بهم ومنعهم من رؤية واجهة المشتري
+  if (userRole === "admin") {
+    return redirect("/admin")
+  }
+  if (userRole === "support") {
+    return redirect("/support")
+  }
+  if (userRole === "merchant") {
+    return redirect("/dashboard")
   }
 
   const products = productsResponse.data
