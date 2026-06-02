@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder } from "./actions"
 import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,6 +16,27 @@ export default function MerchantOrdersPage() {
 
   useEffect(() => {
     loadOrders()
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('merchant-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+        },
+        () => {
+          // عند حدوث أي تغيير في الطلبات، قم بإعادة التحميل
+          loadOrders()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const loadOrders = async () => {
