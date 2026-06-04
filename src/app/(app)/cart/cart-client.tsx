@@ -465,8 +465,7 @@ export function CartClient({
                               src={item.products.image_url}
                               alt={item.products.name}
                               fill
-                              sizes="80px"
-                              className="object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="object-contain group-hover:scale-110 transition-transform duration-500"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

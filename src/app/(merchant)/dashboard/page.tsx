@@ -69,7 +69,7 @@ export default async function DashboardPage() {
                         alt={product.name}
                         fill
                         sizes="(max-width: 768px) 50vw, 33vw"
-                        className="object-cover"
+                        className="object-contain"
                       />
                     </div>
                   )}

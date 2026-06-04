@@ -49,7 +49,7 @@ export function ProductCard({
               alt={product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-700"
+              className="object-contain group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
             <div className="flex items-center justify-center w-full h-full bg-secondary/10">
@@ -121,7 +121,7 @@ export function ProductCard({
             src={product.image_url}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-contain group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full">
