@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useDeferredValue } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
@@ -62,6 +62,7 @@ export function ProductExplorer({
 }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [searchQuery, setSearchQuery] = useState("")
+  const deferredSearchQuery = useDeferredValue(searchQuery)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [expandedMerchants, setExpandedMerchants] = useState<Set<string>>(new Set())
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
@@ -147,31 +148,38 @@ export function ProductExplorer({
     if (!products) return {}
     const groups: Record<string, Product[]> = {}
     
-    products.forEach(product => {
-      // Apply category filter
-      if (!isProductInCategory(product, selectedCategory)) return
-      
-      // Apply search query filter
-      const merchantName = product.profiles?.full_name || "تاجر غير معروف"
-      const query = searchQuery.toLowerCase().trim()
-      
-      if (query !== "") {
-        const merchantMatch = merchantName.toLowerCase().includes(query)
-        const productNameMatch = product.name.toLowerCase().includes(query)
-        const productDescMatch = (product.description || "").toLowerCase().includes(query)
-        
-        if (!merchantMatch && !productNameMatch && !productDescMatch) {
-          return
-        }
+    let filtered = products
+
+    if (deferredSearchQuery) {
+      const q = deferredSearchQuery.toLowerCase()
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        (p.description && p.description.toLowerCase().includes(q)) ||
+        (p.profiles?.full_name?.toLowerCase().includes(q))
+      )
+    }
+
+    if (selectedCategory !== "all") {
+      const category = CATEGORIES.find(c => c.id === selectedCategory)
+      if (category && category.keywords.length > 0) {
+        filtered = filtered.filter(p => 
+          category.keywords.some(keyword => 
+            p.name.toLowerCase().includes(keyword) || 
+            (p.description && p.description.toLowerCase().includes(keyword))
+          )
+        )
       }
-      
+    }
+
+    filtered.forEach(product => {
+      const merchantName = product.profiles?.full_name || "تاجر غير معروف"
       if (!groups[merchantName]) {
         groups[merchantName] = []
       }
       groups[merchantName].push(product)
     })
     return groups
-  }, [products, searchQuery, selectedCategory])
+  }, [products, deferredSearchQuery, selectedCategory])
 
   const filteredMerchantNames = useMemo(() => {
     return Object.keys(filteredGroupedProducts)

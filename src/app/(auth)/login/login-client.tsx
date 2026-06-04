@@ -23,6 +23,7 @@ export function LoginClient({ message }: { message?: string }) {
   const [role, setRole] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isPending, setIsPending] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(message || "")
   
   const handlePasswordFocus = async () => {
     if (!email || !email.includes('@')) {
@@ -41,9 +42,14 @@ export function LoginClient({ message }: { message?: string }) {
     }
   }
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     setIsPending(true)
-    signIn(formData)
+    setErrorMsg("")
+    const result = await signIn(formData)
+    if (result?.error) {
+      setErrorMsg(result.error)
+      setIsPending(false)
+    }
   }
 
   return (
@@ -57,9 +63,9 @@ export function LoginClient({ message }: { message?: string }) {
         </CardHeader>
         <form action={handleSubmit}>
           <CardContent className="space-y-4">
-            {message && (
+            {errorMsg && (
               <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md text-center">
-                {message}
+                {errorMsg}
               </div>
             )}
             

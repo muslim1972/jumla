@@ -14,7 +14,15 @@ export async function signIn(formData: FormData) {
   })
 
   if (error) {
-    return redirect("/login?message=" + encodeURIComponent(error.message))
+    let errorMessage = "حدث خطأ أثناء تسجيل الدخول."
+    if (error.message.includes("Invalid login credentials")) {
+      errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+    } else if (error.message.includes("Email not confirmed")) {
+      errorMessage = "يرجى تأكيد البريد الإلكتروني أولاً"
+    } else {
+      errorMessage = error.message
+    }
+    return { error: errorMessage }
   }
 
   return redirect("/")
