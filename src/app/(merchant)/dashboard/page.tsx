@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache"
 import Image from "next/image"
 import { MerchantSettings } from "@/components/merchant-settings"
 import { AlertCircle } from "lucide-react"
+import { AddProductForm } from "@/components/merchant/add-product-form"
+import { EditProductModal } from "@/components/merchant/edit-product-modal"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -24,74 +26,6 @@ export default async function DashboardPage() {
     .select('*')
     .eq('merchant_id', user?.id)
     .order('created_at', { ascending: false })
-
-  const addProduct = async (formData: FormData) => {
-    "use server"
-    const name = formData.get("name") as string
-    const description = formData.get("description") as string
-    const price = parseFloat(formData.get("price") as string)
-    const unit_type = formData.get("unit_type") as string
-    const image = formData.get("image") as File
-
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    // Check if delivery fee and support phone are set
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('delivery_fee, support_phone')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.delivery_fee === null || profile?.delivery_fee === undefined || !profile?.support_phone) {
-      return
-    }
-
-    let image_url = null
-// ...
-
-    // Upload image if provided
-    if (image && image.size > 0) {
-      const fileExt = image.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${user.id}/${fileName}`
-
-      const { error: uploadError, data } = await supabase.storage
-        .from('products')
-        .upload(filePath, image)
-
-      if (!uploadError && data) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath)
-        
-        image_url = publicUrl
-      }
-    }
-
-    await supabase.from('products').insert({
-      merchant_id: user.id,
-      name,
-      description,
-      price,
-      unit_type,
-      image_url,
-    })
-
-    revalidatePath("/dashboard")
-    revalidatePath("/")
-  }
-
-  const deleteProduct = async (formData: FormData) => {
-    "use server"
-    const id = formData.get("id") as string
-    const supabase = await createClient()
-    await supabase.from('products').delete().eq('id', id)
-    revalidatePath("/dashboard")
-    revalidatePath("/")
-  }
 
   const isProfileComplete = profile?.delivery_fee !== null && profile?.delivery_fee !== undefined && profile?.support_phone;
 
@@ -113,47 +47,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <Card className={!isProfileComplete ? "opacity-50 pointer-events-none" : "sticky top-24"}>
-            <CardHeader>
-              <CardTitle>إضافة منتج جديد</CardTitle>
-              <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={addProduct} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">اسم المادة</Label>
-                  <Input id="name" name="name" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">وصف المادة</Label>
-                  <Input id="description" name="description" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">السعر (د.ع)</Label>
-                  <Input id="price" name="price" type="number" required dir="ltr" className="text-right" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unit_type">نوع وحدة البيع</Label>
-                  <Select name="unit_type" defaultValue="كارتون" required>
-                    <SelectTrigger id="unit_type" dir="rtl">
-                      <SelectValue placeholder="اختر الوحدة" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="كارتون">كارتون</SelectItem>
-                      <SelectItem value="درزن">درزن</SelectItem>
-                      <SelectItem value="مفرد">مفرد</SelectItem>
-                      <SelectItem value="كيلو">كيلو</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="image">صورة المنتج (اختياري)</Label>
-                  <Input id="image" name="image" type="file" accept="image/*" />
-                </div>
-                <Button type="submit" className="w-full mt-4">نشر المنتج</Button>
-              </form>
-            </CardContent>
-          </Card>
+          <AddProductForm disabled={!isProfileComplete} />
         </div>
 
         {/* Products List */}
@@ -186,18 +80,24 @@ export default async function DashboardPage() {
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {product.description || "لا يوجد وصف"}
                     </p>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="font-bold text-primary">{product.price} د.ع</span>
-                      <span className="text-xs bg-secondary px-2 py-1 rounded-md">{product.unit_type}</span>
+                    <div className="mt-4 space-y-1.5">
+                      {product.units && product.units.length > 0 ? (
+                        product.units.map((unit: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-sm border-b pb-1 last:border-0 last:pb-0">
+                            <span className="font-bold text-brand-orange" dir="ltr">{unit.price.toLocaleString()} د.ع</span>
+                            <span className="bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded text-xs">{unit.type}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-bold text-brand-orange" dir="ltr">{product.price?.toLocaleString()} د.ع</span>
+                          <span className="bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded text-xs">{product.unit_type}</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   <div className="p-4 pt-0">
-                    <form action={deleteProduct}>
-                      <input type="hidden" name="id" value={product.id} />
-                      <Button type="submit" variant="destructive" size="sm" className="w-full">
-                        حذف المنتج
-                      </Button>
-                    </form>
+                    <EditProductModal product={product} />
                   </div>
                 </Card>
               ))}
