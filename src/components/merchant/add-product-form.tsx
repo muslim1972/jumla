@@ -110,6 +110,8 @@ export function AddProductForm({ disabled }: { disabled: boolean }) {
                     </SelectTrigger>
                     <SelectContent dir="rtl">
                       <SelectItem value="كارتون">كارتون</SelectItem>
+                      <SelectItem value="تكة">تكة</SelectItem>
+                      <SelectItem value="باكيت">باكيت</SelectItem>
                       <SelectItem value="درزن">درزن</SelectItem>
                       <SelectItem value="نصف درزن">نصف درزن</SelectItem>
                       <SelectItem value="مفرد">مفرد</SelectItem>

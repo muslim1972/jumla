@@ -11,18 +11,21 @@ interface CartItem {
   id: string;
   product_id: string;
   quantity: number;
+  unit_type?: string;
 }
 
 export function AddToCartButton({ 
   user, 
   productId,
   productPrice = 0,
+  unitType,
   initialCartItem,
   variant = "default"
 }: { 
   user: any, 
   productId: string,
   productPrice?: number,
+  unitType?: string,
   initialCartItem?: CartItem,
   variant?: "default" | "compact" | "icon"
 }) {
@@ -54,13 +57,13 @@ export function AddToCartButton({
 
     try {
       setIsLoading(true)
-      const result = await addToCart(productId, localQuantity)
+      const result = await addToCart(productId, localQuantity, unitType)
       
       if (result?.error) {
         alert("فشل الإضافة: " + result.error)
       } else {
         // Optimistically set it as in cart (it will be updated by server revalidation anyway)
-        setInCartItem({ id: 'temp', product_id: productId, quantity: localQuantity })
+        setInCartItem({ id: 'temp', product_id: productId, quantity: localQuantity, unit_type: unitType })
       }
     } catch (error) {
       console.error("Error adding to cart:", error)

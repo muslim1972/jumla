@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function addToCart(productId: string, quantity: number = 1) {
+export async function addToCart(productId: string, quantity: number = 1, unitType?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,13 +12,19 @@ export async function addToCart(productId: string, quantity: number = 1) {
   }
 
   try {
-    // Check if item already exists in cart using maybeSingle
-    const { data: existingItem, error: fetchError } = await supabase
+    let query = supabase
       .from('cart_items')
       .select('id, quantity')
       .eq('user_id', user.id)
       .eq('product_id', productId)
-      .maybeSingle()
+      
+    if (unitType) {
+      query = query.eq('unit_type', unitType)
+    } else {
+      query = query.is('unit_type', null)
+    }
+
+    const { data: existingItem, error: fetchError } = await query.maybeSingle()
 
     if (fetchError) throw fetchError
 
@@ -37,7 +43,8 @@ export async function addToCart(productId: string, quantity: number = 1) {
         .insert({
           user_id: user.id,
           product_id: productId,
-          quantity: quantity
+          quantity: quantity,
+          unit_type: unitType || null
         })
 
       if (insertError) throw insertError
@@ -204,7 +211,7 @@ export async function createOrder(data: {
       product_name: item.productName,
       product_price: item.productPrice,
       quantity: item.quantity,
-      unit_type: item.unitType
+      unit_type: item.unitType // This comes from checkout data which we will ensure has the correct unit
     }))
 
     const { error: itemsError } = await supabase

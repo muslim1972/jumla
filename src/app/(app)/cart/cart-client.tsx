@@ -23,18 +23,33 @@ interface CartItemType {
   id: string
   quantity: number
   created_at: string
+  unit_type?: string
   products: {
     id: string
     merchant_id: string
     name: string
     price: number
     unit_type: string
+    units?: any[]
     image_url: string | null
     profiles?: {
       delivery_fee: number | null
       full_name?: string
     } | null
   }
+}
+
+// دالة مساعدة للحصول على السعر الصحيح للعنصر
+function getItemPrice(item: CartItemType): number {
+  const product = item.products;
+  const targetUnit = item.unit_type || product.unit_type;
+  if (product.units && Array.isArray(product.units)) {
+    const unitObj = product.units.find(u => u.type === targetUnit);
+    if (unitObj && unitObj.price) {
+      return Number(unitObj.price);
+    }
+  }
+  return Number(product.price);
 }
 
 // نوع مجموعة التاجر
@@ -212,7 +227,7 @@ export function CartClient({
     const group = merchantGroups.find(g => g.merchantId === checkoutMerchantId)
     if (!group) return
 
-    const subtotal = group.items.reduce((acc, item) => acc + item.products.price * item.quantity, 0)
+    const subtotal = group.items.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0)
     const rawTotal = subtotal + group.deliveryFee
     const totalRounded = roundTo250(rawTotal)
 
@@ -229,9 +244,9 @@ export function CartClient({
         cartItemId: item.id,
         productId: item.products.id,
         productName: item.products.name,
-        productPrice: item.products.price,
+        productPrice: getItemPrice(item),
         quantity: item.quantity,
-        unitType: item.products.unit_type,
+        unitType: item.unit_type || item.products.unit_type,
       })),
     })
 
@@ -288,9 +303,9 @@ export function CartClient({
       id: item.id,
       product_id: item.products.id,
       name: item.products.name,
-      price: item.products.price,
+      price: getItemPrice(item),
       quantity: item.quantity,
-      unit_type: item.products.unit_type,
+      unit_type: item.unit_type || item.products.unit_type,
     }))
   }, [currentGroup])
 
@@ -384,7 +399,7 @@ export function CartClient({
         {merchantGroups.map(group => {
           const isExpanded = expandedMerchants.has(group.merchantId)
           const groupSubtotal = group.items.reduce(
-            (acc, item) => acc + item.products.price * item.quantity, 0
+            (acc, item) => acc + getItemPrice(item) * item.quantity, 0
           )
           const groupTotal = roundTo250(groupSubtotal + group.deliveryFee)
 
@@ -466,10 +481,10 @@ export function CartClient({
                             <h3 className="font-bold text-sm line-clamp-1">{item.products.name}</h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                                لكل {item.products.unit_type}
+                                لكل {item.unit_type || item.products.unit_type}
                               </span>
                               <p className="text-xs font-bold text-primary">
-                                {item.products.price.toLocaleString()} د.ع
+                                {getItemPrice(item).toLocaleString()} د.ع
                               </p>
                             </div>
                           </div>
@@ -477,7 +492,7 @@ export function CartClient({
                           {/* Left Side: Quantity & Total & Actions */}
                           <div className="flex flex-col items-end gap-2">
                             <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                              المجموع: {(item.products.price * item.quantity).toLocaleString()} د.ع
+                              المجموع: {(getItemPrice(item) * item.quantity).toLocaleString()} د.ع
                             </div>
 
                             <div className="flex items-center gap-3">
