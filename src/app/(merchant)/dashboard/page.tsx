@@ -59,44 +59,44 @@ export default async function DashboardPage() {
               <p className="text-muted-foreground">لم تقم بإضافة أي منتجات بعد.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden flex flex-col">
+                <Card key={product.id} className="overflow-hidden flex flex-col rounded-xl shadow-sm hover:shadow-md transition-shadow">
                   {product.image_url && (
-                    <div className="h-40 relative bg-muted">
+                    <div className="h-28 relative bg-muted">
                       <Image
                         src={product.image_url}
                         alt={product.name}
                         fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        sizes="(max-width: 768px) 50vw, 33vw"
                         className="object-cover"
                       />
                     </div>
                   )}
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
+                  <CardHeader className="p-3 pb-1">
+                    <CardTitle className="text-sm font-bold line-clamp-1">{product.name}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0 flex-1">
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                  <CardContent className="p-3 pt-0 flex-1">
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1">
                       {product.description || "لا يوجد وصف"}
                     </p>
-                    <div className="mt-4 space-y-1.5">
+                    <div className="mt-3 space-y-1">
                       {product.units && product.units.length > 0 ? (
                         product.units.map((unit: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-sm border-b pb-1 last:border-0 last:pb-0">
-                            <span className="font-bold text-brand-orange" dir="ltr">{unit.price.toLocaleString()} د.ع</span>
-                            <span className="bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded text-xs">{unit.type}</span>
+                          <div key={idx} className="flex justify-between items-center text-xs border-b border-border/50 pb-1 last:border-0 last:pb-0">
+                            <span className="font-bold text-brand-blue" dir="ltr">{unit.price.toLocaleString()}</span>
+                            <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{unit.type}</span>
                           </div>
                         ))
                       ) : (
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-bold text-brand-orange" dir="ltr">{product.price?.toLocaleString()} د.ع</span>
-                          <span className="bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded text-xs">{product.unit_type}</span>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-brand-blue" dir="ltr">{product.price?.toLocaleString()}</span>
+                          <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{product.unit_type}</span>
                         </div>
                       )}
                     </div>
                   </CardContent>
-                  <div className="p-4 pt-0">
+                  <div className="p-3 pt-0 mt-auto">
                     <EditProductModal product={product} />
                   </div>
                 </Card>
