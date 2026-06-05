@@ -7,6 +7,7 @@ import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { AddMerchantDialog } from "./add-merchant-dialog"
 
 export function DeliveryDashboard() {
   const [activeTab, setActiveTab] = useState<"current" | "history">("current")
@@ -95,9 +96,9 @@ function CurrentDeliveries() {
 
   return (
     <div className="space-y-6">
-      {/* Search Header */}
-      <div className="max-w-3xl mx-auto space-y-4">
-        <div className="relative group">
+      {/* Search Header and Add Merchant Button */}
+      <div className="max-w-3xl mx-auto flex gap-3">
+        <div className="relative group flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-brand-orange transition-colors" />
           <Input 
             placeholder="ابحث عن اسم تاجر..." 
@@ -106,6 +107,7 @@ function CurrentDeliveries() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <AddMerchantDialog onMerchantAdded={loadMerchants} />
       </div>
 
       {/* Merchants List */}

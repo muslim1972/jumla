@@ -211,3 +211,59 @@ export async function getDeliveryHistory(dateFilter?: string) {
 
   return { orders }
 }
+
+// 5. جلب قائمة كل التجار المتاحين في النظام (لاستخدامهم في إضافة تاجر للمندوب)
+export async function getAllMerchants() {
+  const supabase = await createClient()
+
+  const { data: merchants, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, store_name, address")
+    .eq("role", "merchant")
+    .order("full_name", { ascending: true })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { merchants }
+}
+
+// 6. إضافة تاجر لقائمة تجار المندوب
+export async function assignMerchantToDeliveryWorker(merchantId: string) {
+  const supabase = await createClient()
+
+  const { data: userResponse, error: authError } = await supabase.auth.getUser()
+  if (authError || !userResponse?.user) {
+    return { error: "يجب تسجيل الدخول كعامل توصيل" }
+  }
+
+  const userId = userResponse.user.id
+
+  // جلب التجار الحاليين من profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("assigned_merchants")
+    .eq("id", userId)
+    .single()
+
+  const currentAssigned = profile?.assigned_merchants || []
+
+  // التأكد من عدم تكرار التاجر
+  if (currentAssigned.includes(merchantId)) {
+    return { error: "هذا التاجر مضاف مسبقاً إلى قائمتك" }
+  }
+
+  const newAssigned = [...currentAssigned, merchantId]
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ assigned_merchants: newAssigned })
+    .eq("id", userId)
+
+  if (updateError) {
+    return { error: "حدث خطأ أثناء إضافة التاجر: " + updateError.message }
+  }
+
+  return { success: true }
+}
