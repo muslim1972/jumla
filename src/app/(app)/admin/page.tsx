@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/components/audit-log-viewer"
 import { MerchantBillingAdmin } from "@/components/merchant-billing-admin"
+import { AdminActiveOrders } from "./admin-active-orders"
 
 interface TopBanner {
   id: string
@@ -603,48 +604,7 @@ export default function AdminPage() {
             </Card>
 
             {/* Quick Actions & Log */}
-            <Card className="border border-border/40 shadow-premium">
-              <CardHeader className="p-4 sm:p-6 pb-2">
-                <CardTitle className="text-base sm:text-lg font-black text-brand-blue dark:text-foreground">أحدث الطلبات</CardTitle>
-                <CardDescription className="text-xs">آخر المعاملات الجارية في المنصة</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-4 space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-2.5 bg-muted/30 rounded-xl text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">مسلم عقيل</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">طلب: كارتون شاي + بسكت</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-brand-blue dark:text-foreground">180,000 د.ع</p>
-                      <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-1.5 py-0.5 rounded">قيد المعالجة</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center p-2.5 bg-muted/30 rounded-xl text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">سمير التميمي</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">طلب: كيس نايلون + منظفات</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-brand-blue dark:text-foreground">95,000 د.ع</p>
-                      <span className="text-[9px] bg-green-500/10 text-green-600 dark:text-green-500 font-bold px-1.5 py-0.5 rounded">مكتمل</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center p-2.5 bg-muted/30 rounded-xl text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">زائر تجاري</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">طلب: جملة سجائر كارتون</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-brand-blue dark:text-foreground">750,000 د.ع</p>
-                      <span className="text-[9px] bg-green-500/10 text-green-600 dark:text-green-500 font-bold px-1.5 py-0.5 rounded">مكتمل</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminActiveOrders />
           </div>
         </div>
       )}
