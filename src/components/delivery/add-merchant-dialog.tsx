@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Loader2, Store } from "lucide-react"
 import { getAllMerchants, assignMerchantToDeliveryWorker } from "@/app/(app)/delivery/actions"
-import { toast } from "sonner"
 
 export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => void }) {
   const [open, setOpen] = useState(false)
@@ -14,9 +13,11 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string, type: "error" | "success" } | null>(null)
 
   useEffect(() => {
     if (open) {
+      setMessage(null)
       loadMerchants()
     }
   }, [open])
@@ -27,7 +28,7 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
     if (result.merchants) {
       setMerchants(result.merchants)
     } else if (result.error) {
-      toast.error(result.error)
+      setMessage({ text: result.error, type: "error" })
     }
     setIsLoading(false)
   }
@@ -38,11 +39,13 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
     setAddingId(null)
     
     if (result.error) {
-      toast.error(result.error)
+      setMessage({ text: result.error, type: "error" })
     } else {
-      toast.success("تم إضافة التاجر بنجاح")
-      setOpen(false)
-      onMerchantAdded() // Refresh the current merchants list
+      setMessage({ text: "تم إضافة التاجر بنجاح", type: "success" })
+      setTimeout(() => {
+        setOpen(false)
+        onMerchantAdded()
+      }, 1000)
     }
   }
 
@@ -73,6 +76,12 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {message && (
+          <div className={`mt-3 p-3 text-sm rounded-lg ${message.type === "error" ? "bg-red-50 text-red-600 border border-red-200" : "bg-green-50 text-green-600 border border-green-200"}`}>
+            {message.text}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 mt-4 min-h-[300px]">
           {isLoading ? (
