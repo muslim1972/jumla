@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Loader2, Store } from "lucide-react"
@@ -55,15 +55,14 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
   )
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 border-brand-orange text-brand-orange hover:bg-brand-orange/10 hover:text-brand-orange">
-          <Plus className="w-4 h-4" />
-          إضافة تاجر
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[80vh] flex flex-col" dir="rtl">
-        <DialogHeader>
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)} className="gap-2 border-brand-orange text-brand-orange hover:bg-brand-orange/10 hover:text-brand-orange">
+        <Plus className="w-4 h-4" />
+        إضافة تاجر
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col" dir="rtl">
+          <DialogHeader>
           <DialogTitle className="text-xl font-bold text-brand-blue">إضافة تاجر جديد</DialogTitle>
         </DialogHeader>
 
@@ -118,7 +117,8 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
             ))
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
