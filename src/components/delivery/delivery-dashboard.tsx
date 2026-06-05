@@ -56,25 +56,21 @@ export function DeliveryDashboard() {
 
 function CurrentDeliveries() {
   const [merchants, setMerchants] = useState<any[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [expandedMerchant, setExpandedMerchant] = useState<string | null>(null)
   
   const loadMerchants = useCallback(async () => {
     setIsLoading(true)
-    const result = await getDeliveryMerchants(searchQuery)
+    const result = await getDeliveryMerchants()
     if (result.merchants) {
       setMerchants(result.merchants)
     }
     setIsLoading(false)
-  }, [searchQuery])
+  }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadMerchants()
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery, loadMerchants])
+    loadMerchants()
+  }, [loadMerchants])
 
   useEffect(() => {
     const supabase = createClient()
@@ -96,17 +92,8 @@ function CurrentDeliveries() {
 
   return (
     <div className="space-y-6">
-      {/* Search Header and Add Merchant Button */}
-      <div className="max-w-3xl mx-auto flex gap-3">
-        <div className="relative group flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-brand-orange transition-colors" />
-          <Input 
-            placeholder="ابحث عن اسم تاجر..." 
-            className="pr-10 h-12 bg-card border-border focus:border-brand-orange transition-all rounded-xl shadow-sm text-foreground text-sm sm:text-base"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      {/* Add Merchant Button */}
+      <div className="max-w-3xl mx-auto flex justify-end">
         <AddMerchantDialog onMerchantAdded={loadMerchants} />
       </div>
 

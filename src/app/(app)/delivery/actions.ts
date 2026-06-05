@@ -3,8 +3,8 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-// 1. جلب قائمة التجار الذين لديهم طلبات جاهزة للتوصيل
-export async function getDeliveryMerchants(searchQuery?: string) {
+// 1. جلب قائمة التجار التابعين لعامل التوصيل (أو التجار الذين لديهم طلبات جاهزة إن لم يكن مخصصاً له تجار)
+export async function getDeliveryMerchants() {
   const supabase = await createClient()
 
   const { data: userResponse, error: authError } = await supabase.auth.getUser()
@@ -12,22 +12,7 @@ export async function getDeliveryMerchants(searchQuery?: string) {
     return { error: "يجب تسجيل الدخول كعامل توصيل" }
   }
 
-  // في النظام المثالي يمكن استخدام RPC لجلب التجار الفريدين الذين لديهم طلبات معلقة
-  // سنقوم بجلب قائمة التجار من profiles ثم فحص الطلبات، أو جلب الطلبات المعلقة واستخراج التجار
-  const { data: orders, error: ordersError } = await supabase
-    .from("orders")
-    .select("merchant_id")
-    .eq("status", "approved")
-
-  if (ordersError) {
-    return { error: ordersError.message }
-  }
-
-  if (!orders || orders.length === 0) {
-    return { merchants: [] }
-  }
-
-  // جلب التجار المخصصين لهذا المندوب (من user_metadata لتجنب مشاكل Trigger، ومن profile كاحتياط)
+  // جلب التجار المخصصين لهذا المندوب
   const { data: profile } = await supabase.from('profiles').select('assigned_merchants').eq('id', userResponse.user.id).single()
   const metaMerchants = userResponse.user.user_metadata?.assigned_merchants || []
   const profileMerchants = profile?.assigned_merchants || []
@@ -35,25 +20,28 @@ export async function getDeliveryMerchants(searchQuery?: string) {
   // دمج الايديات من المصدرين
   const assignedMerchants = [...new Set([...metaMerchants, ...profileMerchants])]
 
-  // استخراج الايديات الفريدة للتجار
-  let merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
+  let merchantIds = assignedMerchants
 
-  if (assignedMerchants.length > 0) {
-    merchantIds = merchantIds.filter(id => assignedMerchants.includes(id))
+  // إذا لم يكن هناك تجار مخصصين، اعرض التجار الذين لديهم طلبات جاهزة للتوصيل كبديل
+  if (merchantIds.length === 0) {
+    const { data: orders, error: ordersError } = await supabase
+      .from("orders")
+      .select("merchant_id")
+      .eq("status", "approved")
+
+    if (orders && orders.length > 0) {
+      merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
+    }
   }
 
   if (merchantIds.length === 0) {
     return { merchants: [] }
   }
 
-  let query = supabase
+  const query = supabase
     .from("profiles")
     .select("*")
     .in("id", merchantIds)
-
-  if (searchQuery) {
-    query = query.ilike("full_name", `%${searchQuery}%`)
-  }
 
   const { data: merchants, error: merchantsError } = await query
 
