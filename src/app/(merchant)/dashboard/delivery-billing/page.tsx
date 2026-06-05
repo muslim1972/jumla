@@ -14,6 +14,9 @@ export default async function MerchantDeliveryBillingPage() {
     redirect("/login")
   }
 
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+  const merchantName = profile?.full_name || user.user_metadata?.full_name || "تاجر"
+
   // Fetch delivered orders for this merchant
   const { data: orders } = await supabase
     .from("orders")
@@ -70,7 +73,7 @@ export default async function MerchantDeliveryBillingPage() {
         </p>
       </div>
 
-      <DeliveryBillingClient groupedOrders={groupedOrders} />
+      <DeliveryBillingClient groupedOrders={groupedOrders} merchantName={merchantName} />
     </div>
   )
 }

@@ -167,6 +167,7 @@ export async function getDeliveryHistory(dateFilter?: string) {
     .from("orders")
     .select(`
       id,
+      merchant_id,
       store_name,
       address,
       phone,
@@ -195,6 +196,26 @@ export async function getDeliveryHistory(dateFilter?: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Fetch merchant names
+  if (orders && orders.length > 0) {
+    const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id).filter(Boolean))]
+    if (merchantIds.length > 0) {
+      const { data: merchants } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", merchantIds)
+      
+      const merchantMap = merchants?.reduce((acc: any, m: any) => {
+        acc[m.id] = m.full_name
+        return acc
+      }, {}) || {}
+
+      orders.forEach((o: any) => {
+        o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
+      })
+    }
   }
 
   return { orders }

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, ChevronUp, Package, User, Phone, MapPin, ReceiptText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function DeliveryBillingClient({ groupedOrders }: { groupedOrders: Record<string, { workerName: string, orders: any[], totalCollected: number }> }) {
+export function DeliveryBillingClient({ groupedOrders, merchantName }: { groupedOrders: Record<string, { workerName: string, orders: any[], totalCollected: number }>, merchantName: string }) {
   const [expandedWorker, setExpandedWorker] = useState<string | null>(null)
 
   const workers = Object.entries(groupedOrders)
@@ -64,6 +64,9 @@ export function DeliveryBillingClient({ groupedOrders }: { groupedOrders: Record
             {isExpanded && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <CardContent className="p-0 border-t border-border/50">
+                  <div className="bg-muted/30 p-3 text-center border-b border-border/50 text-sm font-bold text-muted-foreground">
+                    الطلبات الخاصة بـ <span className="text-brand-orange">{merchantName}</span>
+                  </div>
                   <div className="divide-y divide-border/50">
                     {data.orders.map((order) => (
                       <div key={order.id} className="p-5 hover:bg-muted/30 transition-colors">

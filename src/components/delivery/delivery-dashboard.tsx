@@ -313,6 +313,11 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { ord
               </span>
             )}
           </div>
+          {order.merchant_name && (
+            <div className="flex items-center gap-2 text-xs font-bold text-brand-orange bg-brand-orange/10 px-2 py-1 rounded w-fit">
+              <span>التاجر: {order.merchant_name}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <MapPin className="w-3.5 h-3.5" />
             <span>{order.address}</span>
