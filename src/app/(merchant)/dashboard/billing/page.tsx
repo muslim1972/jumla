@@ -30,7 +30,7 @@ export default async function MerchantBillingPage() {
       <div>
         <h1 className="text-2xl font-black text-brand-blue flex items-center gap-2">
           <DollarSign className="w-6 h-6 text-brand-orange" />
-          التحاسب والفواتير
+          التحاسب مع التطبيق
         </h1>
         <p className="text-muted-foreground mt-1">
           هنا تظهر فواتير مبيعاتك المستحقة للتطبيق والمسددة.

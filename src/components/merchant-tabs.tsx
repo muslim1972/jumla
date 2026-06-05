@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Package, Receipt, Inbox } from "lucide-react"
+import { Package, Receipt, Inbox, Truck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function MerchantTabs() {
@@ -20,9 +20,14 @@ export function MerchantTabs() {
       icon: Inbox
     },
     {
-      name: "التحاسب والفواتير",
+      name: "التحاسب مع التطبيق",
       href: "/dashboard/billing",
       icon: Receipt
+    },
+    {
+      name: "تحاسب المندوبين",
+      href: "/dashboard/delivery-billing",
+      icon: Truck
     }
   ]
 
