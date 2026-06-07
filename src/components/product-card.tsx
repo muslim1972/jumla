@@ -56,27 +56,6 @@ export function ProductCard({
               <PackageOpen className="w-8 h-8 text-muted-foreground/20" />
             </div>
           )}
-          
-          <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-            {hasMultipleUnits ? (
-              <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
-                <SelectTrigger className="h-6 px-2 py-0 text-[10px] font-bold bg-brand-blue/90 text-white border-none focus:ring-0 shadow-sm rounded-lg" dir="rtl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  {product.units.map((u: any, idx: number) => (
-                    <SelectItem key={idx} value={u.type} className="text-xs">
-                      {u.type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="bg-brand-blue/90 dark:bg-brand-blue text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-sm">
-                {product.unit_type}
-              </div>
-            )}
-          </div>
         </div>
 
         <CardHeader className="p-3 pb-1 space-y-0.5">
@@ -90,11 +69,33 @@ export function ProductCard({
           )}
         </CardHeader>
 
-        <CardContent className="p-3 pt-1 pb-2 flex-grow">
+        <CardContent className="p-3 pt-1 pb-2 flex-grow flex justify-between items-end gap-2">
           <div className="flex flex-col mt-0.5">
-            <span className="text-base font-black text-brand-blue dark:text-foreground">
+            <span className="text-[10px] text-muted-foreground mb-0.5 font-medium leading-none">السعر</span>
+            <span className="text-base font-black text-brand-blue dark:text-foreground leading-none">
               {Number(currentPrice).toLocaleString('en-US')} <span className="text-[10px] font-normal">د.ع</span>
             </span>
+          </div>
+
+          <div className="z-10 min-w-[70px]">
+            {hasMultipleUnits ? (
+              <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
+                <SelectTrigger className="h-7 px-2 text-xs font-bold bg-muted/50 border-border/50" dir="rtl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  {product.units.map((u: any, idx: number) => (
+                    <SelectItem key={idx} value={u.type} className="text-xs font-bold">
+                      {u.type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="bg-muted/50 border border-border/50 text-foreground px-2 py-1 rounded-md text-xs font-bold text-center">
+                {product.unit_type}
+              </div>
+            )}
           </div>
         </CardContent>
 
@@ -144,21 +145,21 @@ export function ProductCard({
           
           {hasMultipleUnits ? (
             <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
-              <SelectTrigger className="h-5 px-1.5 py-0 text-[9px] font-bold text-brand-blue bg-brand-blue/10 border-none focus:ring-0 rounded" dir="rtl">
+              <SelectTrigger className="h-6 px-2 py-0 text-[10px] font-bold bg-muted/50 border-border/50 rounded-md" dir="rtl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent dir="rtl">
                 {product.units.map((u: any, idx: number) => (
-                  <SelectItem key={idx} value={u.type} className="text-xs">
+                  <SelectItem key={idx} value={u.type} className="text-xs font-bold">
                     {u.type}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           ) : (
-            <span className="text-[9px] text-brand-blue bg-brand-blue/10 px-1.5 py-0.5 rounded font-bold">
+            <div className="bg-muted/50 border border-border/50 text-foreground px-2 py-0.5 rounded-md text-[10px] font-bold">
               {product.unit_type}
-            </span>
+            </div>
           )}
         </div>
       </div>
