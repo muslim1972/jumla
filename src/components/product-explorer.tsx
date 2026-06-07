@@ -167,34 +167,9 @@ export function ProductExplorer({
 
         {/* Categories Quick Filter Carousel (Toters Style) */}
         <div className="relative group/carousel max-w-4xl mx-auto px-1">
-          {/* Right Arrow (Scroll back to start - right side in RTL) */}
-          {showRightArrow && (
-            <button
-              onClick={() => scrollCarousel("right")}
-              className="absolute right-0 top-8 sm:top-10 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-card/90 backdrop-blur-md border border-brand-orange text-brand-orange flex items-center justify-center shadow-md cursor-pointer hover:bg-brand-orange hover:text-white transition-all select-none"
-            >
-              <div className="animate-pulse">
-                <ChevronRight className="h-5 w-5" />
-              </div>
-            </button>
-          )}
-
-          {/* Left Arrow (Scroll further to end - left side in RTL) */}
-          {showLeftArrow && (
-            <button
-              onClick={() => scrollCarousel("left")}
-              className="absolute left-0 top-8 sm:top-10 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-card/90 backdrop-blur-md border border-brand-orange text-brand-orange flex items-center justify-center shadow-md cursor-pointer hover:bg-brand-orange hover:text-white transition-all select-none"
-            >
-              <div className="animate-pulse">
-                <ChevronLeft className="h-5 w-5" />
-              </div>
-            </button>
-          )}
-
           {/* Carousel Scroll Element */}
           <div 
-            ref={scrollRef}
-            className="flex gap-4 overflow-x-auto pb-3 pt-2 scrollbar-none px-6 scroll-smooth select-none"
+            className="flex gap-4 overflow-x-auto pb-3 pt-2 scrollbar-none px-6 scroll-smooth select-none hide-scrollbar"
           >
             {CATEGORIES.map((category) => {
               const isActive = selectedCategory === category.id
