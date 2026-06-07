@@ -369,7 +369,19 @@ export function CartClient({
   return (
     <>
       {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
-      <div className="mb-6 flex justify-end gap-3">
+      <div className="mb-6 flex justify-end gap-3 flex-wrap">
+        {merchantGroups.length > 0 && (
+          <Link href={`/store/${merchantGroups[0].merchantId}`}>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/5 hover:text-emerald-700"
+            >
+              <Store className="w-4 h-4" />
+              العودة لمتجر التاجر
+            </Button>
+          </Link>
+        )}
+
         <Button
           variant="outline"
           onClick={() => setShowArchive(true)}
@@ -426,7 +438,7 @@ export function CartClient({
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-base">{group.merchantName}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-[10px] text-muted-foreground mt-0.5" suppressHydrationWarning>
                       {group.items.length} منتج • آخر إضافة: {lastAddedDate}
                     </p>
                   </div>
@@ -574,16 +586,6 @@ export function CartClient({
                       >
                         إتمام الشراء الآن
                       </Button>
-                      
-                      <Link href={`/store/${group.merchantId}`} className="w-full">
-                        <Button
-                          variant="outline"
-                          className="w-full h-11 text-sm font-bold rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-colors gap-2"
-                        >
-                          <Store className="w-4 h-4" />
-                          العودة لمتجر التاجر
-                        </Button>
-                      </Link>
                     </div>
                   </div>
                 </div>

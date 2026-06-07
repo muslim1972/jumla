@@ -79,6 +79,17 @@ export default async function Home() {
           <>
             <ProductExplorer products={products} user={user} cartItems={cartItems} />
             
+            {cartItems.length > 0 && (
+              <div className="fixed bottom-32 sm:bottom-40 left-4 right-4 z-50 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
+                <Link href="/cart" className="block">
+                  <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg rounded-xl flex items-center justify-center gap-3 border border-white/20">
+                    <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+                    الذهاب إلى السلة ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+                  </Button>
+                </Link>
+              </div>
+            )}
+            
 
 
             <PromoBanners />

@@ -234,7 +234,30 @@ export function StoreClient({
         })}
       </div>
 
-
+      {/* Floating Go to Cart Banner */}
+      {totalCartItems > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-full duration-300 pointer-events-none">
+          <div className="max-w-4xl mx-auto pointer-events-auto">
+            <Link 
+              href="/cart"
+              className="w-full flex items-center justify-between p-4 bg-brand-orange text-white rounded-2xl shadow-xl shadow-brand-orange/20 hover:bg-brand-orange/90 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="font-black leading-none">{totalCartItems}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-lg leading-none mb-1">عرض السلة</div>
+                  <div className="text-sm font-medium text-white/80">
+                    المجموع: {totalCartPrice.toLocaleString()} د.ع
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 rotate-180" />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
