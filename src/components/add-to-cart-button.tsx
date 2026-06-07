@@ -214,7 +214,7 @@ export function AddToCartButton({
         )}
         
         <span className="transition-all duration-300">
-          {isLoading ? "جاري..." : inCartItem ? "موجود في السلة" : "أضف للسلة"}
+          {isLoading ? "جاري..." : inCartItem ? "الذهاب الى السلة" : "أضف للسلة"}
         </span>
       </Button>
     </div>

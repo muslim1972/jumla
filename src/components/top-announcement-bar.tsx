@@ -62,32 +62,8 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
   const [isLoading, setIsLoading] = useState(false)
 
   // Fetch top banners on the client side in case they updated
-  useEffect(() => {
-    async function fetchTopBanners() {
-      try {
-        const supabase = createClient()
-        const nowString = new Date().toISOString()
-        const { data, error } = await supabase
-          .from("top_banners")
-          .select("*")
-          .eq("is_active", true)
-          .lte("start_date", nowString)
-          .gte("end_date", nowString)
-          .order("created_at", { ascending: false })
-
-        if (!error && data && data.length > 0) {
-          setBanners(data)
-        }
-      } catch (err) {
-        console.log("Error fetching top banners, using initial/fallback data:", err)
-      }
-    }
-    
-    // Only fetch if initialBanners was empty
-    if (initialBanners.length === 0) {
-      fetchTopBanners()
-    }
-  }, [initialBanners])
+  // Currently disabled until top_banners table is created to avoid 404s in the console
+  // The component will just use initialBanners or DEFAULT_ANNOUNCEMENTS
 
   const activeItems = banners.length > 0 ? banners : DEFAULT_ANNOUNCEMENTS
 
