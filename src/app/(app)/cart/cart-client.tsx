@@ -346,7 +346,7 @@ export function CartClient({
           <h2 className="text-2xl font-bold mb-2">السلة فارغة حالياً</h2>
           <p className="text-muted-foreground mb-8">ابدأ بالتسوق وأضف بعض المنتجات الرائعة!</p>
           <Link href="/" className={buttonVariants({ variant: "default" })}>
-            الذهاب للتسوق
+            العودة للصفحة الرئيسية
           </Link>
         </div>
 
