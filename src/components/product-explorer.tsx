@@ -5,18 +5,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import { ProductCard } from "@/components/product-card"
 import Image from "next/image"
+import Link from "next/link"
 import { 
   PackageOpen, 
   LayoutGrid, 
   List, 
   Search, 
-  ChevronDown, 
-  ChevronUp,
+  ChevronLeft, 
+  ChevronRight,
   Store,
   Star,
-  Truck,
-  ChevronLeft,
-  ChevronRight
+  Truck
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -29,6 +28,7 @@ interface Product {
   image_url: string | null
   unit_type: string
   description?: string
+  user_id: string
   profiles: {
     full_name: string | null
     delivery_fee: number | null
@@ -65,7 +65,6 @@ export function ProductExplorer({
   const [searchQuery, setSearchQuery] = useState("")
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [expandedMerchants, setExpandedMerchants] = useState<Set<string>>(new Set())
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
 
@@ -130,24 +129,10 @@ export function ProductExplorer({
     }
   }
 
-  // Helper to match category keyword
-  const isProductInCategory = (product: Product, categoryId: string) => {
-    if (categoryId === "all") return true
-    const cat = CATEGORIES.find(c => c.id === categoryId)
-    if (!cat) return true
-    
-    const name = (product.name || "").toLowerCase()
-    const desc = (product.description || "").toLowerCase()
-    
-    return cat.keywords.some(keyword => 
-      name.includes(keyword.toLowerCase()) || desc.includes(keyword.toLowerCase())
-    )
-  }
-
   // Filter and group products by merchant
   const filteredGroupedProducts = useMemo(() => {
     if (!products) return {}
-    const groups: Record<string, Product[]> = {}
+    const groups: Record<string, { merchantId: string, products: Product[] }> = {}
     
     let filtered = products
 
@@ -175,9 +160,9 @@ export function ProductExplorer({
     filtered.forEach(product => {
       const merchantName = product.profiles?.full_name || "تاجر غير معروف"
       if (!groups[merchantName]) {
-        groups[merchantName] = []
+        groups[merchantName] = { merchantId: product.user_id, products: [] }
       }
-      groups[merchantName].push(product)
+      groups[merchantName].products.push(product)
     })
     return groups
   }, [products, deferredSearchQuery, selectedCategory])
@@ -186,22 +171,7 @@ export function ProductExplorer({
     return Object.keys(filteredGroupedProducts)
   }, [filteredGroupedProducts])
 
-  // Expand all matched merchants by default when filtering/searching
-  useEffect(() => {
-    if (searchQuery.trim() !== "" || selectedCategory !== "all") {
-      setExpandedMerchants(new Set(filteredMerchantNames))
-    }
-  }, [searchQuery, selectedCategory, filteredMerchantNames])
 
-  const toggleMerchant = (name: string) => {
-    const newSet = new Set(expandedMerchants)
-    if (newSet.has(name)) {
-      newSet.delete(name)
-    } else {
-      newSet.add(name)
-    }
-    setExpandedMerchants(newSet)
-  }
 
   if (!products || products.length === 0) {
     return (
@@ -345,28 +315,22 @@ export function ProductExplorer({
 
         ) : (
           filteredMerchantNames.map(merchantName => {
-            const merchantProducts = filteredGroupedProducts[merchantName]
+            const groupData = filteredGroupedProducts[merchantName]
+            const merchantProducts = groupData.products
+            const merchantId = groupData.merchantId
             const deliveryFee = merchantProducts[0]?.profiles?.delivery_fee
             // Generate stable mock rating based on name characters
             const rating = ((merchantName.charCodeAt(0) + (merchantName.charCodeAt(1) || 0)) % 5) * 0.1 + 4.5
 
             return (
               <div key={merchantName} className="space-y-3">
-                {/* Merchant Accordion Header */}
-                <button 
-                  onClick={() => toggleMerchant(merchantName)}
-                  className={cn(
-                    "w-full flex items-center justify-between p-3.5 sm:p-4 glass rounded-2xl hover:bg-muted/30 transition-all duration-300 group border border-border/40 shadow-premium text-right cursor-pointer",
-                    expandedMerchants.has(merchantName) && "border-brand-blue/30 bg-muted/20"
-                  )}
+                {/* Merchant Card */}
+                <Link 
+                  href={`/store/${merchantId}`}
+                  className="w-full flex items-center justify-between p-3.5 sm:p-4 glass rounded-2xl hover:bg-muted/30 transition-all duration-300 group border border-border/40 shadow-premium text-right cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "p-2.5 rounded-xl transition-all duration-300 shadow-inner",
-                      expandedMerchants.has(merchantName)
-                        ? "bg-brand-blue text-white" 
-                        : "bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-white"
-                    )}>
+                    <div className="p-2.5 rounded-xl transition-all duration-300 shadow-inner bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-white">
                       <Store className="h-5 w-5" />
                     </div>
                     <div>
@@ -389,32 +353,8 @@ export function ProductExplorer({
                       </div>
                     </div>
                   </div>
-                  {expandedMerchants.has(merchantName) ? (
-                    <ChevronUp className="h-5 w-5 text-brand-blue" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </button>
-
-                {/* Products Container */}
-                {expandedMerchants.has(merchantName) && (
-                  <div className={cn(
-                    "animate-in fade-in slide-in-from-top-2 duration-300",
-                    viewMode === "grid" 
-                      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4" 
-                      : "space-y-2"
-                  )}>
-                    {merchantProducts.map(product => (
-                      <ProductCard 
-                        key={product.id}
-                        product={product}
-                        user={user}
-                        cartItems={cartItems}
-                        viewMode={viewMode}
-                      />
-                    ))}
-                  </div>
-                )}
+                  <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-brand-orange group-hover:-translate-x-1 transition-all" />
+                </Link>
               </div>
             )
           })
