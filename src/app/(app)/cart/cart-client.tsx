@@ -3,7 +3,7 @@
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Minus, Plus, Trash2, ShoppingBag, Loader2, Check,
-  ChevronDown, ChevronUp, Package, Truck
+  ChevronDown, ChevronUp, Package, Truck, Store
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -566,13 +566,25 @@ export function CartClient({
                       </div>
                     </div>
 
-                    {/* زر إتمام الشراء */}
-                    <Button
-                      onClick={() => handleStartCheckout(group.merchantId)}
-                      className="w-full h-12 text-base font-black rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.01] transition-transform active:scale-95 bg-gradient-to-r from-primary to-blue-600"
-                    >
-                      إتمام الشراء الآن
-                    </Button>
+                    {/* أزرار الإجراءات */}
+                    <div className="flex flex-col gap-2 pt-2">
+                      <Button
+                        onClick={() => handleStartCheckout(group.merchantId)}
+                        className="w-full h-12 text-base font-black rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.01] transition-transform active:scale-95 bg-gradient-to-r from-primary to-blue-600"
+                      >
+                        إتمام الشراء الآن
+                      </Button>
+                      
+                      <Link href={`/store/${group.merchantId}`} className="w-full">
+                        <Button
+                          variant="outline"
+                          className="w-full h-11 text-sm font-bold rounded-xl border-primary/20 text-primary hover:bg-primary/5 transition-colors gap-2"
+                        >
+                          <Store className="w-4 h-4" />
+                          العودة لمتجر التاجر
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
