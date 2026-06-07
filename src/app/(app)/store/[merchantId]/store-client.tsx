@@ -84,34 +84,44 @@ export function StoreClient({
     }
   }
 
-  // Optimize scroll spy using passive listener and requestAnimationFrame
+  // Optimize scroll spy using IntersectionObserver
   useEffect(() => {
-    let ticking = false
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          // Find which section is currently in view
-          const scrollY = window.scrollY
-          for (const cat of activeCategoriesList) {
-            const el = document.getElementById(`category-${cat.id}`)
-            if (el) {
-              const rect = el.getBoundingClientRect()
-              if (rect.top >= 0 && rect.top <= 300) {
-                setActiveCategory(cat.id)
-                break
-              }
-            }
-          }
-          ticking = false
-        })
-        ticking = true
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the first entry that is intersecting
+        const intersectingEntry = entries.find(entry => entry.isIntersecting);
+        if (intersectingEntry) {
+          const catId = intersectingEntry.target.id.replace('category-', '');
+          setActiveCategory(catId);
+        }
+      },
+      {
+        rootMargin: "-180px 0px -40% 0px", // Trigger when element hits top 180px
+        threshold: 0
       }
-    }
-    
-    // client-passive-event-listeners
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [activeCategoriesList])
+    );
+
+    activeCategoriesList.forEach(cat => {
+      const el = document.getElementById(`category-${cat.id}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [activeCategoriesList]);
+
+  // Calculate cart totals
+  const totalCartItems = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
+  const totalCartPrice = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const product = products.find(p => p.id === item.product_id)
+      if (product) {
+        const unit = product.units?.find((u: any) => u.type === item.unit_type)
+        const price = unit ? unit.price : product.price
+        return sum + (price * item.quantity)
+      }
+      return sum
+    }, 0)
+  }, [cartItems, products])
 
   return (
     <div className="bg-background min-h-screen pb-32">
@@ -208,8 +218,7 @@ export function StoreClient({
           return (
             <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
               <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
-              {/* Using content-visibility for performance on long lists */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 [content-visibility:auto]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {catProducts.map(product => (
                   <ProductCard 
                     key={`${cat.id}-${product.id}`}
@@ -224,6 +233,31 @@ export function StoreClient({
           )
         })}
       </div>
+
+      {/* Floating Go to Cart Banner */}
+      {totalCartItems > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-full duration-300">
+          <div className="max-w-4xl mx-auto">
+            <Link 
+              href="/cart"
+              className="w-full flex items-center justify-between p-4 bg-brand-orange text-white rounded-2xl shadow-xl shadow-brand-orange/20 hover:bg-brand-orange/90 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-xl">
+                  <div className="font-black leading-none">{totalCartItems}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-lg leading-none mb-1">عرض السلة</div>
+                  <div className="text-sm font-medium text-white/80">
+                    المجموع: {totalCartPrice.toLocaleString()} د.ع
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 rotate-180" />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

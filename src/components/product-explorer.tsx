@@ -62,16 +62,11 @@ export function ProductExplorer({
   user: any,
   cartItems?: { id: string; product_id: string; quantity: number }[]
 }) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [searchQuery, setSearchQuery] = useState("")
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [showLeftArrow, setShowLeftArrow] = useState(true)
-  const [showRightArrow, setShowRightArrow] = useState(false)
 
   const placeholders = useMemo(() => [
     'ابحث عن "مستلزمات التدخين"...',
@@ -90,45 +85,6 @@ export function ProductExplorer({
     }, 2000)
     return () => clearInterval(timer)
   }, [placeholders.length])
-
-  // Scroll limits detection (RTL aware)
-  const checkScrollLimits = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-      const maxScroll = scrollWidth - clientWidth
-      const currentScroll = Math.abs(scrollLeft)
-      
-      // In RTL, scrollLeft is 0 at start, and goes negative when scrolled left.
-      setShowRightArrow(currentScroll > 10)
-      setShowLeftArrow(currentScroll < maxScroll - 10)
-    }
-  }
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (el) {
-      el.addEventListener("scroll", checkScrollLimits)
-      checkScrollLimits()
-      window.addEventListener("resize", checkScrollLimits)
-      requestAnimationFrame(checkScrollLimits)
-    }
-    return () => {
-      if (el) {
-        el.removeEventListener("scroll", checkScrollLimits)
-      }
-      window.removeEventListener("resize", checkScrollLimits)
-    }
-  }, [products])
-
-  const scrollCarousel = (direction: "left" | "right") => {
-    if (scrollRef.current) {
-      const scrollAmount = direction === "left" ? -220 : 220
-      scrollRef.current.scrollBy({
-        left: scrollAmount,
-        behavior: "smooth"
-      })
-    }
-  }
 
   // Filter and group products by merchant
   const filteredGroupedProducts = useMemo(() => {
