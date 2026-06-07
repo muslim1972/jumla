@@ -101,6 +101,7 @@ export function ProductCard({
 
         <CardFooter className="p-3 pt-0">
           <AddToCartButton 
+            key={`${product.id}-${selectedUnitType}`}
             user={user} 
             productId={product.id} 
             productPrice={currentPrice}
@@ -166,6 +167,7 @@ export function ProductCard({
 
       <div className="shrink-0">
         <AddToCartButton 
+          key={`list-${product.id}-${selectedUnitType}`}
           user={user} 
           productId={product.id} 
           productPrice={currentPrice}
