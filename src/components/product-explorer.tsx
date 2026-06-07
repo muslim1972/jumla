@@ -163,26 +163,6 @@ export function ProductExplorer({
               </div>
             )}
           </div>
-          <div className="shrink-0">
-            <Button 
-              variant="outline" 
-              className="h-11 px-4 rounded-xl glass flex items-center gap-2 group hover:border-brand-orange/40 hover:bg-muted/10 transition-all duration-300 border border-border/60"
-              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              title={viewMode === "grid" ? "تحويل لعرض القائمة" : "تحويل للعرض الشبكي"}
-            >
-              {viewMode === "grid" ? (
-                <>
-                  <List className="h-5 w-5 text-brand-orange group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold hidden sm:inline">عرض قائمة</span>
-                </>
-              ) : (
-                <>
-                  <LayoutGrid className="h-5 w-5 text-brand-orange group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold hidden sm:inline">عرض شبكي</span>
-                </>
-              )}
-            </Button>
-          </div>
         </div>
 
         {/* Categories Quick Filter Carousel (Toters Style) */}
