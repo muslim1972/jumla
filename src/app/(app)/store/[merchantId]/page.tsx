@@ -19,7 +19,7 @@ export default async function StorePage({ params }: { params: { merchantId: stri
     supabase
       .from('products')
       .select('*')
-      .eq('user_id', merchantId)
+      .eq('merchant_id', merchantId)
       .order('created_at', { ascending: false })
   ])
 

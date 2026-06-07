@@ -160,7 +160,7 @@ export function ProductExplorer({
     filtered.forEach(product => {
       const merchantName = product.profiles?.full_name || "تاجر غير معروف"
       if (!groups[merchantName]) {
-        groups[merchantName] = { merchantId: product.user_id, products: [] }
+        groups[merchantName] = { merchantId: product.merchant_id, products: [] }
       }
       groups[merchantName].products.push(product)
     })
