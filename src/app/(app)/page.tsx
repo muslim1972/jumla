@@ -58,7 +58,7 @@ export default async function Home() {
   if (user) {
     const { data: cartData } = await supabase
       .from('cart_items')
-      .select('id, product_id, quantity')
+      .select('id, product_id, quantity, unit_type')
       .eq('user_id', user.id)
     if (cartData) {
       cartItems = cartData
