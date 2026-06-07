@@ -18,7 +18,8 @@ import {
   Megaphone,
   Clock,
   Phone,
-  History
+  History,
+  MessageCircle
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/components/audit-log-viewer"
+import { ContactSettingsModal } from "./contact-settings-modal"
 import { MerchantBillingAdmin } from "@/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
 
@@ -78,6 +80,7 @@ export default function AdminPage() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [showContactSettings, setShowContactSettings] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
   
   // Data States
@@ -405,6 +408,15 @@ export default function AdminPage() {
             >
               <History className="w-4 h-4" />
               سجل الحركات
+            </Button>
+            <Button 
+              onClick={() => setShowContactSettings(true)}
+              variant="outline"
+              size="sm"
+              className="rounded-full shadow-sm gap-2 border-emerald-500/30 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-500/10"
+            >
+              <MessageCircle className="w-4 h-4" />
+              إعدادات التواصل
             </Button>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">تتبع الأداء، وأدر المتاجر، وخصص الإعلانات الترويجية.</p>
@@ -1015,6 +1027,12 @@ export default function AdminPage() {
       <AuditLogViewer 
         open={showAuditLogs} 
         onOpenChange={setShowAuditLogs} 
+      />
+
+      {/* حوار إعدادات التواصل */}
+      <ContactSettingsModal 
+        open={showContactSettings}
+        onOpenChange={setShowContactSettings}
       />
     </div>
   )

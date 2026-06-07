@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { createClient } from "@/utils/supabase/server"
+import { FloatingContactButton } from "@/components/floating-contact-button"
 
 export default async function AppLayout({
   children,
@@ -33,12 +34,20 @@ export default async function AppLayout({
     cartCount = cartCountResponse.count || 0
   }
 
+  // Fetch global settings
+  const { data: settings } = await supabase
+    .from('app_settings')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle()
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar userRole={role} fullName={fullName} cartCount={cartCount} />
       <main className="flex-1">
         {children}
       </main>
+      <FloatingContactButton settings={settings} />
     </div>
   )
 }
