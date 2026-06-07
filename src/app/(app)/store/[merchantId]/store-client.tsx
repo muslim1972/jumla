@@ -126,8 +126,8 @@ export function StoreClient({
       {/* Hero Header */}
       <div className="relative pt-16">
         <div className="h-48 sm:h-64 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
-          {/* Mock pattern overlay */}
-          <div className="absolute inset-0 opacity-10 bg-[url('/mesh-gradient.png')] bg-cover mix-blend-overlay"></div>
+          {/* Pattern overlay using CSS */}
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
         </div>
 
         {/* Store Info Card (Overlapping Hero) */}

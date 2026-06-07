@@ -13,7 +13,7 @@ export const revalidate = 0
 export default async function Home() {
   const supabase = await createClient()
   
-  const [userResponse, productsResponse, topBannersResponse] = await Promise.all([
+  const [userResponse, productsResponse] = await Promise.all([
     supabase.auth.getUser(),
     supabase
       .from('products')
@@ -22,13 +22,6 @@ export default async function Home() {
         profiles!inner(full_name, delivery_fee, role)
       `)
       .eq('profiles.role', 'merchant')
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('top_banners')
-      .select('*')
-      .eq('is_active', true)
-      .lte('start_date', new Date().toISOString())
-      .gte('end_date', new Date().toISOString())
       .order('created_at', { ascending: false })
   ])
 
@@ -58,7 +51,7 @@ export default async function Home() {
   }
 
   const products = productsResponse.data
-  const topBanners = topBannersResponse.data || []
+  const topBanners: any[] = [] // Fetch disabled until table is created
 
   // Fetch cart items for the user if logged in
   let cartItems: { id: string; product_id: string; quantity: number }[] = []
