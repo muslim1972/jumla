@@ -29,6 +29,7 @@ interface Product {
   unit_type: string
   description?: string
   user_id: string
+  merchant_id: string
   profiles: {
     full_name: string | null
     delivery_fee: number | null
