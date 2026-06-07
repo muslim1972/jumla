@@ -4,9 +4,9 @@ import { StoreClient } from "./store-client"
 
 export const revalidate = 0
 
-export default async function StorePage({ params }: { params: { merchantId: string } }) {
+export default async function StorePage({ params }: { params: Promise<{ merchantId: string }> }) {
   const supabase = await createClient()
-  const { merchantId } = params
+  const { merchantId } = await params
 
   const [userResponse, profileResponse, productsResponse] = await Promise.all([
     supabase.auth.getUser(),
