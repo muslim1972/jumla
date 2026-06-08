@@ -83,7 +83,7 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={getWhatsappLink(settings.whatsapp_number)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group flex-row-reverse"
             title="تواصل عبر واتساب"
           >
             <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
@@ -100,7 +100,7 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={settings.telegram_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
             title="تواصل عبر تليكرام"
           >
             <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
@@ -117,7 +117,7 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={settings.facebook_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
             title="صفحتنا على فيسبوك"
           >
             <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
@@ -132,7 +132,7 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
         {settings.support_phone && (
           <a
             href={`tel:${settings.support_phone}`}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group flex-row-reverse"
             title="اتصال هاتفي"
           >
             <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
