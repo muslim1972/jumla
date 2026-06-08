@@ -86,10 +86,11 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group flex-row-reverse"
             title="تواصل عبر واتساب"
           >
-            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
-              واتساب
+            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+              <span className="text-sm font-bold">واتساب</span>
+              <span className="text-[10px] text-muted-foreground font-sans" dir="ltr">{settings.whatsapp_number}</span>
             </span>
-            <div className="bg-emerald-500 p-2 rounded-full text-white">
+            <div className="bg-emerald-500 p-2 rounded-full text-white shrink-0">
               <MessageCircle className="w-5 h-5" />
             </div>
           </a>
@@ -103,10 +104,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
             title="تواصل عبر تليكرام"
           >
-            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
-              تليكرام
+            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+              <span className="text-sm font-bold">تليكرام</span>
             </span>
-            <div className="bg-blue-500 p-2 rounded-full text-white">
+            <div className="bg-blue-500 p-2 rounded-full text-white shrink-0">
               <Send className="w-5 h-5" />
             </div>
           </a>
@@ -120,10 +121,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
             title="صفحتنا على فيسبوك"
           >
-            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
-              فيسبوك
+            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+              <span className="text-sm font-bold">فيسبوك</span>
             </span>
-            <div className="bg-blue-700 p-2 rounded-full text-white">
+            <div className="bg-blue-700 p-2 rounded-full text-white shrink-0">
               <Globe className="w-5 h-5" />
             </div>
           </a>
@@ -135,10 +136,11 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group flex-row-reverse"
             title="اتصال هاتفي"
           >
-            <span className="text-sm font-bold opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
-              اتصال مباشر
+            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+              <span className="text-sm font-bold">اتصال مباشر</span>
+              <span className="text-[10px] text-muted-foreground font-sans" dir="ltr">{settings.support_phone}</span>
             </span>
-            <div className="bg-brand-orange p-2 rounded-full text-white">
+            <div className="bg-brand-orange p-2 rounded-full text-white shrink-0">
               <Phone className="w-5 h-5" />
             </div>
           </a>
