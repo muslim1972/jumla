@@ -1,7 +1,5 @@
 import { Navbar } from "@/components/navbar"
 import { createClient } from "@/utils/supabase/server"
-import { FloatingContactButton } from "@/components/floating-contact-button"
-
 export default async function AppLayout({
   children,
 }: {
@@ -47,7 +45,6 @@ export default async function AppLayout({
       <main className="flex-1">
         {children}
       </main>
-      <FloatingContactButton settings={settings} />
     </div>
   )
 }

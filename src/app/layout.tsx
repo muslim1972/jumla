@@ -13,11 +13,19 @@ export const metadata: Metadata = {
   description: "منصة لبيع وشراء المنتجات بالجملة والمفرد",
 };
 
-export default function RootLayout({
+import { FloatingContactButton } from "@/components/floating-contact-button";
+import { TopAnnouncementBar } from "@/components/top-announcement-bar";
+import { createClient } from "@/utils/supabase/server";
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient()
+  const { data: settings } = await supabase.from('app_settings').select('*').eq('id', 1).maybeSingle()
+  const topBanners: any[] = []
+
   return (
     <html
       lang="ar"
@@ -36,7 +44,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <TopAnnouncementBar initialBanners={topBanners} />
           {children}
+          <FloatingContactButton settings={settings} />
         </ThemeProvider>
       </body>
     </html>

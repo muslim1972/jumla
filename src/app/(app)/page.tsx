@@ -2,7 +2,6 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { ProductExplorer } from "@/components/product-explorer"
 import { PromoBanners } from "@/components/promo-banners"
-import { TopAnnouncementBar } from "@/components/top-announcement-bar"
 import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
 import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
@@ -51,7 +50,6 @@ export default async function Home() {
   }
 
   const products = productsResponse.data
-  const topBanners: any[] = [] // Fetch disabled until table is created
 
   // Fetch cart items for the user if logged in
   let cartItems: { id: string; product_id: string; quantity: number }[] = []
@@ -67,8 +65,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen mesh-gradient pb-32 sm:pb-44">
-      {/* استبدال البانر الترحيبي القديم باللوحة الإعلانية المدفوعة العليا ذات التصميم الإبداعي */}
-      <TopAnnouncementBar initialBanners={topBanners} />
+
 
       <div className="container mx-auto px-3 sm:px-4">
         {userRole === "delivery" ? (
