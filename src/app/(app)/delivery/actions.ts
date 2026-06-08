@@ -153,7 +153,7 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
 }
 
 // 4. سجل التوصيل للعامل (الأرشيف - الطلبات المكتملة)
-export async function getDeliveryHistory(dateFilter?: string) {
+export async function getDeliveryHistory(startDate?: string, endDate?: string) {
   const supabase = await createClient()
 
   const { data: userResponse, error: authError } = await supabase.auth.getUser()
@@ -186,10 +186,13 @@ export async function getDeliveryHistory(dateFilter?: string) {
     .eq("status", "completed")
     .order("delivered_at", { ascending: false })
 
-  if (dateFilter) {
-    const startOfDay = new Date(`${dateFilter}T00:00:00.000Z`).toISOString()
-    const endOfDay = new Date(`${dateFilter}T23:59:59.999Z`).toISOString()
-    query = query.gte("delivered_at", startOfDay).lte("delivered_at", endOfDay)
+  if (startDate) {
+    const startOfDay = new Date(`${startDate}T00:00:00.000Z`).toISOString()
+    query = query.gte("delivered_at", startOfDay)
+  }
+  if (endDate) {
+    const endOfDay = new Date(`${endDate}T23:59:59.999Z`).toISOString()
+    query = query.lte("delivered_at", endOfDay)
   }
 
   const { data: orders, error } = await query

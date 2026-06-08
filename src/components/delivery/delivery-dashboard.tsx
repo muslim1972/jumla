@@ -184,6 +184,24 @@ function SettlementView() {
     loadSettlement()
   }, [loadSettlement])
 
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('delivery_settlement_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          loadSettlement()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadSettlement])
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {isLoading ? (
@@ -216,16 +234,17 @@ function SettlementView() {
 function DeliveryHistoryView() {
   const [orders, setOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [dateFilter, setDateFilter] = useState(() => new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true)
-    const result = await getDeliveryHistory(dateFilter)
+    const result = await getDeliveryHistory(startDate, endDate)
     if (result.orders) {
       setOrders(result.orders)
     }
     setIsLoading(false)
-  }, [dateFilter])
+  }, [startDate, endDate])
 
   useEffect(() => {
     loadHistory()
@@ -234,16 +253,30 @@ function DeliveryHistoryView() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="bg-card p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-brand-blue font-bold">
+        <div className="flex items-center gap-2 text-brand-blue font-bold shrink-0">
           <Calendar className="w-5 h-5" />
           تاريخ التوصيل
         </div>
-        <Input 
-          type="date"
-          className="w-full sm:w-auto"
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-        />
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">من:</span>
+            <Input 
+              type="date"
+              className="w-full"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">إلى:</span>
+            <Input 
+              type="date"
+              className="w-full"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
