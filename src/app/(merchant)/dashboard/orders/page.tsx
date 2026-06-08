@@ -87,16 +87,26 @@ export default function MerchantOrdersPage() {
   }
 
   const handleReceiveAmount = async (orderId: string) => {
-    if (!confirm("هل أنت متأكد من استلام مبلغ هذه القائمة من المندوب؟ ستنتقل القائمة إلى الأرشيف.")) return
-    
-    setProcessingId(orderId)
-    const result = await receiveOrderAmount(orderId)
-    if (result.success) {
-      setOrders(orders.filter(o => o.id !== orderId))
-    } else if (result.error) {
-      setErrorMsg(result.error)
+    try {
+      if (!confirm("هل أنت متأكد من استلام مبلغ هذه القائمة من المندوب؟ ستنتقل القائمة إلى الأرشيف.")) return
+      
+      setProcessingId(orderId)
+      const result = await receiveOrderAmount(orderId)
+      if (result && result.success) {
+        setOrders(orders.filter(o => o.id !== orderId))
+        alert("تم استلام المبلغ بنجاح ونقل الطلب للأرشيف!")
+      } else if (result && result.error) {
+        setErrorMsg(result.error)
+        alert("خطأ من الخادم: " + result.error)
+      } else {
+        alert("حدث خطأ غريب: لم يرجع الخادم أي نتيجة.")
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert("خطأ في النظام أثناء محاولة الاتصال بالخادم: " + err.message)
+    } finally {
+      setProcessingId(null)
     }
-    setProcessingId(null)
   }
 
   const pendingOrders = orders.filter(o => o.status === "pending")
