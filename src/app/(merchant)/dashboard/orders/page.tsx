@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { getMerchantOrders, approveOrder, rejectOrder } from "./actions"
-import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer } from "lucide-react"
+import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount } from "./actions"
+import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, ChevronDown, ChevronUp } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -90,7 +90,6 @@ export default function MerchantOrdersPage() {
     if (!confirm("هل أنت متأكد من استلام مبلغ هذه القائمة من المندوب؟ ستنتقل القائمة إلى الأرشيف.")) return
     
     setProcessingId(orderId)
-    const { receiveOrderAmount } = await import('./actions')
     const result = await receiveOrderAmount(orderId)
     if (result.success) {
       setOrders(orders.filter(o => o.id !== orderId))
@@ -351,139 +350,154 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved, isDel
   isDelivered?: boolean,
   onReceiveAmount?: () => void
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
-    <Card className={cn(
-      "overflow-hidden border-2 shadow-sm transition-all duration-300",
+    <div className={cn(
+      "border rounded-xl bg-card overflow-hidden transition-all duration-300 shadow-sm w-full",
       isDelivered ? "border-red-500/30 bg-red-50/10" :
-      isApproved ? "border-emerald-500/30 bg-emerald-50/10" : "border-brand-orange/20 hover:border-brand-orange/40 hover:shadow-md"
+      isApproved ? "border-emerald-500/30 bg-emerald-50/10" : "hover:border-brand-orange/40"
     )}>
-      <div className={cn(
-        "p-4 border-b flex justify-between items-start",
-        isDelivered ? "bg-red-500/10" :
-        isApproved ? "bg-emerald-500/10" : "bg-brand-orange/5"
-      )}>
-        <div className="space-y-1">
-          <h3 className="font-black text-lg">{order.store_name}</h3>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            {new Date(order.created_at).toLocaleString('ar-IQ')}
-          </div>
-        </div>
-        <div className="text-left shrink-0">
-          <div className="font-black text-brand-orange text-lg tabular-nums">
-            {order.total_rounded.toLocaleString()} د.ع
-          </div>
-          {isDelivered ? (
-            <div className="text-[10px] mt-1 font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> تم التوصيل للعميل
-            </div>
-          ) : isApproved ? (
-            <div className="text-[10px] mt-1 font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> مجهز للمندوب
-            </div>
-          ) : (
-            <div className="text-[10px] mt-1 font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-              <Clock className="w-3 h-3" /> بانتظار المراجعة
-            </div>
-          )}
-        </div>
-      </div>
-      
-      <CardContent className="p-4 space-y-4">
-        {/* معلومات الزبون */}
-        <div className="bg-muted/30 p-3 rounded-lg space-y-2 text-sm border border-border/50">
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-start justify-between p-4 text-right cursor-pointer"
+      >
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span className="truncate">{order.address}</span>
+            <span className="font-bold text-sm sm:text-base text-brand-blue">{order.store_name}</span>
+            {isDelivered && (
+              <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> تم التوصيل للعميل
+              </span>
+            )}
+            {!isDelivered && isApproved && (
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> مجهز للمندوب
+              </span>
+            )}
+            {!isDelivered && !isApproved && (
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Clock className="w-3 h-3" /> بانتظار المراجعة
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2 font-mono" dir="ltr">
-            <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{order.address}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono" dir="ltr">
+            <Phone className="w-3.5 h-3.5" />
             <span>{order.phone}</span>
           </div>
         </div>
-
-        {/* قائمة المواد */}
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-            <Package className="w-4 h-4" /> المواد المطلوبة ({order.items?.length || 0})
+        <div className="text-left shrink-0 flex flex-col items-end">
+          <div className="font-black text-brand-orange tabular-nums">
+            {order.total_rounded.toLocaleString()} د.ع
           </div>
-          <ul className="space-y-2 max-h-32 overflow-y-auto pr-2 no-scrollbar">
-            {order.items?.map((item: any) => (
-              <li key={item.id} className="flex justify-between items-center text-sm border-b border-border/40 pb-2 last:border-0 last:pb-0">
-                <span className="font-bold">{item.product_name}</span>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <span>{item.quantity} {item.unit_type}</span>
-                  <span>×</span>
-                  <span className="font-mono">{item.product_price.toLocaleString()}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
+            {new Date(order.created_at).toLocaleTimeString('ar-IQ')}
+          </div>
+          <div className="text-muted-foreground mt-2">
+            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </div>
         </div>
+      </button>
+      
+      {isExpanded && (
+        <div className="p-4 border-t bg-muted/10 animate-in slide-in-from-top-2">
+          {/* قائمة المواد */}
+          {order.items && order.items.length > 0 && (
+            <div className="border border-border/50 shadow-sm rounded-lg overflow-hidden bg-card mb-4">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/30 text-muted-foreground">
+                    <th className="text-right p-2 font-semibold">المنتج</th>
+                    <th className="text-center p-2 font-semibold">الكمية</th>
+                    <th className="text-left p-2 font-semibold">المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((item: any, idx: number) => (
+                    <tr key={item.id} className={idx < order.items.length - 1 ? "border-b border-dashed border-border/50" : ""}>
+                      <td className="p-2">
+                        <span className="font-medium text-brand-blue dark:text-foreground">{item.product_name}</span>
+                        <span className="text-[10px] text-muted-foreground mr-1">({item.unit_type})</span>
+                      </td>
+                      <td className="text-center p-2 font-bold tabular-nums text-brand-orange">{item.quantity}</td>
+                      <td className="text-left p-2 font-bold tabular-nums text-brand-blue dark:text-foreground">
+                        {(item.product_price * item.quantity).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-        {/* الإجراءات */}
-        {!isApproved && !isDelivered ? (
-          <div className="pt-2 flex items-center gap-2 border-t border-border/50">
-            <Button 
-              onClick={onApprove} 
-              disabled={isProcessing}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-            >
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-              تجهيز
-            </Button>
-            <Button 
-              onClick={onReject} 
-              disabled={isProcessing}
-              variant="destructive"
-              className="flex-[0.3] bg-red-500 hover:bg-red-600 text-white"
-            >
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
-              رفض
-            </Button>
-            <Button 
-              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
-              variant="outline" 
-              size="icon"
-              title="طباعة القائمة"
-              className="shrink-0"
-            >
-              <Printer className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : isDelivered ? (
-          <div className="pt-2 border-t border-border/50 flex items-center gap-2">
-            <Button 
-              onClick={onReceiveAmount} 
-              disabled={isProcessing}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
-            >
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-              استلام المبلغ
-            </Button>
-            <Button 
-              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
-              variant="outline" 
-              size="icon"
-              title="طباعة القائمة"
-              className="shrink-0"
-            >
-              <Printer className="w-4 h-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="pt-2 border-t border-border/50 flex items-center gap-2">
-            <Button 
-              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
-              variant="outline" 
-              className="flex-1 flex items-center justify-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              طباعة القائمة
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {/* الإجراءات */}
+          {!isApproved && !isDelivered ? (
+            <div className="pt-2 flex items-center gap-2 border-t border-border/50">
+              <Button 
+                onClick={(e) => { e.stopPropagation(); onApprove && onApprove(); }} 
+                disabled={isProcessing}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                تجهيز
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); onReject && onReject(); }} 
+                disabled={isProcessing}
+                variant="destructive"
+                className="flex-[0.3] bg-red-500 hover:bg-red-600 text-white"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
+                رفض
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
+                variant="outline" 
+                size="icon"
+                title="طباعة القائمة"
+                className="shrink-0"
+              >
+                <Printer className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : isDelivered ? (
+            <div className="pt-2 border-t border-border/50 flex items-center gap-2">
+              <Button 
+                onClick={(e) => { e.stopPropagation(); onReceiveAmount && onReceiveAmount(); }} 
+                disabled={isProcessing}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                استلام المبلغ
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
+                variant="outline" 
+                size="icon"
+                title="طباعة القائمة"
+                className="shrink-0"
+              >
+                <Printer className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-border/50 flex items-center gap-2">
+              <Button 
+                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
+                variant="outline" 
+                className="flex-1 flex items-center justify-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                طباعة القائمة
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
