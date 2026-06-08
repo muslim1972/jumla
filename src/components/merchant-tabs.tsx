@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Package, Receipt, Inbox, Truck } from "lucide-react"
+import { Package, Receipt, Inbox, Truck, Archive as ArchiveIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function MerchantTabs() {
@@ -25,9 +25,9 @@ export function MerchantTabs() {
       icon: Receipt
     },
     {
-      name: "تحاسب المندوبين",
-      href: "/dashboard/delivery-billing",
-      icon: Truck
+      name: "الأرشيف",
+      href: "/dashboard/archive",
+      icon: ArchiveIcon
     }
   ]
 
