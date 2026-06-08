@@ -41,7 +41,6 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar userRole={role} fullName={fullName} cartCount={cartCount} />
       <main className="flex-1">
         {children}
       </main>
