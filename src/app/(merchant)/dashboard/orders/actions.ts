@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
-// 1. جلب الطلبات الواردة (pending) و (approved) للتاجر
+// 1. جلب الطلبات الواردة (pending) و (approved) و (delivered) للتاجر
 export async function getMerchantOrders() {
   const supabase = await createClient()
 
@@ -35,7 +35,7 @@ export async function getMerchantOrders() {
       )
     `)
     .eq("merchant_id", user.id)
-    .in("status", ["pending", "approved"])
+    .in("status", ["pending", "approved", "delivered"])
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -84,6 +84,30 @@ export async function rejectOrder(orderId: string) {
     .eq("id", orderId)
     .eq("merchant_id", user.id)
     .eq("status", "pending") // للتأكد من أنه قيد الانتظار فقط
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/dashboard/orders")
+  return { success: true }
+}
+
+// 4. استلام المبلغ للطلب المُسلّم وإكماله
+export async function receiveOrderAmount(orderId: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: "يجب تسجيل الدخول" }
+  }
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ status: "completed" })
+    .eq("id", orderId)
+    .eq("merchant_id", user.id)
+    .eq("status", "delivered")
 
   if (error) {
     return { error: error.message }

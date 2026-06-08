@@ -152,7 +152,7 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
   return { success: true }
 }
 
-// 4. سجل التوصيل للعامل
+// 4. سجل التوصيل للعامل (الأرشيف - الطلبات المكتملة)
 export async function getDeliveryHistory(dateFilter?: string) {
   const supabase = await createClient()
 
@@ -183,7 +183,7 @@ export async function getDeliveryHistory(dateFilter?: string) {
       )
     `)
     .eq("delivery_worker_id", userId)
-    .eq("status", "delivered")
+    .eq("status", "completed")
     .order("delivered_at", { ascending: false })
 
   if (dateFilter) {
@@ -193,6 +193,67 @@ export async function getDeliveryHistory(dateFilter?: string) {
   }
 
   const { data: orders, error } = await query
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // Fetch merchant names
+  if (orders && orders.length > 0) {
+    const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id).filter(Boolean))]
+    if (merchantIds.length > 0) {
+      const { data: merchants } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", merchantIds)
+      
+      const merchantMap = merchants?.reduce((acc: any, m: any) => {
+        acc[m.id] = m.full_name
+        return acc
+      }, {}) || {}
+
+      orders.forEach((o: any) => {
+        o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
+      })
+    }
+  }
+
+  return { orders }
+}
+
+// 4.5. طلبات التحاسب مع التاجر (الطلبات التي تم تسليمها للعميل ولم يتم تسديد مبلغها للتاجر)
+export async function getDeliverySettlementOrders() {
+  const supabase = await createClient()
+
+  const { data: userResponse, error: authError } = await supabase.auth.getUser()
+  if (authError || !userResponse?.user) {
+    return { error: "يجب تسجيل الدخول كعامل توصيل" }
+  }
+
+  const userId = userResponse.user.id
+
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select(`
+      id,
+      merchant_id,
+      store_name,
+      address,
+      phone,
+      total_rounded,
+      status,
+      delivered_at,
+      items:order_items(
+        id,
+        product_name,
+        product_price,
+        quantity,
+        unit_type
+      )
+    `)
+    .eq("delivery_worker_id", userId)
+    .eq("status", "delivered")
+    .order("delivered_at", { ascending: false })
 
   if (error) {
     return { error: error.message }

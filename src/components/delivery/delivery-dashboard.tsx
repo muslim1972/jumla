@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { AddMerchantDialog } from "./add-merchant-dialog"
 
 export function DeliveryDashboard() {
-  const [activeTab, setActiveTab] = useState<"current" | "history">("current")
+  const [activeTab, setActiveTab] = useState<"current" | "settlement" | "history">("current")
 
   return (
     <div className="space-y-6">
@@ -21,7 +21,7 @@ export function DeliveryDashboard() {
         </h2>
         
         {/* Tabs */}
-        <div className="flex border-b border-border/40 gap-4">
+        <div className="flex border-b border-border/40 gap-4 overflow-x-auto custom-scrollbar">
           <button 
             onClick={() => setActiveTab("current")}
             className={cn(
@@ -33,6 +33,18 @@ export function DeliveryDashboard() {
           >
             <Clock className="w-4 h-4" />
             الطلبات الحالية
+          </button>
+          <button 
+            onClick={() => setActiveTab("settlement")}
+            className={cn(
+              "flex items-center gap-2 pb-3 px-2 border-b-2 font-bold text-sm transition-colors whitespace-nowrap",
+              activeTab === "settlement" 
+                ? "border-brand-orange text-brand-orange" 
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            <MapPin className="w-4 h-4" />
+            التحاسب مع التاجر
           </button>
           <button 
             onClick={() => setActiveTab("history")}
@@ -49,7 +61,7 @@ export function DeliveryDashboard() {
         </div>
       </div>
 
-      {activeTab === "current" ? <CurrentDeliveries /> : <DeliveryHistoryView />}
+      {activeTab === "current" ? <CurrentDeliveries /> : activeTab === "settlement" ? <SettlementView /> : <DeliveryHistoryView />}
     </div>
   )
 }
@@ -153,6 +165,54 @@ function CurrentDeliveries() {
   )
 }
 
+import { getDeliverySettlementOrders } from "@/app/(app)/delivery/actions"
+
+function SettlementView() {
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const loadSettlement = useCallback(async () => {
+    setIsLoading(true)
+    const result = await getDeliverySettlementOrders()
+    if (result.orders) {
+      setOrders(result.orders)
+    }
+    setIsLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadSettlement()
+  }, [loadSettlement])
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-orange" />
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="text-center py-16 bg-card/50 backdrop-blur-sm rounded-2xl border border-dashed border-border/50 text-muted-foreground">
+          <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+          ليس لديك أي مبالغ بانتظار التسليم للتجار حالياً.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl text-sm font-bold text-red-600">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              <span>قوائم تم توصيلها للعميل بانتظار تسديد التاجر</span>
+            </div>
+            <span>المبلغ الكلي المطلوب: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
+          </div>
+          {orders.map(order => (
+            <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={true} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DeliveryHistoryView() {
   const [orders, setOrders] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -193,16 +253,19 @@ function DeliveryHistoryView() {
       ) : orders.length === 0 ? (
         <div className="text-center py-16 bg-card/50 backdrop-blur-sm rounded-2xl border border-dashed border-border/50 text-muted-foreground">
           <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-          لا توجد طلبات تم توصيلها في هذا التاريخ.
+          لا توجد طلبات تم إكمالها في هذا التاريخ.
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-muted/20 px-4 py-2 rounded-lg text-sm font-bold text-muted-foreground">
-            <span>إجمالي الطلبات: {orders.length}</span>
-            <span>إجمالي المبالغ المستلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
+          <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold text-emerald-600">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>قوائم مكتملة وتم تسديد التاجر</span>
+            </div>
+            <span>إجمالي المبالغ المُسلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
           </div>
           {orders.map(order => (
-            <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} />
+            <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={false} />
           ))}
         </div>
       )}
@@ -267,7 +330,7 @@ function MerchantOrders({ merchantId }: { merchantId: string }) {
   )
 }
 
-function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { order: any, isHistoryMode?: boolean }) {
+function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettlementMode = false }: { order: any, isHistoryMode?: boolean, isSettlementMode?: boolean }) {
   const [order, setOrder] = useState(initialOrder)
   const [isExpanded, setIsExpanded] = useState(false)
   const [secretCode, setSecretCode] = useState("")
@@ -293,12 +356,14 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { ord
     }
   }
 
-  const isDelivered = order.status === "delivered"
+  const isDelivered = order.status === "delivered" || order.status === "completed"
+  const showDeliveryForm = !isHistoryMode && !isSettlementMode && !isDelivered
 
   return (
     <div className={cn(
       "border rounded-xl bg-card overflow-hidden transition-all duration-300 shadow-sm",
-      isDelivered ? "border-emerald-500/50 bg-emerald-50/10" : "hover:border-brand-orange/40"
+      isSettlementMode ? "border-red-500/30 bg-red-50/10" : 
+      (isHistoryMode || isDelivered) ? "border-emerald-500/50 bg-emerald-50/10" : "hover:border-brand-orange/40"
     )}>
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
@@ -307,7 +372,12 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { ord
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm sm:text-base text-brand-blue">{order.store_name}</span>
-            {isDelivered && (
+            {isSettlementMode && (
+              <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> بانتظار التسديد
+              </span>
+            )}
+            {!isSettlementMode && isDelivered && (
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> تم التسليم
               </span>
@@ -373,13 +443,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { ord
             </div>
           )}
 
-          {isDelivered ? (
-            <div className="text-center p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
-              <p className="text-emerald-700 dark:text-emerald-400 font-bold">تم استلام قائمة المواد</p>
-              <p className="text-xs text-emerald-600 dark:text-emerald-500">تم إرسال إشعار للمشتري والتاجر بتمام العملية.</p>
-            </div>
-          ) : (
+          {showDeliveryForm ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="bg-brand-orange/5 border border-brand-orange/20 p-3 rounded-lg flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" />
@@ -388,30 +452,47 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false }: { ord
                 </p>
               </div>
 
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="رمز التحقق (7 رموز)"
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="أدخل الكود المكون من 7 رموز"
                   value={secretCode}
-                  onChange={(e) => setSecretCode(e.target.value.toUpperCase())}
-                  className="font-mono text-center tracking-widest uppercase border-brand-blue/30 focus:border-brand-orange"
-                  maxLength={7}
+                  onChange={(e) => setSecretCode(e.target.value)}
+                  className="font-mono text-center tracking-widest text-lg h-12"
                   dir="ltr"
+                  maxLength={7}
                   disabled={isSubmitting}
                 />
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || secretCode.length !== 7}
-                  className="bg-brand-orange hover:bg-brand-orange/90 text-white min-w-[80px]"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد وتم"}
-                </Button>
+                {errorMsg && (
+                  <p className="text-sm text-red-500 font-medium text-center">{errorMsg}</p>
+                )}
               </div>
-              {errorMsg && (
-                <p className="text-xs font-bold text-destructive text-center bg-destructive/10 py-2 rounded-md">
-                  {errorMsg}
-                </p>
-              )}
+
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base font-bold bg-brand-orange hover:bg-brand-orange/90 text-white"
+                disabled={isSubmitting || secretCode.length !== 7}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 ml-2" />
+                    تأكيد التسليم والمبلغ
+                  </>
+                )}
+              </Button>
             </form>
+          ) : (
+            <div className={`text-center p-4 border rounded-xl space-y-2 ${isSettlementMode ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
+              <CheckCircle2 className={`w-8 h-8 mx-auto ${isSettlementMode ? 'text-red-500' : 'text-emerald-500'}`} />
+              <p className={`font-bold ${isSettlementMode ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
+                {isSettlementMode ? 'بانتظار تسديد التاجر' : 'مكتملة ومسددة'}
+              </p>
+              <p className={`text-xs ${isSettlementMode ? 'text-red-600 dark:text-red-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
+                {isSettlementMode ? 'تم توصيلها للعميل بانتظار استلام التاجر للمبلغ.' : 'تم إكمال الطلب بنجاح.'}
+              </p>
+            </div>
           )}
         </div>
       )}

@@ -53,7 +53,7 @@ export default function MerchantOrdersPage() {
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
         .eq("merchant_id", user.id)
-        .in("status", ["pending", "approved"])
+        .in("status", ["pending", "approved", "delivered"])
         .order("created_at", { ascending: false })
 
       if (fetchedOrders) setOrders(fetchedOrders)
@@ -86,8 +86,23 @@ export default function MerchantOrdersPage() {
     setProcessingId(null)
   }
 
+  const handleReceiveAmount = async (orderId: string) => {
+    if (!confirm("هل أنت متأكد من استلام مبلغ هذه القائمة من المندوب؟ ستنتقل القائمة إلى الأرشيف.")) return
+    
+    setProcessingId(orderId)
+    const { receiveOrderAmount } = await import('./actions')
+    const result = await receiveOrderAmount(orderId)
+    if (result.success) {
+      setOrders(orders.filter(o => o.id !== orderId))
+    } else if (result.error) {
+      setErrorMsg(result.error)
+    }
+    setProcessingId(null)
+  }
+
   const pendingOrders = orders.filter(o => o.status === "pending")
   const approvedOrders = orders.filter(o => o.status === "approved")
+  const deliveredOrders = orders.filter(o => o.status === "delivered")
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8">
@@ -159,6 +174,28 @@ export default function MerchantOrdersPage() {
               </div>
             </section>
           )}
+
+          {/* قسم الطلبات المُسلّمة بانتظار التسديد */}
+          {deliveredOrders.length > 0 && (
+            <section className="space-y-4 pt-8 border-t border-border/50">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-red-600">
+                <CheckCircle className="w-5 h-5 text-red-500" />
+                طلبات مُسلّمة بانتظار استلام المبلغ ({deliveredOrders.length})
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {deliveredOrders.map(order => (
+                  <OrderCard 
+                    key={order.id} 
+                    order={order} 
+                    isDelivered={true}
+                    onReceiveAmount={() => handleReceiveAmount(order.id)}
+                    isProcessing={processingId === order.id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>
@@ -192,44 +229,48 @@ function handlePrintOrder(order: any, dateStr: string) {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>قائمة #${invoiceNum} - ${order.store_name}</title>
+  <title>فاتورة المبيعات #${invoiceNum}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Cairo',sans-serif; background:#fff; color:#1a1a1a; padding:20px; direction:rtl; }
-    .invoice { max-width:520px; margin:0 auto; }
-    .header { text-align:center; padding-bottom:16px; border-bottom:3px solid #e85d26; margin-bottom:20px; }
-    .header h1 { font-size:28px; font-weight:800; color:#e85d26; margin-bottom:4px; }
-    .header .invoice-num { font-size:14px; color:#666; }
-    .header .date { font-size:12px; color:#999; margin-top:2px; }
-    .section { margin-bottom:16px; }
-    .section-title { font-size:12px; font-weight:700; color:#e85d26; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid #f0f0f0; }
-    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; }
-    .info-item { font-size:12px; }
-    .info-label { color:#888; }
-    .info-value { font-weight:600; }
-    table { width:100%; border-collapse:collapse; margin-bottom:16px; }
-    thead tr { background:#f8f8f8; }
-    thead th { padding:8px 12px; font-size:11px; font-weight:700; color:#666; text-align:right; border-bottom:2px solid #e85d26; }
-    thead th:nth-child(2), thead th:nth-child(3) { text-align:center; }
-    thead th:last-child { text-align:left; }
-    .totals { background:#fafafa; border-radius:8px; padding:12px 16px; }
-    .total-row { display:flex; justify-content:space-between; font-size:12px; color:#666; padding:3px 0; }
-    .total-row.grand { font-size:16px; font-weight:800; color:#1a1a1a; border-top:2px solid #e85d26; padding-top:8px; margin-top:6px; }
-    .total-row.grand .amount { color:#e85d26; }
-    .verification { text-align:center; margin:20px 0 16px; padding:16px; border:2px dashed #22c55e; border-radius:12px; background:#f0fdf4; }
-    .verification .label { font-size:11px; font-weight:700; color:#15803d; margin-bottom:6px; }
-    .verification .code { font-family:monospace; font-size:28px; font-weight:900; letter-spacing:0.3em; color:#15803d; }
-    .verification .warning { font-size:10px; color:#dc2626; margin-top:8px; font-weight:600; }
-    .status { text-align:center; font-size:11px; font-weight:700; padding:6px; border-radius:6px; margin-bottom:16px; }
-    .status.pending { background:#fef3c7; color:#92400e; }
-    .status.approved { background:#dbeafe; color:#1e40af; }
-    .status.delivered { background:#d1fae5; color:#065f46; }
-    .status.cancelled { background:#fee2e2; color:#991b1b; }
-    .footer { text-align:center; font-size:10px; color:#aaa; border-top:1px solid #eee; padding-top:12px; margin-top:20px; }
+    body { font-family: 'Cairo', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; color: #111; }
+    .invoice { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .header { text-align: center; margin-bottom: 25px; border-bottom: 2px dashed #eee; padding-bottom: 20px; }
+    .header h1 { font-weight: 900; color: #e85d26; margin: 0; font-size: 28px; letter-spacing: -0.5px; }
+    .invoice-num { font-size: 14px; color: #666; margin-top: 5px; font-weight: 600; }
+    .date { font-size: 12px; color: #999; margin-top: 2px; }
+    
+    .status { text-align: center; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 20px; display: inline-block; }
+    .status.pending { background: #fff3cd; color: #856404; }
+    .status.approved { background: #d4edda; color: #155724; }
+    .status.delivered { background: #cce5ff; color: #004085; }
+
+    .section { margin-bottom: 25px; }
+    .section-title { font-size: 14px; font-weight: 800; color: #333; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+    
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .info-item { background: #f8f9fa; padding: 10px; border-radius: 6px; }
+    .info-label { font-size: 11px; color: #666; display: block; margin-bottom: 2px; }
+    .info-value { font-size: 13px; font-weight: 700; color: #111; display: block; }
+    
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th { background: #f8f9fa; padding: 10px 12px; font-size: 12px; color: #444; border-bottom: 2px solid #eee; }
+    
+    .totals { border-top: 2px solid #eee; padding-top: 15px; margin-top: 15px; }
+    .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: #555; }
+    .total-row.grand { font-size: 16px; font-weight: 900; color: #111; margin-top: 5px; padding-top: 10px; border-top: 1px dashed #eee; }
+    .total-row.grand .amount { color: #e85d26; }
+
+    .verification { background: #f0fdf4; border: 1px dashed #22c55e; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px; }
+    .verification .label { font-size: 12px; color: #166534; font-weight: bold; margin-bottom: 5px; }
+    .verification .code { font-family: monospace; font-size: 24px; font-weight: 900; letter-spacing: 4px; color: #15803d; }
+    .verification .warning { font-size: 10px; color: #dc2626; margin-top: 8px; font-weight: bold; background: #fef2f2; padding: 4px; border-radius: 4px; }
+
+    .footer { text-align: center; font-size: 11px; color: #888; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px; }
+
     @media print {
-      body { padding:10px; }
-      .no-print { display:none !important; }
+      body { background: #fff; padding: 0; }
+      .invoice { box-shadow: none; padding: 0; max-width: 100%; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -241,7 +282,9 @@ function handlePrintOrder(order: any, dateStr: string) {
       <div class="date">${dateStr}</div>
     </div>
 
-    <div class="status ${order.status}">${statusLabel}</div>
+    <div style="text-align: center;">
+      <div class="status ${order.status}">${statusLabel}</div>
+    </div>
 
     <div class="section">
       <div class="section-title">معلومات التوصيل للمشتري</div>
@@ -257,7 +300,7 @@ function handlePrintOrder(order: any, dateStr: string) {
       <table>
         <thead>
           <tr>
-            <th>المنتج</th>
+            <th style="text-align:right;">المنتج</th>
             <th style="text-align:center;">الكمية</th>
             <th style="text-align:center;">سعر الوحدة</th>
             <th style="text-align:left;">المجموع</th>
@@ -299,20 +342,24 @@ function handlePrintOrder(order: any, dateStr: string) {
   }
 }
 
-function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: { 
+function OrderCard({ order, onApprove, onReject, isProcessing, isApproved, isDelivered, onReceiveAmount }: { 
   order: any, 
   onApprove?: () => void, 
   onReject?: () => void, 
   isProcessing?: boolean,
-  isApproved?: boolean 
+  isApproved?: boolean,
+  isDelivered?: boolean,
+  onReceiveAmount?: () => void
 }) {
   return (
     <Card className={cn(
       "overflow-hidden border-2 shadow-sm transition-all duration-300",
+      isDelivered ? "border-red-500/30 bg-red-50/10" :
       isApproved ? "border-emerald-500/30 bg-emerald-50/10" : "border-brand-orange/20 hover:border-brand-orange/40 hover:shadow-md"
     )}>
       <div className={cn(
         "p-4 border-b flex justify-between items-start",
+        isDelivered ? "bg-red-500/10" :
         isApproved ? "bg-emerald-500/10" : "bg-brand-orange/5"
       )}>
         <div className="space-y-1">
@@ -326,7 +373,11 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: {
           <div className="font-black text-brand-orange text-lg tabular-nums">
             {order.total_rounded.toLocaleString()} د.ع
           </div>
-          {isApproved ? (
+          {isDelivered ? (
+            <div className="text-[10px] mt-1 font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> تم التوصيل للعميل
+            </div>
+          ) : isApproved ? (
             <div className="text-[10px] mt-1 font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
               <CheckCircle className="w-3 h-3" /> مجهز للمندوب
             </div>
@@ -371,7 +422,7 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: {
         </div>
 
         {/* الإجراءات */}
-        {!isApproved ? (
+        {!isApproved && !isDelivered ? (
           <div className="pt-2 flex items-center gap-2 border-t border-border/50">
             <Button 
               onClick={onApprove} 
@@ -400,12 +451,32 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved }: {
               <Printer className="w-4 h-4" />
             </Button>
           </div>
-        ) : (
-          <div className="pt-2 border-t border-border/50">
+        ) : isDelivered ? (
+          <div className="pt-2 border-t border-border/50 flex items-center gap-2">
+            <Button 
+              onClick={onReceiveAmount} 
+              disabled={isProcessing}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+              استلام المبلغ
+            </Button>
             <Button 
               onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
               variant="outline" 
-              className="w-full flex items-center justify-center gap-2"
+              size="icon"
+              title="طباعة القائمة"
+              className="shrink-0"
+            >
+              <Printer className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="pt-2 border-t border-border/50 flex items-center gap-2">
+            <Button 
+              onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
+              variant="outline" 
+              className="flex-1 flex items-center justify-center gap-2"
             >
               <Printer className="w-4 h-4" />
               طباعة القائمة

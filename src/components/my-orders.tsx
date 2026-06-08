@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -60,7 +61,7 @@ interface MyOrdersProps {
 }
 
 // دالة طباعة القائمة
-function handlePrintOrder(order: OrderData, dateStr: string) {
+function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
   const maskedCode = order.verification_code.length > 2 
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
@@ -140,7 +141,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
       <div class="section-title">معلومات التاجر</div>
       <div class="info-grid">
         <div class="info-item"><span class="info-label">التاجر: </span><span class="info-value">${order.merchant_name || '---'}</span></div>
-        ${order.support_phone ? `<div class="info-item"><span class="info-label">هاتف الدعم: </span><span class="info-value" dir="ltr">${order.support_phone}</span></div>` : ''}
+        ${(appSupportPhone || order.support_phone) ? `<div class="info-item"><span class="info-label">هاتف الدعم: </span><span class="info-value" dir="ltr">${appSupportPhone || order.support_phone}</span></div>` : ''}
       </div>
     </div>
 
@@ -201,7 +202,7 @@ function handlePrintOrder(order: OrderData, dateStr: string) {
 }
 
 // مكون بطاقة الطلب الفردي
-function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean }) {
+function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null }) {
   const [expanded, setExpanded] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
 
@@ -220,6 +221,11 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
       delivered: {
         label: "تم التسليم",
         color: "text-brand-blue bg-brand-blue/10 border-brand-blue/30",
+        icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      },
+      completed: {
+        label: "مكتمل",
+        color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30",
         icon: <CheckCircle2 className="w-3.5 h-3.5" />,
       },
       rejected: {
@@ -251,22 +257,22 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
   }, [])
 
   return (
-    <div className="border rounded-xl overflow-hidden bg-card hover:border-primary/20 transition-colors">
-      {/* رأس البطاقة - قابل للنقر */}
-      <button
+    <div className="bg-white dark:bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* رأس البطاقة */}
+      <div 
         onClick={toggleExpand}
-        className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+        className="p-3 sm:p-4 flex items-center justify-between cursor-pointer select-none"
       >
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-lg">
             <FileText className="w-5 h-5 text-primary" />
           </div>
-          <div className="text-right">
-            <p className="font-bold text-sm">
-              {order.merchant_name || "طلب"} 
-              {order.invoice_number && <span className="text-muted-foreground ml-1">#{String(order.invoice_number).padStart(5, '0')}</span>}
-            </p>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+          <div>
+            <h3 className="font-bold text-sm sm:text-base">
+              {order.merchant_name || order.store_name}
+              {order.invoice_number && <span className="text-muted-foreground font-normal mr-1">#{String(order.invoice_number).padStart(5, '0')}</span>}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {dateStr}
             </p>
@@ -274,143 +280,118 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
         </div>
 
         <div className="flex items-center gap-3">
-          <div className={`px-2.5 py-1 rounded-full border text-[10px] font-bold flex items-center gap-1 ${statusConfig.color}`}>
-            {statusConfig.icon}
-            {statusConfig.label}
-          </div>
-          <span className="font-black text-primary tabular-nums text-sm">
-            {order.total_rounded.toLocaleString()}
-          </span>
-          {expanded ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
-
-      {/* محتوى الطلب - يظهر عند النقر */}
-      {expanded && (
-        <div className="border-t p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          {/* كود التحقق */}
-          <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center space-y-2">
-            <div className="flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">كود التحقق السري</span>
-            </div>
-            <div className="font-mono text-2xl sm:text-3xl font-black tracking-[0.3em] text-emerald-700 dark:text-emerald-300" dir="ltr">
-              {order.verification_code}
-            </div>
-            <p className="text-[10px] text-destructive bg-destructive/10 inline-block px-2 py-1 rounded-md font-bold">
-              ⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها
+          <div className="text-left">
+            <p className="font-black text-primary text-sm sm:text-base">
+              {order.total_rounded.toLocaleString()}
             </p>
+            <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max mr-auto`}>
+              {statusConfig.icon}
+              {statusConfig.label}
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted/50 rounded-full shrink-0">
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* التفاصيل (تظهر عند التوسيع) */}
+      {expanded && (
+        <div className="border-t bg-muted/10 p-3 sm:p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          
+          {/* معلومات التوصيل */}
+          <div className="bg-white dark:bg-card border rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Store className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="font-semibold text-foreground truncate">{order.store_name}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground truncate">{order.address}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground font-mono" dir="ltr">{order.phone}</span>
+            </div>
           </div>
 
-          {/* بيانات التوصيل */}
-          <div className="bg-muted/30 rounded-xl p-3 space-y-1.5 text-sm">
-            <div className="flex items-center gap-2">
-              <Store className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="font-medium">{order.store_name}</span>
+          {/* المنتجات */}
+          <div>
+            <h4 className="text-xs font-bold text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5" />
+              المواد المطلوبة ({order.items?.length || 0})
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto pl-1 pr-2 custom-scrollbar">
+              {(order.items || []).map(item => (
+                <div key={item.id} className="flex justify-between items-center text-sm bg-white dark:bg-card border rounded-lg p-2.5">
+                  <div className="flex flex-col gap-0.5 overflow-hidden">
+                    <span className="font-semibold truncate">{item.product_name}</span>
+                    <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded">{item.unit_type}</span>
+                  </div>
+                  <div className="text-left shrink-0">
+                    <p className="font-bold">{item.quantity} × {(item.product_price).toLocaleString()}</p>
+                    <p className="text-[10px] text-primary font-bold">{(item.product_price * item.quantity).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              <span>{order.address}</span>
-            </div>
-            <div className="flex items-center gap-2" dir="ltr">
-              <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="font-mono">{order.phone}</span>
-            </div>
-            {order.status === 'delivered' && order.delivery_worker_name && (
-              <div className="flex items-center gap-2 pt-2 border-t border-border/50 mt-2">
-                <Truck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">تم التوصيل بواسطة: {order.delivery_worker_name}</span>
-              </div>
-            )}
           </div>
 
-          {/* عناصر الطلب */}
-          {order.items && order.items.length > 0 && (
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/50 text-muted-foreground">
-                    <th className="text-right p-2 font-semibold">المنتج</th>
-                    <th className="text-center p-2 font-semibold">الكمية</th>
-                    <th className="text-left p-2 font-semibold">المجموع</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((item, idx) => (
-                    <tr key={item.id} className={idx < order.items!.length - 1 ? "border-b border-dashed" : ""}>
-                      <td className="p-2">
-                        <span className="font-medium">{item.product_name}</span>
-                        <span className="text-[10px] text-muted-foreground mr-1">({item.unit_type})</span>
-                      </td>
-                      <td className="text-center p-2 font-bold tabular-nums">{item.quantity}</td>
-                      <td className="text-left p-2 font-bold tabular-nums">
-                        {(item.product_price * item.quantity).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* ملخص المبالغ */}
-          <div className="text-xs space-y-1 pt-2 border-t border-dashed">
-            <div className="flex justify-between text-muted-foreground">
+          {/* الخلاصة وزر الطباعة */}
+          <div className="border-t border-dashed pt-3 space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>قيمة المنتجات</span>
-              <span className="tabular-nums">{order.subtotal.toLocaleString()} د.ع</span>
+              <span>{order.subtotal.toLocaleString()} د.ع</span>
             </div>
-            <div className="flex justify-between text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>أجور التوصيل</span>
-              <span className="tabular-nums">{order.delivery_fee.toLocaleString()} د.ع</span>
+              <span>{order.delivery_fee.toLocaleString()} د.ع</span>
             </div>
-            <div className="flex justify-between font-black text-sm pt-1">
+            <div className="flex justify-between text-base font-black text-primary pt-2 pb-1 px-1">
               <span>المجموع الكلي</span>
-              <span className="text-primary tabular-nums">{order.total_rounded.toLocaleString()} د.ع</span>
+              <span>{order.total_rounded.toLocaleString()} د.ع</span>
             </div>
-          </div>
-
-          {/* زر طباعة القائمة */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 gap-2 text-primary border-primary/30 hover:bg-primary/5"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrintOrder(order, dateStr);
-              }}
-            >
-              <Printer className="w-4 h-4" />
-              طباعة
-            </Button>
 
             {!isArchiveView && (
-              <Button
-                variant="outline"
-                className="flex-1 gap-2 text-violet-600 border-violet-500/30 hover:bg-violet-500/5"
+              <Button 
+                variant="outline" 
+                className="w-full mt-2 border-primary/30 text-primary hover:bg-primary/5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrintOrder(order, dateStr, appSupportPhone || undefined);
+                }}
+              >
+                <Printer className="w-4 h-4 ml-2" />
+                طباعة
+              </Button>
+            )}
+
+            {isArchiveView && (
+              <Button 
+                variant="outline" 
+                className="w-full mt-2 border-blue-500/30 text-blue-600 hover:bg-blue-500/5"
                 disabled={isArchiving}
                 onClick={async (e) => {
                   e.stopPropagation();
-                  setIsArchiving(true);
-                  try {
-                    const res = await archiveOrder(order.id);
-                    if (res.error) {
-                      alert(res.error);
-                    } else {
-                      if (onOrderEdited) onOrderEdited();
-                      window.location.reload();
+                  if (confirm("هل تريد إرسال هذا الطلب إلى الأرشيف؟")) {
+                    setIsArchiving(true);
+                    try {
+                      const res = await archiveOrder(order.id);
+                      if (res.error) {
+                        alert(res.error);
+                      } else {
+                        if (onOrderEdited) onOrderEdited();
+                        window.location.reload();
+                      }
+                    } catch {
+                      alert("حدث خطأ");
+                    } finally {
+                      setIsArchiving(false);
                     }
-                  } catch {
-                    alert("حدث خطأ");
-                  } finally {
-                    setIsArchiving(false);
                   }
                 }}
               >
-                {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4 ml-2" />}
                 أرشفة
               </Button>
             )}
@@ -419,13 +400,13 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
           {/* رقم الدعم وزر التعديل (في حالة الانتظار) */}
           {order.status === 'pending' && (
             <div className="pt-3 border-t space-y-3">
-              {order.support_phone && (
+              {(appSupportPhone || order.support_phone) && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
                   <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">
                     لديك استفسار؟ لا تتردد بالاتصال بهاتف الدعم
                   </p>
                   <p className="font-mono text-sm font-bold text-blue-800 dark:text-blue-300" dir="ltr">
-                    {order.support_phone}
+                    {appSupportPhone || order.support_phone}
                   </p>
                 </div>
               )}
@@ -443,9 +424,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
                       if (res.error) {
                         alert(res.error);
                       } else {
-                        alert("تم إرجاع المنتجات إلى السلة بنجاح. يمكنك التعديل وإرسال القائمة من جديد.");
                         if (onOrderEdited) onOrderEdited();
-                        window.location.reload();
+                        window.location.href = '/cart';
                       }
                     } catch (error) {
                       alert("حدث خطأ");
@@ -467,6 +447,19 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false }: { order: Ord
 
 // المكون الرئيسي
 export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
+  const [appSupportPhone, setAppSupportPhone] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      const fetchSettings = async () => {
+        const supabase = createClient()
+        const { data } = await supabase.from('app_settings').select('support_phone').single()
+        if (data?.support_phone) setAppSupportPhone(data.support_phone)
+      }
+      fetchSettings()
+    }
+  }, [open])
+
   const pendingOrders = useMemo(() =>
     orders.filter(o => ['pending', 'approved'].includes(o.status)),
     [orders]
@@ -505,7 +498,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
                   قيد التوصيل ({pendingOrders.length})
                 </p>
                 {pendingOrders.map(order => (
-                  <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} />
+                  <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
                 ))}
               </div>
             )}
@@ -518,7 +511,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
                   مكتملة ({completedOrders.length})
                 </p>
                 {completedOrders.map(order => (
-                  <OrderCard key={order.id} order={order} />
+                  <OrderCard key={order.id} order={order} appSupportPhone={appSupportPhone} />
                 ))}
               </div>
             )}
