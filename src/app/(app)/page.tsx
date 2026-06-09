@@ -64,7 +64,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen mesh-gradient pb-32 sm:pb-44">
+    <div className="flex-1 w-full mesh-gradient pb-32 sm:pb-44">
 
 
       <div className="container mx-auto px-3 sm:px-4">

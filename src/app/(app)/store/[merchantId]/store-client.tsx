@@ -127,7 +127,7 @@ export function StoreClient({
   }, [cartItems, products])
 
   return (
-    <div className="bg-background min-h-screen pb-32">
+    <div className="bg-background flex-1 w-full pb-32">
       {/* Top Navbar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-3 flex items-center">
         <button 

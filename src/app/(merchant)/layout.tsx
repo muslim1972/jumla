@@ -25,7 +25,7 @@ export default async function MerchantLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col flex-1 w-full">
       <MerchantTabs />
       <main className="flex-1 bg-muted/20">
         {children}
