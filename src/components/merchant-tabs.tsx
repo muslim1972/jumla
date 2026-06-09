@@ -1,12 +1,15 @@
 "use client"
 
-import { usePathname } from "next/navigation"
-import Link from "next/link"
-import { Package, Receipt, Inbox, Truck, Archive as ArchiveIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { Package, Receipt, Inbox, Truck, Archive as ArchiveIcon, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTransition, useState } from "react"
 
 export function MerchantTabs() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [pendingTab, setPendingTab] = useState<string | null>(null)
 
   const tabs = [
     {
@@ -41,21 +44,31 @@ export function MerchantTabs() {
               : pathname.includes(tab.href)
               
             const Icon = tab.icon
+            const isTabPending = isPending && pendingTab === tab.href
 
             return (
-              <Link 
+              <button 
                 key={tab.href}
-                href={tab.href}
+                onClick={() => {
+                  if (isActive) return;
+                  setPendingTab(tab.href);
+                  startTransition(() => {
+                    router.push(tab.href);
+                  });
+                }}
+                disabled={isPending}
                 className={cn(
-                  "flex items-center gap-2 pb-3 px-1 border-b-2 font-bold text-sm transition-colors whitespace-nowrap",
+                  "flex items-center gap-2 pb-3 px-1 border-b-2 font-bold text-sm transition-colors whitespace-nowrap outline-none",
                   isActive 
                     ? "border-brand-orange text-brand-orange" 
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+                  isTabPending && "opacity-70",
+                  isPending && !isTabPending && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                {isTabPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
                 {tab.name}
-              </Link>
+              </button>
             )
           })}
         </div>
