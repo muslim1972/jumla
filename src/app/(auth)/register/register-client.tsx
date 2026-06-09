@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { signUp, getMerchantsForRegistration } from "./actions"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { Loader2, Search, CheckSquare, Square } from "lucide-react"
 
 export function RegisterClient({ message }: { message?: string }) {
@@ -16,7 +16,7 @@ export function RegisterClient({ message }: { message?: string }) {
   const [merchants, setMerchants] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMerchants, setSelectedMerchants] = useState<string[]>([])
-  const [isPending, setIsPending] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [isLoadingMerchants, setIsLoadingMerchants] = useState(false)
 
   useEffect(() => {
@@ -40,13 +40,16 @@ export function RegisterClient({ message }: { message?: string }) {
     (m.store_name || "").includes(searchQuery)
   )
 
-  const handleSubmit = (formData: FormData) => {
-    setIsPending(true)
-    // Add selected merchants to form data
-    if (role === "delivery") {
-      formData.append("assigned_merchants", JSON.stringify(selectedMerchants))
-    }
-    signUp(formData)
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    
+    startTransition(() => {
+      if (role === "delivery") {
+        formData.append("assigned_merchants", JSON.stringify(selectedMerchants))
+      }
+      signUp(formData)
+    })
   }
 
   return (
@@ -58,7 +61,7 @@ export function RegisterClient({ message }: { message?: string }) {
             أدخل بياناتك لإنشاء حساب والبدء بالتسوق أو البيع
           </CardDescription>
         </CardHeader>
-        <form action={handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {message && (
               <div className="p-3 bg-secondary text-secondary-foreground text-sm rounded-md text-center">

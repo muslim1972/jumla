@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { signIn, checkUserRoleByEmail } from "./actions"
-import { useState, useRef } from "react"
+import { useState, useRef, useTransition } from "react"
 import { Loader2, UserCircle } from "lucide-react"
 
 const roleLabels: Record<string, { label: string, color: string }> = {
@@ -22,7 +22,7 @@ export function LoginClient({ message }: { message?: string }) {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
-  const [isPending, setIsPending] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState(message || "")
   
   const handlePasswordFocus = async () => {
@@ -42,14 +42,17 @@ export function LoginClient({ message }: { message?: string }) {
     }
   }
 
-  const handleSubmit = async (formData: FormData) => {
-    setIsPending(true)
-    setErrorMsg("")
-    const result = await signIn(formData)
-    if (result?.error) {
-      setErrorMsg(result.error)
-      setIsPending(false)
-    }
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    
+    startTransition(async () => {
+      setErrorMsg("")
+      const result = await signIn(formData)
+      if (result?.error) {
+        setErrorMsg(result.error)
+      }
+    })
   }
 
   return (
@@ -61,7 +64,7 @@ export function LoginClient({ message }: { message?: string }) {
             أدخل بريدك الإلكتروني وكلمة المرور للدخول إلى حسابك
           </CardDescription>
         </CardHeader>
-        <form action={handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {errorMsg && (
               <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md text-center">

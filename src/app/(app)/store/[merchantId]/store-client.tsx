@@ -129,7 +129,7 @@ export function StoreClient({
   return (
     <div className="bg-background min-h-screen pb-32">
       {/* Top Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-4 flex items-center gap-4">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-3 flex items-center">
         <button 
           onClick={() => {
             startTransition(() => {
@@ -137,15 +137,22 @@ export function StoreClient({
             })
           }}
           disabled={isPending}
-          className="bg-muted hover:bg-muted/80 p-2 rounded-full transition-colors disabled:opacity-50"
-        >
-          {isPending ? (
-            <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-foreground" />
+          className={cn(
+            "flex items-center gap-3 w-full text-right p-2 rounded-2xl transition-all duration-300 group",
+            isPending 
+              ? "opacity-60 animate-pulse" 
+              : "hover:bg-muted/50 active:scale-[0.98]"
           )}
+        >
+          <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0">
+            {isPending ? (
+              <div className="w-5 h-5 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-foreground group-active:-translate-x-1 transition-transform" />
+            )}
+          </div>
+          <h1 className="font-bold text-lg text-foreground truncate">{merchant.full_name}</h1>
         </button>
-        <h1 className="font-bold text-lg text-foreground truncate">{merchant.full_name}</h1>
       </div>
 
       {/* Hero Header */}
