@@ -52,7 +52,7 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
   }
 
   return (
-    <div className="flex-1 w-full bg-muted/10 pb-32">
+    <div className="w-full bg-muted/10">
       <StoreClient 
         merchant={merchantProfile} 
         products={products} 

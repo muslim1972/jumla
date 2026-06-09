@@ -55,7 +55,7 @@ export default async function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className="min-h-screen flex flex-col bg-background text-foreground pb-24">
+      <body className="min-h-screen flex flex-col bg-background text-foreground">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

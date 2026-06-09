@@ -127,7 +127,7 @@ export function StoreClient({
   }, [cartItems, products])
 
   return (
-    <div className={cn("bg-background flex-1 w-full", totalCartItems > 0 ? "pb-32" : "pb-4")}>
+    <div className={cn("bg-background w-full", totalCartItems > 0 ? "pb-32" : "pb-4")}>
       {/* Sticky Header Group: Navbar + Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
         {/* Top Navbar */}
