@@ -3,16 +3,23 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount } from "./actions"
-import { Inbox, CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, ChevronDown, ChevronUp } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer } from "lucide-react"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) {
   const [orders, setOrders] = useState<any[]>(initialOrders)
   const [isLoading, setIsLoading] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState("")
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
 
   useEffect(() => {
     // Only load if no initial orders were provided
@@ -31,7 +38,6 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
           table: 'orders',
         },
         () => {
-          // عند حدوث أي تغيير في الطلبات، قم بإعادة التحميل
           loadOrders()
         }
       )
@@ -69,7 +75,9 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
     setProcessingId(orderId)
     const result = await approveOrder(orderId)
     if (result.success) {
-      setOrders(orders.map(o => o.id === orderId ? { ...o, status: "approved" } : o))
+      const updatedOrder = { ...orders.find(o => o.id === orderId), status: "approved" };
+      setOrders(orders.map(o => o.id === orderId ? updatedOrder : o))
+      if (selectedOrder?.id === orderId) setSelectedOrder(updatedOrder)
     } else if (result.error) {
       setErrorMsg(result.error)
     }
@@ -83,6 +91,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
     const result = await rejectOrder(orderId)
     if (result.success) {
       setOrders(orders.filter(o => o.id !== orderId))
+      if (selectedOrder?.id === orderId) setSelectedOrder(null)
     } else if (result.error) {
       setErrorMsg(result.error)
     }
@@ -97,6 +106,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
       const result = await receiveOrderAmount(orderId)
       if (result && result.success) {
         setOrders(orders.filter(o => o.id !== orderId))
+        if (selectedOrder?.id === orderId) setSelectedOrder(null)
         alert("تم استلام المبلغ بنجاح ونقل الطلب للأرشيف!")
       } else if (result && result.error) {
         setErrorMsg(result.error)
@@ -117,118 +127,299 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
   const deliveredOrders = orders.filter(o => o.status === "delivered")
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-black text-brand-blue flex items-center gap-2">
-          <Inbox className="w-6 h-6 text-brand-orange" />
-          الطلبات الواردة
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          قم بمراجعة طلبات المشترين، تجهيزها، وإعطاء الموافقة لتسليمها لعامل التوصيل.
-        </p>
-      </div>
-
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-5xl space-y-4 sm:space-y-6 pb-20">
       {errorMsg && (
-        <div className="bg-red-500/10 text-red-600 p-4 rounded-xl font-bold border border-red-500/20">
+        <div className="bg-red-500/10 text-red-600 p-4 rounded-xl font-bold border border-red-500/20 text-xs sm:text-sm">
           {errorMsg}
         </div>
       )}
 
       {isLoading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-10 h-10 animate-spin text-brand-orange" />
+          <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-brand-orange" />
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* قسم الطلبات المعلقة */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-500" />
-              طلبات بانتظار الموافقة ({pendingOrders.length})
-            </h2>
-            
-            {pendingOrders.length === 0 ? (
-              <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-xl border border-dashed text-muted-foreground">
-                <Inbox className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
-                لا توجد طلبات جديدة بانتظار الموافقة.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pendingOrders.map(order => (
-                  <OrderCard 
-                    key={order.id} 
-                    order={order} 
-                    onApprove={() => handleApprove(order.id)}
-                    onReject={() => handleReject(order.id)}
-                    isProcessing={processingId === order.id}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* قسم الطلبات المجهزة */}
-          {approvedOrders.length > 0 && (
-            <section className="space-y-4 pt-8 border-t border-border/50">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-brand-blue">
-                <Truck className="w-5 h-5 text-emerald-500" />
-                طلبات مجهزة بانتظار المندوب ({approvedOrders.length})
+        <div className="space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
+            {/* العمود الأيمن: بانتظار الموافقة */}
+            <div className="space-y-3 sm:space-y-4">
+              <h2 className="font-bold text-xs sm:text-lg text-amber-600 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Clock className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                بانتظار الموافقة ({pendingOrders.length})
               </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {approvedOrders.map(order => (
-                  <OrderCard 
-                    key={order.id} 
-                    order={order} 
-                    isApproved={true}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+              {pendingOrders.length === 0 ? (
+                <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
+              ) : (
+                pendingOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} onClick={() => setSelectedOrder(order)} />
+                ))
+              )}
+            </div>
 
-          {/* قسم الطلبات المُسلّمة بانتظار التسديد */}
+            {/* العمود الأيسر: مجهزة بانتظار المندوب */}
+            <div className="space-y-3 sm:space-y-4">
+              <h2 className="font-bold text-xs sm:text-lg text-emerald-600 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Truck className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                بانتظار المندوب ({approvedOrders.length})
+              </h2>
+              {approvedOrders.length === 0 ? (
+                <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
+              ) : (
+                approvedOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} isApproved={true} onClick={() => setSelectedOrder(order)} />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* الطلبات المُسلمة بانتظار استلام المبلغ */}
           {deliveredOrders.length > 0 && (
-            <section className="space-y-4 pt-8 border-t border-border/50">
-              <h2 className="text-xl font-bold flex items-center gap-2 text-red-600">
-                <CheckCircle className="w-5 h-5 text-red-500" />
-                طلبات مُسلّمة بانتظار استلام المبلغ ({deliveredOrders.length})
+            <div className="pt-4 sm:pt-8 border-t border-border/50">
+              <h2 className="font-bold text-xs sm:text-lg text-red-600 flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                مُسلمة بانتظار استلام المبلغ ({deliveredOrders.length})
               </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {deliveredOrders.map(order => (
-                  <OrderCard 
-                    key={order.id} 
-                    order={order} 
-                    isDelivered={true}
-                    onReceiveAmount={() => handleReceiveAmount(order.id)}
-                    isProcessing={processingId === order.id}
-                  />
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
+                {deliveredOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} isDelivered={true} onClick={() => setSelectedOrder(order)} />
                 ))}
               </div>
-            </section>
+            </div>
           )}
         </div>
       )}
+
+      <OrderDialog 
+        order={selectedOrder}
+        open={!!selectedOrder}
+        onOpenChange={(isOpen: boolean) => !isOpen && setSelectedOrder(null)}
+        isProcessing={processingId === selectedOrder?.id}
+        onApprove={() => selectedOrder && handleApprove(selectedOrder.id)}
+        onReject={() => selectedOrder && handleReject(selectedOrder.id)}
+        onReceiveAmount={() => selectedOrder && handleReceiveAmount(selectedOrder.id)}
+      />
     </div>
   )
 }
 
-// دالة طباعة القائمة
+function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, isApproved?: boolean, isDelivered?: boolean, onClick: () => void }) {
+  return (
+    <Card 
+      onClick={onClick}
+      className={cn(
+        "overflow-hidden border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
+        isDelivered ? "border-red-500/30 hover:border-red-500/60" :
+        isApproved ? "border-emerald-500/30 hover:border-emerald-500/60" : "border-amber-500/30 hover:border-amber-500/60"
+      )}
+    >
+      <div 
+        className={cn(
+          "w-full text-right p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3 transition-colors",
+          isDelivered ? "bg-red-500/5" :
+          isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
+        )}
+      >
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={cn(
+              "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
+              isDelivered ? "bg-red-500/10 text-red-600" :
+              isApproved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+            )}>
+              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className={cn(
+                "font-bold text-xs sm:text-sm truncate",
+                isDelivered ? "text-red-700 dark:text-red-500" :
+                isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
+              )}>
+                {order.store_name}
+              </h3>
+              <p className="text-[9px] sm:text-[11px] text-muted-foreground font-mono mt-0.5 truncate flex items-center gap-1" dir="ltr">
+                <Clock className="w-2.5 h-2.5 shrink-0" />
+                {new Date(order.created_at).toLocaleTimeString('ar-IQ')}
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0 flex flex-row-reverse sm:flex-col justify-between items-center sm:items-end mt-1 sm:mt-0">
+             <div className="font-black text-brand-orange text-xs sm:text-sm">
+               {order.total_rounded.toLocaleString()} د.ع
+             </div>
+            {isDelivered ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-500/10 text-red-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+                <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                تم التوصيل
+              </div>
+            ) : isApproved ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-emerald-500/10 text-emerald-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+                <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                مجهز للمندوب
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-amber-500/10 text-amber-600 font-bold text-[8px] sm:text-[10px] shadow-sm mt-0 sm:mt-1">
+                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
+                بانتظار المراجعة
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onReceiveAmount }: any) {
+  if (!order) return null
+
+  const isApproved = order.status === 'approved'
+  const isDelivered = order.status === 'delivered'
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none" showCloseButton={false}>
+        <div className="bg-card rounded-xl border border-border/40 shadow-premium overflow-hidden mx-2 sm:mx-0">
+          <DialogHeader className={cn(
+            "p-4 sm:p-6 border-b text-right",
+            isDelivered ? "bg-red-500/5" :
+            isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
+          )}>
+            <DialogTitle className={cn(
+              "flex items-center justify-between text-base sm:text-lg font-black",
+              isDelivered ? "text-red-700 dark:text-red-500" :
+              isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
+            )}>
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 shrink-0" />
+                <span className="truncate">{order.store_name}</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-right max-h-[75vh] overflow-y-auto custom-scrollbar">
+             {/* تفاصيل المشتري */}
+             <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground bg-muted/20 p-2 sm:p-2.5 rounded-lg border border-border/50">
+                  <MapPin className="w-4 h-4 shrink-0 text-brand-blue" />
+                  <span className="truncate">{order.address}</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-muted-foreground font-mono bg-muted/20 p-2 sm:p-2.5 rounded-lg border border-border/50" dir="ltr">
+                  <Phone className="w-4 h-4 shrink-0 text-brand-blue" />
+                  <span className="flex-1 text-right">{order.phone}</span>
+                </div>
+             </div>
+
+             {/* حالة الطلب الإضافية */}
+             {isDelivered && order.delivery_worker_name && (
+               <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-red-600 bg-red-100 p-2.5 sm:p-3 rounded-lg border border-red-200">
+                 <CheckCircle className="w-4 h-4 shrink-0" />
+                 تم التوصيل بواسطة: {order.delivery_worker_name}
+               </div>
+             )}
+
+             {/* جدول العناصر */}
+             {order.items && order.items.length > 0 && (
+               <div className="border border-border/50 shadow-sm rounded-lg overflow-hidden bg-card/50">
+                 <table className="w-full text-[10px] sm:text-xs">
+                   <thead>
+                     <tr className="bg-muted/50 text-muted-foreground border-b border-border/50">
+                       <th className="text-right p-2 sm:p-2.5 font-semibold">المنتج</th>
+                       <th className="text-center p-2 sm:p-2.5 font-semibold">الكمية</th>
+                       <th className="text-left p-2 sm:p-2.5 font-semibold">المجموع</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {order.items.map((item: any, idx: number) => (
+                       <tr key={item.id} className={idx < order.items.length - 1 ? "border-b border-dashed border-border/50" : ""}>
+                         <td className="p-2 sm:p-2.5">
+                           <span className="font-bold text-brand-blue dark:text-foreground block">{item.product_name}</span>
+                           <span className="text-[9px] sm:text-[10px] text-muted-foreground">({item.unit_type})</span>
+                         </td>
+                         <td className="text-center p-2 sm:p-2.5 font-black tabular-nums text-brand-orange text-xs sm:text-sm">{item.quantity}</td>
+                         <td className="text-left p-2 sm:p-2.5 font-bold tabular-nums text-brand-blue dark:text-foreground">
+                           {(item.product_price * item.quantity).toLocaleString()}
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+             )}
+
+             {/* المجموع */}
+             <div className="flex justify-between items-center p-3 sm:p-4 bg-brand-orange/5 border border-brand-orange/10 rounded-lg">
+                <span className="font-bold text-xs sm:text-sm text-brand-blue">المجموع الكلي</span>
+                <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString()} د.ع</span>
+             </div>
+
+             {/* الإجراءات */}
+             <div className="pt-4 border-t border-border/50 space-y-2 sm:space-y-3">
+                {!isApproved && !isDelivered && (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      onClick={onApprove} 
+                      disabled={isProcessing}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
+                    >
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                      تجهيز للمندوب
+                    </Button>
+                    <Button 
+                      onClick={onReject} 
+                      disabled={isProcessing}
+                      variant="destructive"
+                      className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
+                    >
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
+                      رفض
+                    </Button>
+                  </div>
+                )}
+
+                {isDelivered && (
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      onClick={onReceiveAmount} 
+                      disabled={isProcessing}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+                    >
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                      استلام المبلغ
+                    </Button>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2 text-xs sm:text-sm h-9 sm:h-10 border-brand-blue/20 text-brand-blue hover:bg-brand-blue/5"
+                >
+                  <Printer className="w-4 h-4" />
+                  طباعة القائمة
+                </Button>
+             </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function handlePrintOrder(order: any, dateStr: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
   const maskedCode = order.verification_code && order.verification_code.length > 2 
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
     : order.verification_code || '---';
   
-  const itemsRows = (order.items || []).map((item: any) => `
+  const itemsRows = (order.items || []).map((item: any) => \`
     <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price?.toLocaleString() || 0}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${((item.product_price || 0) * item.quantity).toLocaleString()}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">\${item.product_name} <span style="color:#888;font-size:11px;">(\${item.unit_type})</span></td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">\${item.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">\${item.product_price?.toLocaleString() || 0}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">\${((item.product_price || 0) * item.quantity).toLocaleString()}</td>
     </tr>
-  `).join('');
+  \`).join('');
 
   const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
     : order.status === 'approved' ? 'مجهز للمندوب'
@@ -236,12 +427,12 @@ function handlePrintOrder(order: any, dateStr: string) {
     : order.status === 'rejected' ? 'مرفوض من التاجر'
     : 'ملغي';
 
-  const html = `
+  const html = \`
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>فاتورة المبيعات #${invoiceNum}</title>
+  <title>فاتورة المبيعات #\${invoiceNum}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Cairo', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; color: #111; }
@@ -290,21 +481,21 @@ function handlePrintOrder(order: any, dateStr: string) {
   <div class="invoice">
     <div class="header">
       <h1>جُملتي</h1>
-      <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
-      <div class="date">${dateStr}</div>
+      <div class="invoice-num">قائمة رقم #\${invoiceNum}</div>
+      <div class="date">\${dateStr}</div>
     </div>
 
     <div style="text-align: center;">
-      <div class="status ${order.status}">${statusLabel}</div>
+      <div class="status \${order.status}">\${statusLabel}</div>
     </div>
 
     <div class="section">
       <div class="section-title">معلومات التوصيل للمشتري</div>
       <div class="info-grid">
-        <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
-        <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
-        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
-        ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
+        <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">\${order.store_name}</span></div>
+        <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">\${order.phone}</span></div>
+        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">\${order.address}</span></div>
+        \${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? \`<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">\${order.delivery_worker_name}</span></div>\` : ''}
       </div>
     </div>
 
@@ -320,20 +511,20 @@ function handlePrintOrder(order: any, dateStr: string) {
           </tr>
         </thead>
         <tbody>
-          ${itemsRows}
+          \${itemsRows}
         </tbody>
       </table>
     </div>
 
     <div class="totals">
-      <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>قيمة المنتجات</span><span>\${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>\${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">\${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
     </div>
 
     <div class="verification">
       <div class="label">كود التحقق السري للطلب</div>
-      <div class="code">${maskedCode}</div>
+      <div class="code">\${maskedCode}</div>
       <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
     </div>
 
@@ -346,172 +537,11 @@ function handlePrintOrder(order: any, dateStr: string) {
     </div>
   </div>
 </body>
-</html>`;
+</html>\`;
 
   const printWindow = window.open('', '_blank');
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
   }
-}
-
-function OrderCard({ order, onApprove, onReject, isProcessing, isApproved, isDelivered, onReceiveAmount }: { 
-  order: any, 
-  onApprove?: () => void, 
-  onReject?: () => void, 
-  isProcessing?: boolean,
-  isApproved?: boolean,
-  isDelivered?: boolean,
-  onReceiveAmount?: () => void
-}) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
-  return (
-    <div className={cn(
-      "border rounded-xl bg-card overflow-hidden transition-all duration-300 shadow-sm w-full",
-      isDelivered ? "border-red-500/30 bg-red-50/10" :
-      isApproved ? "border-emerald-500/30 bg-emerald-50/10" : "hover:border-brand-orange/40"
-    )}>
-      <button 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-start justify-between p-4 text-right cursor-pointer"
-      >
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm sm:text-base text-brand-blue">{order.store_name}</span>
-            {isDelivered && (
-              <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> تم التوصيل بواسطة {order.delivery_worker_name}
-              </span>
-            )}
-            {!isDelivered && isApproved && (
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> مجهز للمندوب
-              </span>
-            )}
-            {!isDelivered && !isApproved && (
-              <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Clock className="w-3 h-3" /> بانتظار المراجعة
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{order.address}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono" dir="ltr">
-            <Phone className="w-3.5 h-3.5" />
-            <span>{order.phone}</span>
-          </div>
-        </div>
-        <div className="text-left shrink-0 flex flex-col items-end">
-          <div className="font-black text-brand-orange tabular-nums">
-            {order.total_rounded.toLocaleString()} د.ع
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
-            {new Date(order.created_at).toLocaleTimeString('ar-IQ')}
-          </div>
-          <div className="text-muted-foreground mt-2">
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-          </div>
-        </div>
-      </button>
-      
-      {isExpanded && (
-        <div className="p-4 border-t bg-muted/10 animate-in slide-in-from-top-2">
-          {/* قائمة المواد */}
-          {order.items && order.items.length > 0 && (
-            <div className="border border-border/50 shadow-sm rounded-lg overflow-hidden bg-card mb-4">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/30 text-muted-foreground">
-                    <th className="text-right p-2 font-semibold">المنتج</th>
-                    <th className="text-center p-2 font-semibold">الكمية</th>
-                    <th className="text-left p-2 font-semibold">المجموع</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((item: any, idx: number) => (
-                    <tr key={item.id} className={idx < order.items.length - 1 ? "border-b border-dashed border-border/50" : ""}>
-                      <td className="p-2">
-                        <span className="font-medium text-brand-blue dark:text-foreground">{item.product_name}</span>
-                        <span className="text-[10px] text-muted-foreground mr-1">({item.unit_type})</span>
-                      </td>
-                      <td className="text-center p-2 font-bold tabular-nums text-brand-orange">{item.quantity}</td>
-                      <td className="text-left p-2 font-bold tabular-nums text-brand-blue dark:text-foreground">
-                        {(item.product_price * item.quantity).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* الإجراءات */}
-          {!isApproved && !isDelivered ? (
-            <div className="pt-2 flex items-center gap-2 border-t border-border/50">
-              <Button 
-                onClick={(e) => { e.stopPropagation(); onApprove && onApprove(); }} 
-                disabled={isProcessing}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-              >
-                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                تجهيز
-              </Button>
-              <Button 
-                onClick={(e) => { e.stopPropagation(); onReject && onReject(); }} 
-                disabled={isProcessing}
-                variant="destructive"
-                className="flex-[0.3] bg-red-500 hover:bg-red-600 text-white"
-              >
-                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
-                رفض
-              </Button>
-              <Button 
-                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
-                variant="outline" 
-                size="icon"
-                title="طباعة القائمة"
-                className="shrink-0"
-              >
-                <Printer className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : isDelivered ? (
-            <div className="pt-2 border-t border-border/50 flex items-center gap-2">
-              <Button 
-                onClick={(e) => { e.stopPropagation(); onReceiveAmount && onReceiveAmount(); }} 
-                disabled={isProcessing}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold"
-              >
-                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                استلام المبلغ
-              </Button>
-              <Button 
-                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
-                variant="outline" 
-                size="icon"
-                title="طباعة القائمة"
-                className="shrink-0"
-              >
-                <Printer className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="pt-2 border-t border-border/50 flex items-center gap-2">
-              <Button 
-                onClick={(e) => { e.stopPropagation(); handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ')); }} 
-                variant="outline" 
-                className="flex-1 flex items-center justify-center gap-2"
-              >
-                <Printer className="w-4 h-4" />
-                طباعة القائمة
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
