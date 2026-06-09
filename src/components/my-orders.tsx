@@ -151,6 +151,7 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
         <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
         <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
         <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
+        ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
       </div>
     </div>
 
@@ -313,6 +314,12 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
               <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground font-mono" dir="ltr">{order.phone}</span>
             </div>
+            {(order.status === 'delivered' || order.status === 'completed') && order.delivery_worker_name && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border/50 mt-2">
+                <Truck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs sm:text-sm">تم التوصيل بواسطة: {order.delivery_worker_name}</span>
+              </div>
+            )}
           </div>
 
           {/* المنتجات */}

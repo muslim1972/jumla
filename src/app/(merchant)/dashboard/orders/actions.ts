@@ -26,6 +26,7 @@ export async function getMerchantOrders() {
       verification_code,
       status,
       created_at,
+      delivery_worker_name,
       items:order_items(
         id,
         product_name,

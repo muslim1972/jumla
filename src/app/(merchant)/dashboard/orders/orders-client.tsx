@@ -52,7 +52,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         .from("orders")
         .select(`
           id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
-          invoice_number, verification_code, status, created_at,
+          invoice_number, verification_code, status, created_at, delivery_worker_name,
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
         .eq("merchant_id", user.id)
@@ -304,6 +304,7 @@ function handlePrintOrder(order: any, dateStr: string) {
         <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
         <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
         <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
+        ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
       </div>
     </div>
 
@@ -380,7 +381,7 @@ function OrderCard({ order, onApprove, onReject, isProcessing, isApproved, isDel
             <span className="font-bold text-sm sm:text-base text-brand-blue">{order.store_name}</span>
             {isDelivered && (
               <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> تم التوصيل للعميل
+                <CheckCircle className="w-3 h-3" /> تم التوصيل بواسطة {order.delivery_worker_name}
               </span>
             )}
             {!isDelivered && isApproved && (

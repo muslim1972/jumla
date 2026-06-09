@@ -66,6 +66,10 @@ export async function getMerchantPendingOrders(merchantId: string) {
       total_rounded,
       status,
       created_at,
+      invoice_number,
+      merchant_id,
+      verification_code,
+      delivery_worker_name,
       items:order_items(
         id,
         product_name,
@@ -174,6 +178,7 @@ export async function getDeliveryHistory(startDate?: string, endDate?: string) {
       total_rounded,
       status,
       delivered_at,
+      delivery_worker_name,
       items:order_items(
         id,
         product_name,
@@ -246,6 +251,7 @@ export async function getDeliverySettlementOrders() {
       total_rounded,
       status,
       delivered_at,
+      delivery_worker_name,
       items:order_items(
         id,
         product_name,

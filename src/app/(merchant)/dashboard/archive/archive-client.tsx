@@ -37,6 +37,7 @@ export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: 
           <div class="info-row"><strong>رقم الفاتورة:</strong> ${order.invoice_number}</div>
           <div class="info-row"><strong>العنوان:</strong> ${order.address}</div>
           <div class="info-row"><strong>الهاتف:</strong> ${order.phone}</div>
+          ${order.delivery_worker_name ? `<div class="info-row"><strong>المندوب:</strong> ${order.delivery_worker_name}</div>` : ''}
           
           <table style="width: 100%">
             <thead>
