@@ -4,7 +4,7 @@ import Link from "next/link"
 import { ShoppingCart, User, PackageOpen, LayoutDashboard, LogOut, UserCheck } from "lucide-react"
 import { ModeToggle } from "./mode-toggle"
 import { buttonVariants } from "./ui/button"
-import { signOut } from "@/app/(auth)/actions"
+import { SignOutButton } from "./sign-out-button"
 
 export function Navbar({ 
   userRole, 
@@ -72,12 +72,7 @@ export function Navbar({
           )}
 
           {fullName ? (
-            <form action={signOut}>
-              <button type="submit" className={buttonVariants({ variant: "default", size: "sm" }) + " rounded-full shadow-lg shadow-primary/20"}>
-                <LogOut className="h-4 w-4 sm:ml-2" />
-                <span className="hidden sm:inline-block">خروج</span>
-              </button>
-            </form>
+            <SignOutButton />
           ) : (
             <Link href="/login" className={buttonVariants({ variant: "default", size: "sm" }) + " rounded-full shadow-lg shadow-primary/20"}>
               <User className="h-4 w-4 sm:ml-2" />

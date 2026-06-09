@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef, useEffect, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronRight, Star, Truck, Info, Percent } from "lucide-react"
@@ -32,6 +33,8 @@ export function StoreClient({
 }) {
   const [activeCategory, setActiveCategory] = useState<string>("popular")
   const categoryNavRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
   // Generate stable mock rating
   const rating = useMemo(() => {
@@ -127,9 +130,21 @@ export function StoreClient({
     <div className="bg-background min-h-screen pb-32">
       {/* Top Navbar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-4 flex items-center gap-4">
-        <Link href="/" className="bg-muted hover:bg-muted/80 p-2 rounded-full transition-colors">
-          <ChevronRight className="w-5 h-5 text-foreground" />
-        </Link>
+        <button 
+          onClick={() => {
+            startTransition(() => {
+              router.push('/')
+            })
+          }}
+          disabled={isPending}
+          className="bg-muted hover:bg-muted/80 p-2 rounded-full transition-colors disabled:opacity-50"
+        >
+          {isPending ? (
+            <div className="w-5 h-5 rounded-full border-2 border-foreground border-t-transparent animate-spin" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-foreground" />
+          )}
+        </button>
         <h1 className="font-bold text-lg text-foreground truncate">{merchant.full_name}</h1>
       </div>
 
