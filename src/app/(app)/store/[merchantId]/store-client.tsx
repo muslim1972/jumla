@@ -129,7 +129,7 @@ export function StoreClient({
   return (
     <div className="bg-background flex-1 w-full pb-32">
       {/* Top Navbar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-3 flex items-center">
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-3 flex items-center h-[60px]">
         <button 
           onClick={() => {
             startTransition(() => {
@@ -156,7 +156,7 @@ export function StoreClient({
       </div>
 
       {/* Hero Header */}
-      <div className="relative pt-[60px]">
+      <div className="relative">
         <div className="h-32 sm:h-48 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
           {/* Pattern overlay using CSS */}
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
@@ -195,21 +195,8 @@ export function StoreClient({
         </div>
       </div>
 
-      {/* Promotions Banner */}
-      <div className="max-w-4xl mx-auto px-4 mt-6">
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
-          <div className="bg-emerald-500 text-white p-2 rounded-lg">
-            <Percent className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">عروض وتخفيضات!</h4>
-            <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">احصل على نقاط مجانية عند شرائك بأكثر من 100,000 د.ع</p>
-          </div>
-        </div>
-      </div>
-
       {/* Sticky Categories Navigation */}
-      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur shadow-sm border-b border-border/50 mt-6 overflow-hidden">
+      <div className="sticky top-[60px] z-40 bg-background/95 backdrop-blur shadow-sm border-b border-border/50 mt-4 overflow-hidden">
         <div 
           ref={categoryNavRef}
           className="flex overflow-x-auto hide-scrollbar max-w-4xl mx-auto px-4 py-3 gap-2"

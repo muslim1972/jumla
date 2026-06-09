@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ShoppingCart, User, PackageOpen, LayoutDashboard, LogOut, UserCheck } from "lucide-react"
 import { ModeToggle } from "./mode-toggle"
 import { buttonVariants } from "./ui/button"
@@ -15,6 +16,10 @@ export function Navbar({
   fullName?: string | null,
   cartCount?: number
 }) {
+  const pathname = usePathname()
+
+  if (pathname?.startsWith('/store/')) return null
+
   return (
     <header className="sticky top-0 z-50 w-full border-b glass transition-all duration-300">
       <div className="container flex h-16 items-center justify-between mx-auto px-4">
