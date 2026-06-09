@@ -171,6 +171,20 @@ export function CartClient({
         next.delete(merchantId)
       } else {
         next.add(merchantId)
+        // تمرير ذكي للأسفل بعد الفتح لعرض زر إتمام الشراء
+        setTimeout(() => {
+          const element = document.getElementById(`merchant-group-${merchantId}`)
+          if (element) {
+            const rect = element.getBoundingClientRect()
+            const viewportHeight = window.innerHeight
+            // ارتفاع الإعلانات السفلية تقريباً 120 بكسل
+            const bottomBannerHeight = 130
+            if (rect.bottom > viewportHeight - bottomBannerHeight) {
+              const scrollAmount = rect.bottom - (viewportHeight - bottomBannerHeight)
+              window.scrollBy({ top: scrollAmount + 20, behavior: 'smooth' })
+            }
+          }
+        }, 200)
       }
       return next
     })
@@ -368,46 +382,57 @@ export function CartClient({
 
   return (
     <>
-      {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
-      <div className="mb-6 flex justify-end gap-3 flex-wrap">
-        {merchantGroups.length > 0 && (
-          <Link href={`/store/${merchantGroups[0].merchantId}`}>
-            <Button
-              variant="outline"
-              className="gap-2 rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/5 hover:text-emerald-700"
-            >
-              <Store className="w-4 h-4" />
-              العودة لمتجر التاجر
-            </Button>
-          </Link>
-        )}
-
-        <Button
-          variant="outline"
-          onClick={() => setShowArchive(true)}
-          className="gap-2 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700"
-        >
-          <Archive className="w-4 h-4" />
-          الأرشيف
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={handleOpenMyOrders}
-          disabled={isLoadingOrders}
-          className="gap-2 rounded-xl border-primary/30 hover:bg-primary/5"
-        >
-          {isLoadingOrders ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Package className="w-4 h-4 text-primary" />
+      {/* Sticky Header Group: Tabs + Title */}
+      <div className="sticky top-[224px] sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
+        {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
+        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
+          {merchantGroups.length > 0 && (
+            <Link href={`/store/${merchantGroups[0].merchantId}`} className="shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/5 hover:text-emerald-700 h-9 px-3"
+              >
+                <Store className="w-4 h-4" />
+                <span className="text-xs font-bold">العودة للمتجر</span>
+              </Button>
+            </Link>
           )}
-          تتبع مشترياتي
-        </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowArchive(true)}
+            className="gap-1.5 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700 shrink-0 h-9 px-3"
+          >
+            <Archive className="w-4 h-4" />
+            <span className="text-xs font-bold">الأرشيف</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenMyOrders}
+            disabled={isLoadingOrders}
+            className="gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+          >
+            {isLoadingOrders ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Package className="w-4 h-4 text-primary" />
+            )}
+            <span className="text-xs font-bold">تتبع مشترياتي</span>
+          </Button>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-xl sm:text-2xl font-black mt-3 text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 w-fit">
+          سلة المشتريات
+        </h1>
       </div>
 
       {/* أقسام التجار */}
-      <div className="space-y-4">
+      <div className="space-y-4 pb-[140px]">
         {merchantGroups.map(group => {
           const isExpanded = expandedMerchants.has(group.merchantId)
           const groupSubtotal = group.items.reduce(
@@ -425,6 +450,7 @@ export function CartClient({
           return (
             <div
               key={group.merchantId}
+              id={`merchant-group-${group.merchantId}`}
               className="border rounded-2xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow"
             >
               {/* شريط التاجر - قابل للنقر */}

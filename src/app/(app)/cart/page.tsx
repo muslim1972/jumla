@@ -45,11 +45,7 @@ export default async function CartPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-extrabold mb-8 text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 w-fit">
-        سلة المشتريات
-      </h1>
-      
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
       <CartClient initialItems={cartItems || []} buyerProfile={profile || {}} userId={user.id} />
     </div>
   )
