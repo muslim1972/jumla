@@ -412,14 +412,14 @@ function handlePrintOrder(order: any, dateStr: string) {
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
     : order.verification_code || '---';
   
-  const itemsRows = (order.items || []).map((item: any) => \`
+  const itemsRows = (order.items || []).map((item: any) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">\${item.product_name} <span style="color:#888;font-size:11px;">(\${item.unit_type})</span></td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">\${item.quantity}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">\${item.product_price?.toLocaleString() || 0}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">\${((item.product_price || 0) * item.quantity).toLocaleString()}</td>
     </tr>
-  \`).join('');
+  `).join('');
 
   const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
     : order.status === 'approved' ? 'مجهز للمندوب'
@@ -427,7 +427,7 @@ function handlePrintOrder(order: any, dateStr: string) {
     : order.status === 'rejected' ? 'مرفوض من التاجر'
     : 'ملغي';
 
-  const html = \`
+  const html = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -481,21 +481,21 @@ function handlePrintOrder(order: any, dateStr: string) {
   <div class="invoice">
     <div class="header">
       <h1>جُملتي</h1>
-      <div class="invoice-num">قائمة رقم #\${invoiceNum}</div>
-      <div class="date">\${dateStr}</div>
+      <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
+      <div class="date">${dateStr}</div>
     </div>
 
     <div style="text-align: center;">
-      <div class="status \${order.status}">\${statusLabel}</div>
+      <div class="status ${order.status}">${statusLabel}</div>
     </div>
 
     <div class="section">
       <div class="section-title">معلومات التوصيل للمشتري</div>
       <div class="info-grid">
-        <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">\${order.store_name}</span></div>
-        <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">\${order.phone}</span></div>
-        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">\${order.address}</span></div>
-        \${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? \`<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">\${order.delivery_worker_name}</span></div>\` : ''}
+        <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
+        <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
+        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
+        ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
       </div>
     </div>
 
@@ -511,20 +511,20 @@ function handlePrintOrder(order: any, dateStr: string) {
           </tr>
         </thead>
         <tbody>
-          \${itemsRows}
+          ${itemsRows}
         </tbody>
       </table>
     </div>
 
     <div class="totals">
-      <div class="total-row"><span>قيمة المنتجات</span><span>\${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row"><span>أجور التوصيل</span><span>\${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">\${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
     </div>
 
     <div class="verification">
       <div class="label">كود التحقق السري للطلب</div>
-      <div class="code">\${maskedCode}</div>
+      <div class="code">${maskedCode}</div>
       <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
     </div>
 
@@ -537,7 +537,7 @@ function handlePrintOrder(order: any, dateStr: string) {
     </div>
   </div>
 </body>
-</html>\`;
+</html>`;
 
   const printWindow = window.open('', '_blank');
   if (printWindow) {
