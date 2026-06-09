@@ -28,15 +28,15 @@ export function BillingListClient({ billings }: { billings: any[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
         {/* العمود الأيمن: الفواتير المسددة (Right column in RTL) */}
-        <div className="space-y-4">
-          <h2 className="font-bold text-base sm:text-lg text-emerald-700 dark:text-emerald-500 flex items-center gap-2 mb-2">
-            <CheckCircle className="w-5 h-5" />
-            فواتير مسددة
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="font-bold text-sm sm:text-lg text-emerald-700 dark:text-emerald-500 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            مسددة
           </h2>
           {paidBillings.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا توجد فواتير مسددة.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground p-4 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
           ) : (
             paidBillings.map((bill) => (
               <BillingCard key={bill.id} bill={bill} isPaid={true} onClick={() => handleOpenDialog(bill)} />
@@ -45,13 +45,13 @@ export function BillingListClient({ billings }: { billings: any[] }) {
         </div>
 
         {/* العمود الأيسر: فواتير بانتظار التسديد (Left column in RTL) */}
-        <div className="space-y-4">
-          <h2 className="font-bold text-base sm:text-lg text-amber-700 dark:text-amber-500 flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5" />
+        <div className="space-y-3 sm:space-y-4">
+          <h2 className="font-bold text-sm sm:text-lg text-amber-700 dark:text-amber-500 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             بانتظار التسديد
           </h2>
           {pendingBillings.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا توجد فواتير معلقة.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground p-4 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
           ) : (
             pendingBillings.map((bill) => (
               <BillingCard key={bill.id} bill={bill} isPaid={false} onClick={() => handleOpenDialog(bill)} />
@@ -76,39 +76,39 @@ function BillingCard({ bill, isPaid, onClick }: { bill: any, isPaid: boolean, on
     >
       <div 
         className={cn(
-          "w-full text-right p-3 sm:p-4 flex justify-between items-center gap-3 transition-colors",
+          "w-full text-right p-2.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3 transition-colors",
           isPaid ? "bg-emerald-500/5" : "bg-amber-500/5"
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
+            "w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
             isPaid ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
           )}>
-            <FileText className="w-5 h-5" />
+            <FileText className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h3 className={cn(
-              "font-bold text-sm sm:text-base",
+              "font-bold text-xs sm:text-sm truncate",
               isPaid ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
             )}>
               فاتورة التطبيق
             </h3>
-            <p className="text-xs text-muted-foreground font-mono mt-0.5" dir="ltr">
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-mono mt-0.5 truncate" dir="ltr">
               {new Date(bill.created_at).toLocaleDateString('ar-IQ')}
             </p>
           </div>
         </div>
         
-        <div className="shrink-0">
+        <div className="shrink-0 flex justify-end">
           {isPaid ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs sm:text-sm">
-              <CheckCircle className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-emerald-500/10 text-emerald-600 font-bold text-[9px] sm:text-xs">
+              <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               مسددة
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 font-bold text-xs sm:text-sm shadow-sm">
-              <Clock className="w-3.5 h-3.5 animate-pulse" />
+            <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-amber-500/10 text-amber-600 font-bold text-[9px] sm:text-xs shadow-sm">
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-pulse" />
               بانتظار التسديد
             </div>
           )}
