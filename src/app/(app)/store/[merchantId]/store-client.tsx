@@ -156,37 +156,37 @@ export function StoreClient({
       </div>
 
       {/* Hero Header */}
-      <div className="relative pt-16">
-        <div className="h-48 sm:h-64 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
+      <div className="relative pt-[60px]">
+        <div className="h-32 sm:h-48 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
           {/* Pattern overlay using CSS */}
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
         </div>
 
         {/* Store Info Card (Overlapping Hero) */}
-        <div className="max-w-4xl mx-auto px-4 relative -mt-16 sm:-mt-20">
-          <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-5 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start text-center sm:text-right">
+        <div className="max-w-4xl mx-auto px-4 relative -mt-12 sm:-mt-16">
+          <div className="bg-card rounded-2xl shadow-sm border border-border/40 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-5 items-center sm:items-start text-center sm:text-right">
             {/* Store Logo Avatar */}
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-background border-4 border-background shadow-md flex items-center justify-center shrink-0 -mt-12 sm:mt-0 relative overflow-hidden">
-              <span className="text-3xl font-black text-brand-orange">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-background border-4 border-background shadow-sm flex items-center justify-center shrink-0 -mt-10 sm:-mt-12 relative overflow-hidden">
+              <span className="text-3xl sm:text-4xl font-black text-brand-orange">
                 {merchant.full_name.charAt(0)}
               </span>
             </div>
 
-            <div className="flex-grow space-y-2">
-              <h2 className="text-2xl font-black text-foreground">{merchant.full_name}</h2>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5 bg-brand-orange/10 text-brand-orange px-2 py-1 rounded-md font-bold">
-                  <Star className="w-4 h-4 fill-brand-orange" />
+            <div className="flex-grow space-y-1.5 mt-1 sm:mt-0">
+              <h2 className="text-xl sm:text-2xl font-black text-foreground">{merchant.full_name}</h2>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold">
+                  <Star className="w-3.5 h-3.5 fill-brand-orange" />
                   {rating.toFixed(1)} (100+ تقييم)
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Truck className="w-4 h-4" />
+                <div className="flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5" />
                   {merchant.delivery_fee !== null 
                     ? `${merchant.delivery_fee.toLocaleString()} د.ع` 
                     : "حسب المنطقة"}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Info className="w-4 h-4" />
+                <div className="flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5" />
                   بيع بالجملة
                 </div>
               </div>

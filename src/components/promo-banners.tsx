@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 interface Banner {
@@ -53,6 +54,7 @@ export function PromoBanners() {
   const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const pathname = usePathname()
 
   // Fetch banners from Supabase database
   useEffect(() => {
@@ -92,6 +94,8 @@ export function PromoBanners() {
   const prevSlide = () => {
     setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length)
   }
+
+  if (pathname?.startsWith('/store/')) return null
 
   if (banners.length === 0) return null
 

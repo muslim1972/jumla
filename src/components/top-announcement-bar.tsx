@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Sparkles, Megaphone, CheckCircle2, Trash2, Clock, Phone } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -53,6 +54,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
   const [activeIndex, setActiveIndex] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const pathname = usePathname()
   
   // Form states
   const [name, setName] = useState("")
@@ -119,6 +121,10 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
   const handleBannerClick = () => {
     setIsModalOpen(true)
   }
+
+  if (pathname?.startsWith('/store/')) return null
+
+  if (activeItems.length === 0) return null
 
   return (
     <>
