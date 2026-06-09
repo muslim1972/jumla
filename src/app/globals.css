@@ -177,4 +177,13 @@
   .animate-placeholder-fade {
     animation: placeholder-fade-in 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
+
+  @keyframes fade-orange-text {
+    0%, 100% { color: var(--color-foreground); }
+    50% { color: var(--color-brand-orange); }
+  }
+
+  .animate-fade-orange {
+    animation: fade-orange-text 2.5s ease-in-out infinite;
+  }
 }

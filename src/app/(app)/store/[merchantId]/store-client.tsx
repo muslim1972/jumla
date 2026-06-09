@@ -141,17 +141,17 @@ export function StoreClient({
             "flex items-center gap-3 w-full text-right p-2 rounded-2xl transition-all duration-300 group",
             isPending 
               ? "opacity-60" 
-              : "hover:bg-muted/50 active:scale-[0.98] animate-[pulse_3s_ease-in-out_infinite]"
+              : "hover:bg-muted/50 active:scale-[0.98]"
           )}
         >
-          <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-[0_0_15px_rgba(var(--brand-orange),0.15)]">
+          <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-lg shadow-brand-orange/20">
             {isPending ? (
               <div className="w-5 h-5 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
             ) : (
-              <ChevronRight className="w-5 h-5 text-foreground group-active:-translate-x-1 transition-transform" />
+              <ChevronRight className="w-5 h-5 animate-fade-orange group-active:-translate-x-1 transition-transform" />
             )}
           </div>
-          <h1 className="font-bold text-lg text-foreground truncate drop-shadow-sm">{merchant.full_name}</h1>
+          <h1 className="font-bold text-lg animate-fade-orange truncate">{merchant.full_name}</h1>
         </button>
       </div>
 
