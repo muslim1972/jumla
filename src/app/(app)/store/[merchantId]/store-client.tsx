@@ -128,93 +128,96 @@ export function StoreClient({
 
   return (
     <div className="bg-background flex-1 w-full pb-32">
-      {/* Top Navbar */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40 p-3 flex items-center h-[60px]">
-        <button 
-          onClick={() => {
-            startTransition(() => {
-              router.push('/')
-            })
-          }}
-          disabled={isPending}
-          className={cn(
-            "flex items-center gap-3 w-full text-right p-2 rounded-2xl transition-all duration-300 group",
-            isPending 
-              ? "opacity-60" 
-              : "hover:bg-muted/50 active:scale-[0.98]"
-          )}
-        >
-          <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-lg shadow-brand-orange/20">
-            {isPending ? (
-              <div className="w-5 h-5 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
-            ) : (
-              <ChevronRight className="w-5 h-5 animate-fade-orange group-active:-translate-x-1 transition-transform" />
+      {/* Sticky Header Group: Navbar + Store Info + Tabs */}
+      <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
+        {/* Top Navbar */}
+        <div className="bg-background/95 backdrop-blur-md p-3 flex items-center h-[60px]">
+          <button 
+            onClick={() => {
+              startTransition(() => {
+                router.push('/')
+              })
+            }}
+            disabled={isPending}
+            className={cn(
+              "flex items-center gap-3 w-full text-right p-2 rounded-2xl transition-all duration-300 group",
+              isPending 
+                ? "opacity-60" 
+                : "hover:bg-muted/50 active:scale-[0.98]"
             )}
-          </div>
-          <h1 className="font-bold text-lg animate-fade-orange truncate">{merchant.full_name}</h1>
-        </button>
-      </div>
-
-      {/* Hero Header */}
-      <div className="relative">
-        <div className="h-32 sm:h-48 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
-          {/* Pattern overlay using CSS */}
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
+          >
+            <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-lg shadow-brand-orange/20">
+              {isPending ? (
+                <div className="w-5 h-5 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
+              ) : (
+                <ChevronRight className="w-5 h-5 animate-fade-orange group-active:-translate-x-1 transition-transform" />
+              )}
+            </div>
+            <h1 className="font-bold text-lg animate-fade-orange truncate">{merchant.full_name}</h1>
+          </button>
         </div>
 
-        {/* Store Info Card (Overlapping Hero) */}
-        <div className="max-w-4xl mx-auto px-4 relative -mt-12 sm:-mt-16">
-          <div className="bg-card rounded-2xl shadow-sm border border-border/40 p-4 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-5 items-center sm:items-start text-center sm:text-right">
-            {/* Store Logo Avatar */}
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-background border-4 border-background shadow-sm flex items-center justify-center shrink-0 -mt-10 sm:-mt-12 relative overflow-hidden">
-              <span className="text-3xl sm:text-4xl font-black text-brand-orange">
-                {merchant.full_name.charAt(0)}
-              </span>
-            </div>
+        {/* Hero Header */}
+        <div className="relative">
+          <div className="h-24 sm:h-32 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
+            {/* Pattern overlay using CSS */}
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
+          </div>
 
-            <div className="flex-grow space-y-1.5 mt-1 sm:mt-0">
-              <h2 className="text-xl sm:text-2xl font-black text-foreground">{merchant.full_name}</h2>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold">
-                  <Star className="w-3.5 h-3.5 fill-brand-orange" />
-                  {rating.toFixed(1)} (100+ تقييم)
-                </div>
-                <div className="flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5" />
-                  {merchant.delivery_fee !== null 
-                    ? `${merchant.delivery_fee.toLocaleString()} د.ع` 
-                    : "حسب المنطقة"}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Info className="w-3.5 h-3.5" />
-                  بيع بالجملة
+          {/* Store Info Card (Overlapping Hero) */}
+          <div className="max-w-4xl mx-auto px-4 relative -mt-10 sm:-mt-12 mb-3">
+            <div className="bg-card rounded-2xl shadow-sm border border-border/40 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center sm:items-start text-center sm:text-right">
+              {/* Store Logo Avatar */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background border-4 border-background shadow-sm flex items-center justify-center shrink-0 -mt-8 sm:-mt-10 relative overflow-hidden">
+                <span className="text-2xl sm:text-3xl font-black text-brand-orange">
+                  {merchant.full_name.charAt(0)}
+                </span>
+              </div>
+
+              <div className="flex-grow space-y-1 sm:mt-0">
+                <h2 className="text-lg sm:text-xl font-black text-foreground">{merchant.full_name}</h2>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold">
+                    <Star className="w-3.5 h-3.5 fill-brand-orange" />
+                    {rating.toFixed(1)} (100+)
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5" />
+                    {merchant.delivery_fee !== null 
+                      ? `${merchant.delivery_fee.toLocaleString()} د.ع` 
+                      : "حسب المنطقة"}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5" />
+                    جملة
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Sticky Categories Navigation */}
-      <div className="sticky top-[60px] z-40 bg-background/95 backdrop-blur shadow-sm border-b border-border/50 mt-4 overflow-hidden">
-        <div 
-          ref={categoryNavRef}
-          className="flex overflow-x-auto hide-scrollbar max-w-4xl mx-auto px-4 py-3 gap-2"
-        >
-          {activeCategoriesList.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => scrollToCategory(cat.id)}
-              className={cn(
-                "whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all shrink-0",
-                activeCategory === cat.id 
-                  ? "bg-brand-blue text-white shadow-md" 
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              )}
-            >
-              {cat.name}
-            </button>
-          ))}
+        {/* Categories Navigation */}
+        <div className="bg-background/95 backdrop-blur overflow-hidden pb-2">
+          <div 
+            ref={categoryNavRef}
+            className="flex overflow-x-auto hide-scrollbar max-w-4xl mx-auto px-4 py-1 gap-2"
+          >
+            {activeCategoriesList.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => scrollToCategory(cat.id)}
+                className={cn(
+                  "whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0",
+                  activeCategory === cat.id 
+                    ? "bg-brand-blue text-white shadow-md" 
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
