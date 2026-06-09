@@ -8,19 +8,25 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
   const supabase = await createClient()
   const { merchantId } = await params
 
+  // Start independent queries immediately
+  const userPromise = supabase.auth.getUser()
+  const merchantProfilePromise = supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', merchantId)
+    .eq('role', 'merchant')
+    .single()
+  const merchantProductsPromise = supabase
+    .from('products')
+    .select('*')
+    .eq('merchant_id', merchantId)
+    .order('created_at', { ascending: false })
+
+  // Wait for the first batch
   const [userResponse, profileResponse, productsResponse] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', merchantId)
-      .eq('role', 'merchant')
-      .single(),
-    supabase
-      .from('products')
-      .select('*')
-      .eq('merchant_id', merchantId)
-      .order('created_at', { ascending: false })
+    userPromise,
+    merchantProfilePromise,
+    merchantProductsPromise
   ])
 
   if (profileResponse.error || !profileResponse.data) {
@@ -32,27 +38,17 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
   const user = userResponse.data.user
 
   let userRole = "guest"
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    if (profile) {
-      userRole = profile.role
-    }
-  }
-
-  // Fetch cart items for the user if logged in
   let cartItems: { id: string; product_id: string; quantity: number }[] = []
+
+  // If user exists, fetch their dependent data in parallel!
   if (user) {
-    const { data: cartData } = await supabase
-      .from('cart_items')
-      .select('id, product_id, quantity, unit_type')
-      .eq('user_id', user.id)
-    if (cartData) {
-      cartItems = cartData
-    }
+    const [profileRes, cartRes] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', user.id).single(),
+      supabase.from('cart_items').select('id, product_id, quantity, unit_type').eq('user_id', user.id)
+    ])
+    
+    if (profileRes.data) userRole = profileRes.data.role
+    if (cartRes.data) cartItems = cartRes.data
   }
 
   return (
