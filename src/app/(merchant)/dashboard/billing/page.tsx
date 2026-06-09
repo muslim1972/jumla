@@ -26,16 +26,6 @@ export default async function MerchantBillingPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
       <RealtimeBillingListener merchantId={user.id} />
-      
-      <div>
-        <h1 className="text-2xl font-black text-brand-blue flex items-center gap-2">
-          <DollarSign className="w-6 h-6 text-brand-orange" />
-          التحاسب مع التطبيق
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          هنا تظهر فواتير مبيعاتك المستحقة للتطبيق والمسددة.
-        </p>
-      </div>
 
       {!billings || billings.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-dashed">
