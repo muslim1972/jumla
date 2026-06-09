@@ -337,6 +337,21 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </div>
           </div>
 
+          {/* كود التحقق */}
+          {order.verification_code && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 text-center">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold mb-1">
+                كود التحقق السري للاستلام
+              </p>
+              <p className="font-mono text-2xl font-black text-emerald-600 dark:text-emerald-300 tracking-[0.3em] select-all" dir="ltr">
+                {order.verification_code}
+              </p>
+              <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-semibold">
+                ⚠️ يرجى إعطاء هذا الكود للمندوب عند استلامك للمواد
+              </p>
+            </div>
+          )}
+
           {/* الخلاصة وزر الطباعة */}
           <div className="border-t border-dashed pt-3 space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground px-1">
