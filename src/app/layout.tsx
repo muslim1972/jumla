@@ -17,7 +17,8 @@ import { FloatingContactButton } from "@/components/floating-contact-button";
 import { TopAnnouncementBar } from "@/components/top-announcement-bar";
 import { PromoBanners } from "@/components/promo-banners";
 import { FloatingTopRight } from "@/components/floating-top-right";
-import { FloatingAppMenu } from "@/components/floating-app-menu";
+import { FloatingAppMenu } from "@/components/floating-app-menu"
+import { FloatingMenuProvider } from "@/components/floating-menu-provider";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function RootLayout({
@@ -67,11 +68,11 @@ export default async function RootLayout({
           <TopAnnouncementBar initialBanners={topBanners} />
           {children}
           
-          {/* حاوية الأزرار العائمة السفلية في اليسار */}
-          <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-[100] flex flex-col-reverse gap-2 pointer-events-none">
+          {/* حاوية الأزرار العائمة السفلية في اليسار الذكية */}
+          <FloatingMenuProvider>
             <FloatingContactButton settings={settings} />
             <FloatingAppMenu userRole={role} cartCount={cartCount} />
-          </div>
+          </FloatingMenuProvider>
           
           <PromoBanners />
         </ThemeProvider>

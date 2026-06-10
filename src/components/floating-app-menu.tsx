@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useTheme } from "next-themes"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
+import { useFloatingMenu } from "@/components/floating-menu-provider"
 
 export function FloatingAppMenu({
   userRole,
@@ -15,10 +16,16 @@ export function FloatingAppMenu({
   userRole?: string | null
   cartCount?: number
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const { openMenu, setOpenMenu } = useFloatingMenu()
+  const isOpen = openMenu === 'app'
+  const isHidden = openMenu !== null && openMenu !== 'app'
+  
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [activeIconIndex, setActiveIconIndex] = useState(0)
+
+  // Hide the button entirely if another menu is open
+  if (isHidden) return null;
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -69,7 +76,7 @@ export function FloatingAppMenu({
         {userRole === 'merchant' && (
           <Link
             href="/dashboard"
-            onClick={() => setIsOpen(false)}
+            onClick={() => setOpenMenu(null)}
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة التاجر"
           >
@@ -85,7 +92,7 @@ export function FloatingAppMenu({
         {userRole === 'admin' && (
           <Link
             href="/admin"
-            onClick={() => setIsOpen(false)}
+            onClick={() => setOpenMenu(null)}
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الإدارة"
           >
@@ -101,7 +108,7 @@ export function FloatingAppMenu({
         {userRole === 'support' && (
           <Link
             href="/support"
-            onClick={() => setIsOpen(false)}
+            onClick={() => setOpenMenu(null)}
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الدعم"
           >
@@ -131,7 +138,7 @@ export function FloatingAppMenu({
         {/* Cart */}
         <Link
           href="/cart"
-          onClick={() => setIsOpen(false)}
+          onClick={() => setOpenMenu(null)}
           className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group"
           title="سلة المشتريات"
         >
@@ -153,7 +160,7 @@ export function FloatingAppMenu({
           <button
             onClick={() => {
               handleSignOut()
-              setIsOpen(false)
+              setOpenMenu(null)
             }}
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500"
             title="تسجيل الخروج"
@@ -168,7 +175,7 @@ export function FloatingAppMenu({
         ) : (
           <Link
             href="/login"
-            onClick={() => setIsOpen(false)}
+            onClick={() => setOpenMenu(null)}
             className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group text-emerald-600"
             title="تسجيل الدخول"
           >
@@ -184,7 +191,7 @@ export function FloatingAppMenu({
 
       {/* Main Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpenMenu(isOpen ? null : 'app')}
         className={cn(
           "flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
           isOpen ? "bg-slate-800 text-white rotate-90" : "bg-primary text-white"

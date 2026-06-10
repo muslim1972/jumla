@@ -1,19 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { MessageCircle, Phone, PhoneCall, Send, Globe, X, HeadphonesIcon } from "lucide-react"
+import { Phone, MessageCircle, Send, Globe, X, PhoneCall } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFloatingMenu } from "@/components/floating-menu-provider"
 
-interface AppSettings {
-  whatsapp_number?: string
-  support_phone?: string
-  telegram_link?: string
-  facebook_link?: string
-}
-
-export function FloatingContactButton({ settings }: { settings: AppSettings | null }) {
-  const [isOpen, setIsOpen] = useState(false)
+export function FloatingContactButton({ settings }: { settings: any }) {
+  const { openMenu, setOpenMenu } = useFloatingMenu()
+  const isOpen = openMenu === 'contact'
+  const isHidden = openMenu !== null && openMenu !== 'contact'
+  
   const [activeIconIndex, setActiveIconIndex] = useState(0)
+
+  // Hide the button entirely if another menu is open
+  if (isHidden) return null;
 
   if (!settings) return null
 
@@ -149,7 +149,7 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
 
       {/* Main Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setOpenMenu(isOpen ? null : 'contact')}
         className={cn(
           "flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
           isOpen ? "bg-slate-800 text-white rotate-90" : "bg-brand-blue text-white"
