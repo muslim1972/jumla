@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/navbar"
 import { createClient } from "@/utils/supabase/server"
 export default async function AppLayout({
   children,
