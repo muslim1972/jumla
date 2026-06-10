@@ -66,7 +66,7 @@ export function AddProductForm({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <Card className={disabled ? "opacity-50 pointer-events-none" : "sticky top-24"}>
+    <Card className={disabled ? "opacity-50 pointer-events-none" : "sticky top-16"}>
       <CardHeader>
         <CardTitle>إضافة منتج جديد</CardTitle>
         <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>

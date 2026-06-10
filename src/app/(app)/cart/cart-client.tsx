@@ -383,7 +383,7 @@ export function CartClient({
   return (
     <>
       {/* Sticky Header Group: Tabs + Title */}
-      <div className="sticky top-[224px] sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
+      <div className="sticky top-[160px] sm:top-[192px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
         {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
         <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
           {merchantGroups.length > 0 && (

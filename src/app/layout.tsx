@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 import { FloatingContactButton } from "@/components/floating-contact-button";
 import { TopAnnouncementBar } from "@/components/top-announcement-bar";
 import { PromoBanners } from "@/components/promo-banners";
-import { Navbar } from "@/components/navbar";
+import { FloatingTopRight } from "@/components/floating-top-right";
+import { FloatingAppMenu } from "@/components/floating-app-menu";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function RootLayout({
@@ -62,9 +63,10 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar userRole={role} fullName={fullName} cartCount={cartCount} />
+          <FloatingTopRight userRole={role} fullName={fullName} />
           <TopAnnouncementBar initialBanners={topBanners} />
           {children}
+          <FloatingAppMenu userRole={role} cartCount={cartCount} />
           <FloatingContactButton settings={settings} />
           <PromoBanners />
         </ThemeProvider>
