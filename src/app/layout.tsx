@@ -66,8 +66,13 @@ export default async function RootLayout({
           <FloatingTopRight userRole={role} fullName={fullName} />
           <TopAnnouncementBar initialBanners={topBanners} />
           {children}
-          <FloatingAppMenu userRole={role} cartCount={cartCount} />
-          <FloatingContactButton settings={settings} />
+          
+          {/* حاوية الأزرار العائمة السفلية في اليسار */}
+          <div className="fixed bottom-24 sm:bottom-6 left-4 sm:left-6 z-[100] flex flex-col-reverse gap-4 pointer-events-none">
+            <FloatingContactButton settings={settings} />
+            <FloatingAppMenu userRole={role} cartCount={cartCount} />
+          </div>
+          
           <PromoBanners />
         </ThemeProvider>
       </body>

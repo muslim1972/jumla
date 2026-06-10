@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -18,6 +18,7 @@ export function FloatingAppMenu({
   const [isOpen, setIsOpen] = useState(false)
   const { theme, setTheme } = useTheme()
   const router = useRouter()
+  const [activeIconIndex, setActiveIconIndex] = useState(0)
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -30,13 +31,38 @@ export function FloatingAppMenu({
     setTheme(theme === "light" ? "dark" : "light")
   }
 
+  // Build the animation sequence
+  const sequence: { Icon: any, color?: string }[] = [
+    { Icon: Menu }, // Default
+    { Icon: ShoppingCart, color: "text-brand-orange" },
+    { Icon: theme === 'light' ? Moon : Sun, color: "text-slate-200" },
+    userRole && userRole !== 'guest' 
+      ? { Icon: LogOut, color: "text-red-400" } 
+      : { Icon: LogIn, color: "text-emerald-400" }
+  ]
+
+  // Cycle icons every 2.5 seconds
+  useEffect(() => {
+    if (isOpen || sequence.length <= 1) {
+      setActiveIconIndex(0) // Reset to base when open
+      return
+    }
+    const interval = setInterval(() => {
+      setActiveIconIndex((prev) => (prev + 1) % sequence.length)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [isOpen, sequence.length])
+
+  const ActiveIconInfo = sequence[activeIconIndex]
+  const ActiveIcon = ActiveIconInfo.Icon
+
   return (
-    <div className="fixed bottom-[110px] sm:bottom-[100px] left-4 sm:left-6 z-[100] flex flex-col items-start gap-3">
+    <div className="relative flex flex-col items-start gap-3 pointer-events-auto">
       {/* Floating Menu Items */}
       <div 
         className={cn(
           "flex flex-col gap-3 transition-all duration-300 origin-bottom left-0",
-          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
+          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none absolute bottom-16"
         )}
       >
         {/* Dashboard Links based on Role */}
@@ -169,8 +195,11 @@ export function FloatingAppMenu({
             <X className="w-6 h-6 animate-in zoom-in duration-300" />
           ) : (
             <div className="relative">
-              <Menu className="w-7 h-7 animate-in zoom-in spin-in-12 duration-500" />
-              {cartCount > 0 && !isOpen && (
+              <ActiveIcon 
+                key={activeIconIndex} 
+                className={cn("w-7 h-7 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
+              />
+              {cartCount > 0 && !isOpen && activeIconIndex === 0 && (
                 <span className="absolute -top-1 -right-1 bg-brand-orange text-white text-[10px] font-bold w-3 h-3 rounded-full border border-background"></span>
               )}
             </div>
