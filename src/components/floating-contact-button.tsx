@@ -12,8 +12,7 @@ export function FloatingContactButton({ settings }: { settings: any }) {
   
   const [activeIconIndex, setActiveIconIndex] = useState(0)
 
-  // Hide the button entirely if another menu is open
-  if (isHidden) return null;
+  // Early return removed to avoid React Hooks mismatch
 
   if (!settings) return null
 
@@ -68,6 +67,8 @@ export function FloatingContactButton({ settings }: { settings: any }) {
 
   const ActiveIconInfo = sequence[activeIconIndex]
   const ActiveIcon = ActiveIconInfo.Icon
+
+  if (isHidden) return null;
 
   return (
     <div className="relative flex flex-col items-end pointer-events-auto">

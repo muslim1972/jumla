@@ -24,8 +24,7 @@ export function FloatingAppMenu({
   const router = useRouter()
   const [activeIconIndex, setActiveIconIndex] = useState(0)
 
-  // Hide the button entirely if another menu is open
-  if (isHidden) return null;
+  // The early return was causing a React Hooks mismatch error, moving it down.
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -62,6 +61,8 @@ export function FloatingAppMenu({
 
   const ActiveIconInfo = sequence[activeIconIndex]
   const ActiveIcon = ActiveIconInfo.Icon
+
+  if (isHidden) return null;
 
   return (
     <div className="relative flex flex-col items-end pointer-events-auto">
