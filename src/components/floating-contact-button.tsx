@@ -70,11 +70,11 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
   const ActiveIcon = ActiveIconInfo.Icon
 
   return (
-    <div className="relative flex flex-col items-start gap-3 pointer-events-auto">
+    <div className="relative flex flex-col items-end gap-3 pointer-events-auto">
       {/* Floating Menu Items */}
       <div 
         className={cn(
-          "flex flex-col gap-3 transition-all duration-300 origin-bottom left-0",
+          "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
           isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
         )}
       >
@@ -83,10 +83,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={getWhatsappLink(settings.whatsapp_number)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group"
             title="تواصل عبر واتساب"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">واتساب</span>
               <span className="text-xs text-muted-foreground font-sans" dir="ltr">{settings.whatsapp_number}</span>
             </span>
@@ -101,10 +101,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={settings.telegram_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
             title="تواصل عبر تليكرام"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">تليكرام</span>
             </span>
             <div className="bg-blue-500 p-2 rounded-full text-white shrink-0">
@@ -118,10 +118,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
             href={settings.facebook_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
             title="صفحتنا على فيسبوك"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">فيسبوك</span>
             </span>
             <div className="bg-blue-700 p-2 rounded-full text-white shrink-0">
@@ -133,10 +133,10 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
         {settings.support_phone && (
           <a
             href={`tel:${settings.support_phone}`}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group"
             title="اتصال هاتفي"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">اتصال مباشر</span>
               <span className="text-xs text-muted-foreground font-sans" dir="ltr">{settings.support_phone}</span>
             </span>

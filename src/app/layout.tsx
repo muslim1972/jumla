@@ -68,7 +68,7 @@ export default async function RootLayout({
           {children}
           
           {/* حاوية الأزرار العائمة السفلية في اليسار */}
-          <div className="fixed bottom-24 sm:bottom-6 left-4 sm:left-6 z-[100] flex flex-col-reverse gap-4 pointer-events-none">
+          <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-[100] flex flex-col-reverse gap-2 pointer-events-none">
             <FloatingContactButton settings={settings} />
             <FloatingAppMenu userRole={role} cartCount={cartCount} />
           </div>

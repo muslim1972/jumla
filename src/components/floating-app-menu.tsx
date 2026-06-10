@@ -57,11 +57,11 @@ export function FloatingAppMenu({
   const ActiveIcon = ActiveIconInfo.Icon
 
   return (
-    <div className="relative flex flex-col items-start gap-3 pointer-events-auto">
+    <div className="relative flex flex-col items-end gap-3 pointer-events-auto">
       {/* Floating Menu Items */}
       <div 
         className={cn(
-          "flex flex-col gap-3 transition-all duration-300 origin-bottom left-0",
+          "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
           isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none absolute bottom-16"
         )}
       >
@@ -70,10 +70,10 @@ export function FloatingAppMenu({
           <Link
             href="/dashboard"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة التاجر"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">لوحة التاجر</span>
             </span>
             <div className="bg-primary/20 p-2 rounded-full text-primary shrink-0">
@@ -86,10 +86,10 @@ export function FloatingAppMenu({
           <Link
             href="/admin"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الإدارة"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">لوحة الإدارة</span>
             </span>
             <div className="bg-brand-orange/20 p-2 rounded-full text-brand-orange shrink-0">
@@ -102,10 +102,10 @@ export function FloatingAppMenu({
           <Link
             href="/support"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group flex-row-reverse"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الدعم"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">لوحة الدعم</span>
             </span>
             <div className="bg-blue-500/20 p-2 rounded-full text-blue-500 shrink-0">
@@ -117,10 +117,10 @@ export function FloatingAppMenu({
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group flex-row-reverse"
+          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
           title="الوضع الليلي/النهاري"
         >
-          <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+          <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
             <span className="text-sm font-bold">{theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}</span>
           </span>
           <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-full text-foreground shrink-0">
@@ -132,10 +132,10 @@ export function FloatingAppMenu({
         <Link
           href="/cart"
           onClick={() => setIsOpen(false)}
-          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group flex-row-reverse"
+          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group"
           title="سلة المشتريات"
         >
-          <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-brand-orange">
+          <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap text-brand-orange">
             <span className="text-sm font-bold">السلة</span>
           </span>
           <div className="bg-brand-orange p-2 rounded-full text-white shrink-0 relative">
@@ -155,10 +155,10 @@ export function FloatingAppMenu({
               handleSignOut()
               setIsOpen(false)
             }}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group flex-row-reverse text-red-500"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500"
             title="تسجيل الخروج"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">تسجيل الخروج</span>
             </span>
             <div className="bg-red-100 dark:bg-red-500/20 p-2 rounded-full text-red-500 shrink-0">
@@ -169,10 +169,10 @@ export function FloatingAppMenu({
           <Link
             href="/login"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group flex-row-reverse text-emerald-600"
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group text-emerald-600"
             title="تسجيل الدخول"
           >
-            <span className="flex flex-col items-end opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pr-2 transition-all duration-300 whitespace-nowrap">
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
               <span className="text-sm font-bold">تسجيل الدخول</span>
             </span>
             <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full text-emerald-600 shrink-0">
