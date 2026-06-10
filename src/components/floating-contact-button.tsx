@@ -70,11 +70,11 @@ export function FloatingContactButton({ settings }: { settings: AppSettings | nu
   const ActiveIcon = ActiveIconInfo.Icon
 
   return (
-    <div className="relative flex flex-col items-end gap-3 pointer-events-auto">
+    <div className="relative flex flex-col items-end pointer-events-auto">
       {/* Floating Menu Items */}
       <div 
         className={cn(
-          "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
+          "absolute bottom-full mb-3 flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
           isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
         )}
       >
