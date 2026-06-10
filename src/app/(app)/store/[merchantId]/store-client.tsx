@@ -131,7 +131,7 @@ export function StoreClient({
       {/* Sticky Header Group: Navbar + Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
         {/* Top Navbar */}
-        <div className="bg-background/95 backdrop-blur-md p-3 flex items-center h-[60px]">
+        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] flex items-center h-[60px]">
           <button 
             onClick={() => {
               startTransition(() => {
@@ -148,12 +148,12 @@ export function StoreClient({
           >
             <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-lg shadow-brand-orange/20">
               {isPending ? (
-                <div className="w-5 h-5 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
+                <div className="w-4 h-4 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
               ) : (
-                <ChevronRight className="w-5 h-5 animate-fade-orange group-active:-translate-x-1 transition-transform" />
+                <ChevronRight className="w-4 h-4 animate-fade-orange group-active:-translate-x-1 transition-transform" />
               )}
             </div>
-            <h1 className="font-bold text-lg animate-fade-orange truncate">{merchant.full_name}</h1>
+            <h1 className="font-bold text-base animate-fade-orange truncate">{merchant.full_name}</h1>
           </button>
         </div>
 
