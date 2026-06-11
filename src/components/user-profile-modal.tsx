@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { User, KeyRound, Trash2, ArrowRight } from "lucide-react"
+import { User, KeyRound, Trash2, ArrowRight, Loader2 } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 
 interface UserProfileModalProps {
   isOpen: boolean
@@ -17,8 +18,37 @@ interface UserProfileModalProps {
 export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: UserProfileModalProps) {
   const [newFullName, setNewFullName] = useState(fullName || "")
   const [newPassword, setNewPassword] = useState("")
+  
+  const [isUpdatingName, setIsUpdatingName] = useState(false)
+  const supabase = createClient()
 
-  // حالياً الواجهة فقط (تصميم مبدئي)، لم نربطها بقاعدة البيانات بعد
+  const handleUpdateName = async () => {
+    if (!newFullName.trim() || newFullName.trim() === fullName) return
+    setIsUpdatingName(true)
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: newFullName.trim() })
+        .eq('id', user.id)
+
+      if (!profileError) {
+        await supabase.auth.updateUser({
+          data: { full_name: newFullName.trim() }
+        })
+        window.location.reload()
+      } else {
+        alert("حدث خطأ أثناء التحديث")
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsUpdatingName(false)
+    }
+  }
   
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -58,8 +88,12 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
                   placeholder="ادخل اسمك الجديد..."
                 />
               </div>
-              <Button className="sm:mt-5 bg-brand-blue hover:bg-brand-blue/90 text-white">
-                حفظ الاسم
+              <Button 
+                onClick={handleUpdateName}
+                disabled={isUpdatingName || !newFullName.trim() || newFullName.trim() === fullName}
+                className="sm:mt-5 bg-brand-blue hover:bg-brand-blue/90 text-white min-w-[100px]"
+              >
+                {isUpdatingName ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ الاسم"}
               </Button>
             </div>
           </div>
