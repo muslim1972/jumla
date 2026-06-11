@@ -142,7 +142,7 @@ export function ProductExplorer({
   return (
     <div className="space-y-6">
       {/* Search & Controls Section - Part of Hero but integrated */}
-      <div className="max-w-4xl mx-auto -mt-4 mb-4 space-y-4">
+      <div className="max-w-4xl mx-auto mt-2 sm:mt-4 mb-4 space-y-4">
         <div className="flex gap-2.5 items-center">
           <div className="relative flex-grow group">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-brand-orange transition-colors" />
