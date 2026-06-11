@@ -20,6 +20,7 @@ import { FloatingTopRight } from "@/components/floating-top-right";
 import { FloatingAppMenu } from "@/components/floating-app-menu"
 import { FloatingMenuProvider } from "@/components/floating-menu-provider";
 import { createClient } from "@/utils/supabase/server";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 export default async function RootLayout({
   children,
@@ -64,6 +65,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ScrollToTop />
           <FloatingTopRight userRole={role} fullName={fullName} />
           <TopAnnouncementBar initialBanners={topBanners} />
           {children}
