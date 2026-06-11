@@ -41,12 +41,10 @@ export function FloatingAppMenu({
 
   // Build the animation sequence
   const sequence: { Icon: any, color?: string }[] = [
-    { Icon: Menu }, // Default
-    { Icon: ShoppingCart, color: "text-brand-orange" },
-    { Icon: theme === 'light' ? Moon : Sun, color: "text-slate-200" },
-    fullName 
-      ? { Icon: LogOut, color: "text-red-400" } 
-      : { Icon: LogIn, color: "text-emerald-400" }
+    { Icon: Menu }, // ثلاث خطوط
+    fullName ? { Icon: LogOut } : { Icon: LogIn }, // تسجيل الخروج
+    { Icon: ShoppingCart }, // السلة
+    { Icon: theme === 'light' ? Moon : Sun } // المظهر
   ]
 
   // Cycle icons every 2.5 seconds
@@ -57,7 +55,7 @@ export function FloatingAppMenu({
     }
     const interval = setInterval(() => {
       setActiveIconIndex((prev) => (prev + 1) % sequence.length)
-    }, 2500)
+    }, 2000)
     return () => clearInterval(interval)
   }, [isOpen, sequence.length])
 
