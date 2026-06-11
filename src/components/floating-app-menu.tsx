@@ -1,19 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTheme } from "next-themes"
-import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
 import { useFloatingMenu } from "@/components/floating-menu-provider"
+import { signOut } from "@/app/(auth)/actions"
 
 export function FloatingAppMenu({
   userRole,
+  fullName,
   cartCount = 0
 }: {
   userRole?: string | null
+  fullName?: string | null
   cartCount?: number
 }) {
   const { openMenu, setOpenMenu } = useFloatingMenu()
@@ -23,14 +25,14 @@ export function FloatingAppMenu({
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [activeIconIndex, setActiveIconIndex] = useState(0)
+  const [isPending, startTransition] = useTransition()
 
   // The early return was causing a React Hooks mismatch error, moving it down.
 
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+  const handleSignOut = () => {
+    startTransition(() => {
+      signOut()
+    })
   }
 
   const toggleTheme = () => {
@@ -42,7 +44,7 @@ export function FloatingAppMenu({
     { Icon: Menu }, // Default
     { Icon: ShoppingCart, color: "text-brand-orange" },
     { Icon: theme === 'light' ? Moon : Sun, color: "text-slate-200" },
-    userRole && userRole !== 'guest' 
+    fullName 
       ? { Icon: LogOut, color: "text-red-400" } 
       : { Icon: LogIn, color: "text-emerald-400" }
   ]
@@ -157,17 +159,15 @@ export function FloatingAppMenu({
         </Link>
 
         {/* Auth (Login/Logout) */}
-        {userRole && userRole !== 'guest' ? (
+        {fullName ? (
           <button
-            onClick={() => {
-              handleSignOut()
-              setOpenMenu(null)
-            }}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500"
+            onClick={handleSignOut}
+            disabled={isPending}
+            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500 disabled:opacity-50"
             title="تسجيل الخروج"
           >
             <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">تسجيل الخروج</span>
+              <span className="text-sm font-bold">{isPending ? "جاري الخروج..." : "تسجيل الخروج"}</span>
             </span>
             <div className="bg-red-100 dark:bg-red-500/20 p-2 rounded-full text-red-500 shrink-0">
               <LogOut className="w-5 h-5" />
