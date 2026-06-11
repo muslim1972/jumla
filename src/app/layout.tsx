@@ -71,7 +71,7 @@ export default async function RootLayout({
           {/* حاوية الأزرار العائمة السفلية في اليسار الذكية */}
           <FloatingMenuProvider>
             <FloatingContactButton settings={settings} />
-            <FloatingAppMenu userRole={role} cartCount={cartCount} />
+            <FloatingAppMenu userRole={role} fullName={fullName} cartCount={cartCount} />
           </FloatingMenuProvider>
           
           <PromoBanners />
