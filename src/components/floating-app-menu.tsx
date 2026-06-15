@@ -26,10 +26,19 @@ export function FloatingAppMenu({
   const router = useRouter()
   const [activeIconIndex, setActiveIconIndex] = useState(0)
   const [isPending, startTransition] = useTransition()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // The early return was causing a React Hooks mismatch error, moving it down.
 
   const handleSignOut = () => {
+    // إطلاق حدث مخصص لإغلاق أي نوافذ مفتوحة (مثل الصفحة الشخصية)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event('user-logout'))
+    }
     startTransition(() => {
       signOut()
     })
@@ -44,7 +53,7 @@ export function FloatingAppMenu({
     { Icon: Menu }, // ثلاث خطوط
     fullName ? { Icon: LogOut } : { Icon: LogIn }, // تسجيل الخروج
     { Icon: ShoppingCart }, // السلة
-    { Icon: theme === 'light' ? Moon : Sun } // المظهر
+    { Icon: mounted && theme === 'light' ? Moon : Sun } // المظهر (معتمد على mounted لمنع الـ Hydration error)
   ]
 
   // Cycle icons every 2.5 seconds
@@ -127,12 +136,15 @@ export function FloatingAppMenu({
           onClick={toggleTheme}
           className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
           title="الوضع الليلي/النهاري"
+          suppressHydrationWarning
         >
           <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-            <span className="text-sm font-bold">{theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}</span>
+            <span className="text-sm font-bold" suppressHydrationWarning>
+              {mounted && theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
+            </span>
           </span>
-          <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-full text-foreground shrink-0">
-            {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-full text-foreground shrink-0" suppressHydrationWarning>
+            {mounted && theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </div>
         </button>
 

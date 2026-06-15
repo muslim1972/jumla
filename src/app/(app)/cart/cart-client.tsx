@@ -473,7 +473,7 @@ export function CartClient({
                 <div className="flex items-center gap-3">
                   <div className="text-left">
                     <span className="font-black text-primary text-lg tabular-nums">
-                      {groupTotal.toLocaleString()}
+                      {groupTotal.toLocaleString('en-US')}
                     </span>
                     <span className="text-[10px] text-muted-foreground block">د.ع</span>
                   </div>
@@ -521,7 +521,7 @@ export function CartClient({
                                 لكل {item.unit_type || item.products.unit_type}
                               </span>
                               <p className="text-xs font-bold text-primary">
-                                {getItemPrice(item).toLocaleString()} د.ع
+                                {getItemPrice(item).toLocaleString('en-US')} د.ع
                               </p>
                             </div>
                           </div>
@@ -529,7 +529,7 @@ export function CartClient({
                           {/* Left Side: Quantity & Total & Actions */}
                           <div className="flex flex-col items-end gap-2">
                             <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-                              المجموع: {(getItemPrice(item) * item.quantity).toLocaleString()} د.ع
+                              المجموع: {(getItemPrice(item) * item.quantity).toLocaleString('en-US')} د.ع
                             </div>
 
                             <div className="flex items-center gap-3">
@@ -573,20 +573,20 @@ export function CartClient({
                   <div className="border-t bg-muted/20 p-4 space-y-3">
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>قيمة المنتجات</span>
-                      <span className="tabular-nums font-medium">{groupSubtotal.toLocaleString()} د.ع</span>
+                      <span className="tabular-nums font-medium">{groupSubtotal.toLocaleString('en-US')} د.ع</span>
                     </div>
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5" />
                         أجور التوصيل
                       </span>
-                      <span className="tabular-nums font-medium">{group.deliveryFee.toLocaleString()} د.ع</span>
+                      <span className="tabular-nums font-medium">{group.deliveryFee.toLocaleString('en-US')} د.ع</span>
                     </div>
                     <div className="flex justify-between items-center border-t border-dashed pt-3">
                       <span className="font-bold">المجموع الكلي</span>
                       <div className="text-left">
                         <span className="text-2xl font-black text-primary tabular-nums">
-                          {groupTotal.toLocaleString()}
+                          {groupTotal.toLocaleString('en-US')}
                         </span>
                         <span className="text-[10px] text-muted-foreground block">دينار عراقي</span>
                       </div>

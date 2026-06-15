@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
+// كتم تحذير Turbopack الخاص بـ Serwist لكي لا يزعجنا في الكونسول
+process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
+
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
   swDest: "public/sw.js",
@@ -12,13 +15,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "pxlgucipkngecsvelsaa.supabase.co",
+        hostname: "hslpavldgvlpkvqgogcc.supabase.co",
       },
     ],
   },
-  turbopack: {
-    root: ".",
-  },
+  turbopack: {},
 };
 
 export default withSerwist(nextConfig);

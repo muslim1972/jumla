@@ -68,7 +68,9 @@ export default async function RootLayout({
           <ScrollToTop />
           <FloatingTopRight userRole={role} fullName={fullName} />
           <TopAnnouncementBar initialBanners={topBanners} />
-          {children}
+          <main className="flex-1 pb-32 sm:pb-40">
+            {children}
+          </main>
           
           {/* حاوية الأزرار العائمة السفلية في اليسار الذكية */}
           <FloatingMenuProvider>

@@ -5,14 +5,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { User, KeyRound, Trash2, ArrowRight, Loader2 } from "lucide-react"
+import { User, KeyRound, Trash2, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
+import { deleteUserAccount } from "@/app/actions/auth-actions"
 
 interface UserProfileModalProps {
   isOpen: boolean
   setIsOpen: (open: boolean) => void
   userRole?: string | null
   fullName?: string | null
+}
+
+// دالة مساعدة لترجمة أشهر رسائل الخطأ من Supabase إلى العربية
+function translateError(errorMsg: string): string {
+  const msg = errorMsg.toLowerCase();
+  if (msg.includes("new password should be different")) return "يجب أن تكون كلمة المرور الجديدة مختلفة عن الحالية.";
+  if (msg.includes("password should be at least")) return "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.";
+  if (msg.includes("error sending recovery email")) return "تعذر إرسال الإيميل. يرجى التأكد من إعدادات SMTP وأن (إيميل المُرسل) موثق في Resend.";
+  if (msg.includes("rate limit")) return "تجاوزت الحد المسموح من المحاولات، يرجى المحاولة لاحقاً.";
+  if (msg.includes("invalid login credentials")) return "بيانات الدخول غير صحيحة.";
+  return errorMsg; // إرجاع النص الأصلي إذا لم تكن هناك ترجمة
 }
 
 export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: UserProfileModalProps) {
@@ -24,21 +36,72 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
   const [isUpdatingName, setIsUpdatingName] = useState(false)
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
   const [isSendingReset, setIsSendingReset] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  // حيلة بسيطة لمنع المتصفح من حشر كلمة المرور (نجعل الحقل للقراءة فقط حتى ينقر عليه المستخدم)
+  const [isOldPwdReadOnly, setIsOldPwdReadOnly] = useState(true)
+  const [isNewPwdReadOnly, setIsNewPwdReadOnly] = useState(true)
+
+  // رسائل الحالة
+  const [nameMessage, setNameMessage] = useState<{type: 'error'|'success', text: string} | null>(null)
+  const [passwordMessage, setPasswordMessage] = useState<{type: 'error'|'success', text: string} | null>(null)
 
   const supabase = createClient()
 
   useEffect(() => {
     if (isOpen) {
+      // تفريغ الحقول عند فتح النافذة وإعادتها لوضع القراءة فقط
+      setOldPassword("")
+      setNewPassword("")
+      setIsOldPwdReadOnly(true)
+      setIsNewPwdReadOnly(true)
+      setNameMessage(null)
+      setPasswordMessage(null)
+
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) setUserEmail(user.email || null)
       })
     }
-  }, [isOpen, supabase.auth])
+  }, [isOpen])
+
+  // مستمع الإغلاق عند تسجيل الخروج
+  useEffect(() => {
+    const handleLogout = () => setIsOpen(false)
+    window.addEventListener('user-logout', handleLogout)
+    return () => window.removeEventListener('user-logout', handleLogout)
+  }, [setIsOpen])
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm("هل أنت متأكد تماماً أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء!")
+    if (!confirmDelete) return
+
+    setIsDeleting(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const result = await deleteUserAccount(user.id)
+      
+      if (result.error) {
+        alert("حدث خطأ أثناء محاولة حذف الحساب: " + translateError(result.error))
+      } else {
+        alert("تم حذف حسابك بنجاح. نتمنى أن نراك مجدداً!")
+        await supabase.auth.signOut()
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error("Delete account error:", error)
+      alert("حدث خطأ غير متوقع")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const handleUpdateName = async () => {
     if (!newFullName.trim() || newFullName.trim() === fullName) return
     setIsUpdatingName(true)
+    setNameMessage(null)
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -53,12 +116,13 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
         await supabase.auth.updateUser({
           data: { full_name: newFullName.trim() }
         })
-        window.location.reload()
+        setNameMessage({ type: 'success', text: 'تم تحديث الاسم بنجاح!' })
+        setTimeout(() => window.location.reload(), 1500)
       } else {
-        alert("حدث خطأ أثناء التحديث")
+        setNameMessage({ type: 'error', text: translateError(profileError.message) || "حدث خطأ أثناء تحديث الاسم" })
       }
-    } catch (error) {
-      console.error(error)
+    } catch (error: any) {
+      setNameMessage({ type: 'error', text: translateError(error.message) || "حدث خطأ غير متوقع" })
     } finally {
       setIsUpdatingName(false)
     }
@@ -66,9 +130,13 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
 
   const handleUpdatePassword = async () => {
     if (!oldPassword || !newPassword) return
-    if (!userEmail) return
+    if (!userEmail) {
+      setPasswordMessage({ type: 'error', text: "لم يتم العثور على بريد المستخدم." })
+      return
+    }
 
     setIsUpdatingPassword(true)
+    setPasswordMessage(null)
     
     try {
       // التحقق من كلمة المرور القديمة أولاً
@@ -78,7 +146,7 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
       })
 
       if (signInError) {
-        alert("كلمة المرور القديمة غير صحيحة")
+        setPasswordMessage({ type: 'error', text: "كلمة المرور الحالية غير صحيحة." })
         setIsUpdatingPassword(false)
         return
       }
@@ -89,14 +157,16 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
       })
 
       if (updateError) {
-        alert("حدث خطأ أثناء تغيير كلمة المرور")
+        setPasswordMessage({ type: 'error', text: translateError(updateError.message) || "حدث خطأ أثناء تغيير كلمة المرور." })
       } else {
-        alert("تم تغيير كلمة المرور بنجاح!")
+        setPasswordMessage({ type: 'success', text: "تم تغيير كلمة المرور بنجاح!" })
         setOldPassword("")
         setNewPassword("")
+        setIsOldPwdReadOnly(true)
+        setIsNewPwdReadOnly(true)
       }
-    } catch (error) {
-      console.error(error)
+    } catch (error: any) {
+      setPasswordMessage({ type: 'error', text: translateError(error.message) || "حدث خطأ غير متوقع." })
     } finally {
       setIsUpdatingPassword(false)
     }
@@ -105,18 +175,19 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
   const handleForgotPassword = async () => {
     if (!userEmail) return
     setIsSendingReset(true)
+    setPasswordMessage(null)
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
         redirectTo: `${window.location.origin}/login`,
       })
       if (error) {
-        alert("حدث خطأ أثناء إرسال الرابط")
+        setPasswordMessage({ type: 'error', text: translateError(error.message) || "حدث خطأ أثناء إرسال الرابط." })
       } else {
-        alert("تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني بنجاح!")
+        setPasswordMessage({ type: 'success', text: "تم إرسال رابط إعادة التعيين إلى بريدك بنجاح!" })
       }
-    } catch (error) {
-      console.error(error)
+    } catch (error: any) {
+      setPasswordMessage({ type: 'error', text: translateError(error.message) || "حدث خطأ غير متوقع." })
     } finally {
       setIsSendingReset(false)
     }
@@ -149,6 +220,14 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
               <User className="w-5 h-5" />
               <h3>تعديل اسم المستخدم</h3>
             </div>
+            
+            {nameMessage && (
+              <div className={`p-3 rounded-lg text-sm font-bold flex items-center gap-2 ${nameMessage.type === 'error' ? 'bg-red-500/10 text-red-600 border border-red-500/20' : 'bg-green-500/10 text-green-600 border border-green-500/20'}`}>
+                {nameMessage.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                {nameMessage.text}
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 space-y-1">
                 <Label htmlFor="fullName" className="text-xs text-muted-foreground">الاسم الكامل</Label>
@@ -158,6 +237,7 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
                   onChange={(e) => setNewFullName(e.target.value)}
                   className="bg-background"
                   placeholder="ادخل اسمك الجديد..."
+                  autoComplete="off"
                 />
               </div>
               <Button 
@@ -189,17 +269,28 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
                 نسيت كلمة المرور؟
               </Button>
             </div>
+
+            {passwordMessage && (
+              <div className={`p-3 rounded-lg text-sm font-bold flex items-center gap-2 ${passwordMessage.type === 'error' ? 'bg-red-500/10 text-red-600 border border-red-500/20' : 'bg-green-500/10 text-green-600 border border-green-500/20'}`}>
+                {passwordMessage.type === 'error' ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                <p>{passwordMessage.text}</p>
+              </div>
+            )}
             
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label htmlFor="oldPassword" className="text-xs text-muted-foreground">كلمة المرور الحالية</Label>
                 <Input 
                   id="oldPassword" 
+                  name="old_pwd_no_fill"
                   type="password"
                   value={oldPassword} 
                   onChange={(e) => setOldPassword(e.target.value)}
+                  readOnly={isOldPwdReadOnly}
+                  onFocus={() => setIsOldPwdReadOnly(false)}
                   className="bg-background"
                   placeholder="********"
+                  autoComplete="new-password"
                 />
               </div>
               
@@ -208,11 +299,15 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
                   <Label htmlFor="newPassword" className="text-xs text-muted-foreground">كلمة المرور الجديدة</Label>
                   <Input 
                     id="newPassword" 
+                    name="new_pwd_no_fill"
                     type="password"
                     value={newPassword} 
                     onChange={(e) => setNewPassword(e.target.value)}
+                    readOnly={isNewPwdReadOnly}
+                    onFocus={() => setIsNewPwdReadOnly(false)}
                     className="bg-background"
                     placeholder="********"
+                    autoComplete="new-password"
                   />
                 </div>
                 <Button 
@@ -240,8 +335,13 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
                   حذف حسابك سيؤدي إلى مسح جميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.
                 </p>
               </div>
-              <Button variant="destructive" className="w-full sm:w-auto shrink-0 whitespace-nowrap">
-                حذف الحساب
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="w-full sm:w-auto shrink-0 whitespace-nowrap min-w-[100px]"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حذف الحساب"}
               </Button>
             </div>
           </div>
