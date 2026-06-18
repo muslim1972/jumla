@@ -180,7 +180,7 @@ export function FloatingContactButton({ settings }: { settings: any }) {
           ) : (
             <ActiveIcon 
               key={activeIconIndex} 
-              className={cn("w-4.5 h-4.5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
+              className={cn("w-5 h-5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
             />
           )}
         </div>

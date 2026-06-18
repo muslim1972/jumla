@@ -235,7 +235,7 @@ export function FloatingAppMenu({
             <div className="relative">
               <ActiveIcon 
                 key={activeIconIndex} 
-                className={cn("w-4.5 h-4.5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
+                className={cn("w-5 h-5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
               />
               {cartCount > 0 && !isOpen && activeIconIndex === 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-brand-orange text-white text-[7px] font-bold w-2 h-2 rounded-full border border-background"></span>
