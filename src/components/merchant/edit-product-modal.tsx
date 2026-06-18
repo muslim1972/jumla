@@ -74,19 +74,19 @@ export function EditProductModal({ product }: { product: any }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="flex gap-2 w-full mt-2">
+      <div className="flex gap-1.5 w-full mt-2">
         <DialogTrigger render={
-          <Button variant="outline" className="flex-1 border-brand-orange text-brand-orange hover:bg-brand-orange/10">
-            <Edit className="w-4 h-4 ml-2" /> تعديل
+          <Button variant="outline" className="flex-1 border-brand-orange text-brand-orange hover:bg-brand-orange/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4">
+            <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> تعديل
           </Button>
         } />
         <Button 
           variant="outline" 
           onClick={handleDelete}
           disabled={isDeleting}
-          className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
+          className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4"
         >
-          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4 ml-2" /> حذف</>}
+          {isDeleting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> حذف</>}
         </Button>
       </div>
 
