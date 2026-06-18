@@ -11,6 +11,20 @@ export function FloatingContactButton({ settings }: { settings: any }) {
   const isHidden = openMenu !== null && openMenu !== 'contact'
   
   const [activeIconIndex, setActiveIconIndex] = useState(0)
+  const [isHovered, setIsHovered] = useState(false)
+
+  // Auto-close menu after 3 seconds of inactivity
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (isOpen && !isHovered) {
+      timeoutId = setTimeout(() => {
+        setOpenMenu(null);
+      }, 3000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isOpen, isHovered, setOpenMenu]);
 
   // Early return removed to avoid React Hooks mismatch
 
@@ -71,12 +85,16 @@ export function FloatingContactButton({ settings }: { settings: any }) {
   if (isHidden) return null;
 
   return (
-    <div className="relative flex flex-col items-end pointer-events-auto">
+    <div 
+      className="relative flex flex-col items-end pointer-events-auto"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Floating Menu Items */}
       <div 
         className={cn(
-          "absolute bottom-full mb-3 flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
-          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
+          "absolute top-full mt-2.5 flex flex-col items-end gap-2 transition-all duration-300 origin-top left-0",
+          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 -translate-y-5 pointer-events-none"
         )}
       >
         {settings.whatsapp_number && (
@@ -84,15 +102,15 @@ export function FloatingContactButton({ settings }: { settings: any }) {
             href={getWhatsappLink(settings.whatsapp_number)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-colors group"
             title="تواصل عبر واتساب"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">واتساب</span>
-              <span className="text-xs text-muted-foreground font-sans" dir="ltr">{settings.whatsapp_number}</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">واتساب</span>
+              <span className="text-[9px] text-muted-foreground font-sans" dir="ltr">{settings.whatsapp_number}</span>
             </span>
-            <div className="bg-emerald-500 p-2 rounded-full text-white shrink-0">
-              <MessageCircle className="w-5 h-5" />
+            <div className="bg-emerald-500 p-1 rounded-full text-white shrink-0">
+              <MessageCircle className="w-4 h-4" />
             </div>
           </a>
         )}
@@ -102,14 +120,14 @@ export function FloatingContactButton({ settings }: { settings: any }) {
             href={settings.telegram_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
             title="تواصل عبر تليكرام"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">تليكرام</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">تليكرام</span>
             </span>
-            <div className="bg-blue-500 p-2 rounded-full text-white shrink-0">
-              <Send className="w-5 h-5" />
+            <div className="bg-blue-500 p-1 rounded-full text-white shrink-0">
+              <Send className="w-4 h-4" />
             </div>
           </a>
         )}
@@ -119,14 +137,14 @@ export function FloatingContactButton({ settings }: { settings: any }) {
             href={settings.facebook_link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors group"
             title="صفحتنا على فيسبوك"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">فيسبوك</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">فيسبوك</span>
             </span>
-            <div className="bg-blue-700 p-2 rounded-full text-white shrink-0">
-              <Globe className="w-5 h-5" />
+            <div className="bg-blue-700 p-1 rounded-full text-white shrink-0">
+              <Globe className="w-4 h-4" />
             </div>
           </a>
         )}
@@ -134,15 +152,15 @@ export function FloatingContactButton({ settings }: { settings: any }) {
         {settings.support_phone && (
           <a
             href={`tel:${settings.support_phone}`}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-orange-50 dark:hover:bg-orange-950 transition-colors group"
             title="اتصال هاتفي"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">اتصال مباشر</span>
-              <span className="text-xs text-muted-foreground font-sans" dir="ltr">{settings.support_phone}</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">اتصال مباشر</span>
+              <span className="text-[9px] text-muted-foreground font-sans" dir="ltr">{settings.support_phone}</span>
             </span>
-            <div className="bg-brand-orange p-2 rounded-full text-white shrink-0">
-              <Phone className="w-5 h-5" />
+            <div className="bg-brand-orange p-1 rounded-full text-white shrink-0">
+              <Phone className="w-4 h-4" />
             </div>
           </a>
         )}
@@ -152,17 +170,17 @@ export function FloatingContactButton({ settings }: { settings: any }) {
       <button
         onClick={() => setOpenMenu(isOpen ? null : 'contact')}
         className={cn(
-          "flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
+          "flex items-center justify-center w-9 h-9 rounded-full shadow-md transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
           isOpen ? "bg-slate-800 text-white rotate-90" : "bg-brand-blue text-white"
         )}
       >
         <div className="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-300">
           {isOpen ? (
-            <X className="w-6 h-6 animate-in zoom-in duration-300" />
+            <X className="w-4 h-4 animate-in zoom-in duration-300" />
           ) : (
             <ActiveIcon 
               key={activeIconIndex} 
-              className={cn("w-7 h-7 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
+              className={cn("w-4.5 h-4.5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
             />
           )}
         </div>

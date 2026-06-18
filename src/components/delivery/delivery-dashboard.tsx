@@ -220,7 +220,7 @@ function SettlementView() {
               <Package className="w-5 h-5" />
               <span>قوائم تم توصيلها للعميل بانتظار تسديد التاجر</span>
             </div>
-            <span>المبلغ الكلي المطلوب: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
+            <span>المبلغ الكلي المطلوب: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString('en-US')} د.ع</span>
           </div>
           {orders.map(order => (
             <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={true} />
@@ -295,7 +295,7 @@ function DeliveryHistoryView() {
               <CheckCircle2 className="w-5 h-5" />
               <span>قوائم مكتملة وتم تسديد التاجر</span>
             </div>
-            <span>إجمالي المبالغ المُسلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString()} د.ع</span>
+            <span>إجمالي المبالغ المُسلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString('en-US')} د.ع</span>
           </div>
           {orders.map(order => (
             <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={false} />
@@ -432,7 +432,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
         </div>
         <div className="text-left shrink-0">
           <div className="font-black text-brand-orange tabular-nums">
-            {order.total_rounded.toLocaleString()} د.ع
+            {order.total_rounded.toLocaleString('en-US')} د.ع
           </div>
           {isHistoryMode && order.delivered_at && (
             <div className="text-[10px] mt-1 text-muted-foreground text-left">
@@ -467,7 +467,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
                       </td>
                       <td className="text-center p-2 font-bold tabular-nums text-brand-orange">{item.quantity}</td>
                       <td className="text-left p-2 font-bold tabular-nums text-brand-blue dark:text-foreground">
-                        {(item.product_price * item.quantity).toLocaleString()}
+                        {(item.product_price * item.quantity).toLocaleString('en-US')}
                       </td>
                     </tr>
                   ))}

@@ -95,7 +95,7 @@ export function PromoBanners() {
     setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length)
   }
 
-  if (pathname?.startsWith('/store/')) return null
+  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard')) return null
 
   if (banners.length === 0) return null
 

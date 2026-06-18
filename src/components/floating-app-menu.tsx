@@ -27,10 +27,24 @@ export function FloatingAppMenu({
   const [activeIconIndex, setActiveIconIndex] = useState(0)
   const [isPending, startTransition] = useTransition()
   const [mounted, setMounted] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Auto-close menu after 3 seconds of inactivity
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (isOpen && !isHovered) {
+      timeoutId = setTimeout(() => {
+        setOpenMenu(null);
+      }, 3000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isOpen, isHovered, setOpenMenu]);
 
   // The early return was causing a React Hooks mismatch error, moving it down.
 
@@ -74,12 +88,16 @@ export function FloatingAppMenu({
   if (isHidden) return null;
 
   return (
-    <div className="relative flex flex-col items-end pointer-events-auto">
+    <div 
+      className="relative flex flex-col items-end pointer-events-auto"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Floating Menu Items */}
       <div 
         className={cn(
-          "absolute bottom-full mb-3 flex flex-col items-end gap-3 transition-all duration-300 origin-bottom left-0",
-          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
+          "absolute top-full mt-2.5 flex flex-col items-end gap-2 transition-all duration-300 origin-top left-0",
+          isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 -translate-y-5 pointer-events-none"
         )}
       >
         {/* Dashboard Links based on Role */}
@@ -87,14 +105,14 @@ export function FloatingAppMenu({
           <Link
             href="/dashboard"
             onClick={() => setOpenMenu(null)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة التاجر"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">لوحة التاجر</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">لوحة التاجر</span>
             </span>
-            <div className="bg-primary/20 p-2 rounded-full text-primary shrink-0">
-              <LayoutDashboard className="w-5 h-5" />
+            <div className="bg-primary/20 p-1 rounded-full text-primary shrink-0">
+              <LayoutDashboard className="w-4 h-4" />
             </div>
           </Link>
         )}
@@ -103,14 +121,14 @@ export function FloatingAppMenu({
           <Link
             href="/admin"
             onClick={() => setOpenMenu(null)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الإدارة"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">لوحة الإدارة</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">لوحة الإدارة</span>
             </span>
-            <div className="bg-brand-orange/20 p-2 rounded-full text-brand-orange shrink-0">
-              <UserCheck className="w-5 h-5" />
+            <div className="bg-brand-orange/20 p-1 rounded-full text-brand-orange shrink-0">
+              <UserCheck className="w-4 h-4" />
             </div>
           </Link>
         )}
@@ -119,14 +137,14 @@ export function FloatingAppMenu({
           <Link
             href="/support"
             onClick={() => setOpenMenu(null)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
             title="لوحة الدعم"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">لوحة الدعم</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">لوحة الدعم</span>
             </span>
-            <div className="bg-blue-500/20 p-2 rounded-full text-blue-500 shrink-0">
-              <HeadphonesIcon className="w-5 h-5" />
+            <div className="bg-blue-500/20 p-1 rounded-full text-blue-500 shrink-0">
+              <HeadphonesIcon className="w-4 h-4" />
             </div>
           </Link>
         )}
@@ -134,67 +152,69 @@ export function FloatingAppMenu({
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+          className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
           title="الوضع الليلي/النهاري"
           suppressHydrationWarning
         >
-          <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-            <span className="text-sm font-bold" suppressHydrationWarning>
+          <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+            <span className="text-[11px] font-black" suppressHydrationWarning>
               {mounted && theme === 'light' ? 'الوضع الليلي' : 'الوضع النهاري'}
             </span>
           </span>
-          <div className="bg-slate-200 dark:bg-slate-700 p-2 rounded-full text-foreground shrink-0" suppressHydrationWarning>
-            {mounted && theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          <div className="bg-slate-200 dark:bg-slate-700 p-1 rounded-full text-foreground shrink-0" suppressHydrationWarning>
+            {mounted && theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </div>
         </button>
 
         {/* Cart */}
-        <Link
-          href="/cart"
-          onClick={() => setOpenMenu(null)}
-          className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group"
-          title="سلة المشتريات"
-        >
-          <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap text-brand-orange">
-            <span className="text-sm font-bold">السلة</span>
-          </span>
-          <div className="bg-brand-orange p-2 rounded-full text-white shrink-0 relative">
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-background">
-                {cartCount}
-              </span>
-            )}
-          </div>
-        </Link>
+        {(!userRole || !['admin', 'merchant', 'delivery', 'support'].includes(userRole)) && (
+          <Link
+            href="/cart"
+            onClick={() => setOpenMenu(null)}
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-brand-orange/10 transition-colors group"
+            title="سلة المشتريات"
+          >
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap text-brand-orange">
+              <span className="text-[11px] font-black">السلة</span>
+            </span>
+            <div className="bg-brand-orange p-1 rounded-full text-white shrink-0 relative">
+              <ShoppingCart className="w-4 h-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-background">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+          </Link>
+        )}
 
         {/* Auth (Login/Logout) */}
         {fullName ? (
           <button
             onClick={handleSignOut}
             disabled={isPending}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500 disabled:opacity-50"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group text-red-500 disabled:opacity-50"
             title="تسجيل الخروج"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">{isPending ? "جاري الخروج..." : "تسجيل الخروج"}</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">{isPending ? "جاري الخروج..." : "تسجيل الخروج"}</span>
             </span>
-            <div className="bg-red-100 dark:bg-red-500/20 p-2 rounded-full text-red-500 shrink-0">
-              <LogOut className="w-5 h-5" />
+            <div className="bg-red-100 dark:bg-red-500/20 p-1 rounded-full text-red-500 shrink-0">
+              <LogOut className="w-4 h-4" />
             </div>
           </button>
         ) : (
           <Link
             href="/login"
             onClick={() => setOpenMenu(null)}
-            className="flex items-center gap-3 bg-white dark:bg-card p-3 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group text-emerald-600"
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group text-emerald-600"
             title="تسجيل الدخول"
           >
-            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-2 transition-all duration-300 whitespace-nowrap">
-              <span className="text-sm font-bold">تسجيل الدخول</span>
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">تسجيل الدخول</span>
             </span>
-            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full text-emerald-600 shrink-0">
-              <LogIn className="w-5 h-5" />
+            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-1 rounded-full text-emerald-600 shrink-0">
+              <LogIn className="w-4 h-4" />
             </div>
           </Link>
         )}
@@ -204,21 +224,21 @@ export function FloatingAppMenu({
       <button
         onClick={() => setOpenMenu(isOpen ? null : 'app')}
         className={cn(
-          "flex items-center justify-center w-14 h-14 rounded-full shadow-xl transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
+          "flex items-center justify-center w-9 h-9 rounded-full shadow-md transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
           isOpen ? "bg-slate-800 text-white rotate-90" : "bg-primary text-white"
         )}
       >
         <div className="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-300">
           {isOpen ? (
-            <X className="w-6 h-6 animate-in zoom-in duration-300" />
+            <X className="w-4 h-4 animate-in zoom-in duration-300" />
           ) : (
             <div className="relative">
               <ActiveIcon 
                 key={activeIconIndex} 
-                className={cn("w-7 h-7 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
+                className={cn("w-4.5 h-4.5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
               />
               {cartCount > 0 && !isOpen && activeIconIndex === 0 && (
-                <span className="absolute -top-1 -right-1 bg-brand-orange text-white text-[10px] font-bold w-3 h-3 rounded-full border border-background"></span>
+                <span className="absolute -top-0.5 -right-0.5 bg-brand-orange text-white text-[7px] font-bold w-2 h-2 rounded-full border border-background"></span>
               )}
             </div>
           )}

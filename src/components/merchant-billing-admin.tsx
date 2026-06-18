@@ -272,11 +272,11 @@ export function MerchantBillingAdmin() {
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border/50">
                     <span className="text-muted-foreground font-bold">إجمالي المبيعات</span>
-                    <span className="font-black text-xl text-brand-blue">{previewTotalSales.toLocaleString()} د.ع</span>
+                    <span className="font-black text-xl text-brand-blue">{previewTotalSales.toLocaleString('en-US')} د.ع</span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b border-border/50">
                     <span className="text-muted-foreground font-bold">نسبة التطبيق ({commissionPercent}%)</span>
-                    <span className="font-black text-xl text-brand-orange">{previewAmountDue.toLocaleString()} د.ع</span>
+                    <span className="font-black text-xl text-brand-orange">{previewAmountDue.toLocaleString('en-US')} د.ع</span>
                   </div>
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>من الوصل #{unbilledOrders[0].invoice_number}</span>
@@ -359,9 +359,9 @@ function BillingTable({ billings, onMarkAsPaid, showMerchant = false }: { billin
                 {bill.profiles?.store_name || bill.profiles?.full_name || bill.profiles?.phone || 'غير معروف'}
               </td>
             )}
-            <td className="p-4 font-bold">{bill.total_sales.toLocaleString()}</td>
+            <td className="p-4 font-bold">{bill.total_sales.toLocaleString('en-US')}</td>
             <td className="p-4 text-muted-foreground">{bill.commission_percentage}%</td>
-            <td className="p-4 font-black text-brand-orange">{bill.amount_due.toLocaleString()} د.ع</td>
+            <td className="p-4 font-black text-brand-orange">{bill.amount_due.toLocaleString('en-US')} د.ع</td>
             <td className="p-4 text-center">
               {bill.status === 'paid' ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">

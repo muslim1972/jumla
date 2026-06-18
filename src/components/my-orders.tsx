@@ -71,8 +71,8 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString()}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString()}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString('en-US')}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString('en-US')}</td>
     </tr>
   `).join('');
 
@@ -173,9 +173,9 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
     </div>
 
     <div class="totals">
-      <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString()} د.ع</span></div>
-      <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString()} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div>
     </div>
 
     <div class="verification">
@@ -283,7 +283,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
         <div className="flex items-center gap-3">
           <div className="text-left">
             <p className="font-black text-primary text-sm sm:text-base">
-              {order.total_rounded.toLocaleString()}
+              {order.total_rounded.toLocaleString('en-US')}
             </p>
             <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max mr-auto`}>
               {statusConfig.icon}
@@ -336,8 +336,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                     <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded">{item.unit_type}</span>
                   </div>
                   <div className="text-left shrink-0">
-                    <p className="font-bold">{item.quantity} × {(item.product_price).toLocaleString()}</p>
-                    <p className="text-[10px] text-primary font-bold">{(item.product_price * item.quantity).toLocaleString()}</p>
+                    <p className="font-bold">{item.quantity} × {(item.product_price).toLocaleString('en-US')}</p>
+                    <p className="text-[10px] text-primary font-bold">{(item.product_price * item.quantity).toLocaleString('en-US')}</p>
                   </div>
                 </div>
               ))}
@@ -364,15 +364,15 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           <div className="border-t border-dashed pt-3 space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>قيمة المنتجات</span>
-              <span>{order.subtotal.toLocaleString()} د.ع</span>
+              <span>{order.subtotal.toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>أجور التوصيل</span>
-              <span>{order.delivery_fee.toLocaleString()} د.ع</span>
+              <span>{order.delivery_fee.toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-base font-black text-primary pt-2 pb-1 px-1">
               <span>المجموع الكلي</span>
-              <span>{order.total_rounded.toLocaleString()} د.ع</span>
+              <span>{order.total_rounded.toLocaleString('en-US')} د.ع</span>
             </div>
 
             {!isArchiveView && (

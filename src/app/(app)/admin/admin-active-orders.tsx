@@ -155,7 +155,7 @@ export function AdminActiveOrders() {
                               </div>
                               <div className="flex items-center gap-3 text-right">
                                 <div className="text-left">
-                                  <p className="font-bold text-xs text-brand-blue dark:text-foreground">{order.total_rounded.toLocaleString()} د.ع</p>
+                                  <p className="font-bold text-xs text-brand-blue dark:text-foreground">{order.total_rounded.toLocaleString('en-US')} د.ع</p>
                                   {order.status === 'pending' ? (
                                     <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-1.5 py-0.5 rounded inline-block mt-1">قيد الانتظار</span>
                                   ) : (
@@ -199,7 +199,7 @@ export function AdminActiveOrders() {
                                         </div>
                                         <div className="flex items-center gap-4">
                                           <span className="font-bold tabular-nums text-brand-orange text-center w-8">x{item.quantity}</span>
-                                          <span className="font-bold tabular-nums w-16 text-left">{(item.product_price * item.quantity).toLocaleString()}</span>
+                                          <span className="font-bold tabular-nums w-16 text-left">{(item.product_price * item.quantity).toLocaleString('en-US')}</span>
                                         </div>
                                       </li>
                                     ))}

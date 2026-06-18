@@ -115,7 +115,7 @@ export function AddToCartButton({
         <div className="flex items-center gap-2">
           {localQuantity > 0 && (
             <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 min-w-fit">
-              = {(productPrice * localQuantity).toLocaleString()}
+              = {(productPrice * localQuantity).toLocaleString('en-US')}
             </div>
           )}
           <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">

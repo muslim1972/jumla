@@ -205,7 +205,7 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
             مؤرشف
           </span>
           <span className="font-black text-primary tabular-nums text-sm">
-            {order.total_rounded.toLocaleString()}
+            {order.total_rounded.toLocaleString('en-US')}
           </span>
         </div>
       </button>
@@ -248,7 +248,7 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
                       </td>
                       <td className="text-center p-2 font-bold tabular-nums">{item.quantity}</td>
                       <td className="text-left p-2 font-bold tabular-nums">
-                        {(item.product_price * item.quantity).toLocaleString()}
+                        {(item.product_price * item.quantity).toLocaleString('en-US')}
                       </td>
                     </tr>
                   ))}
@@ -261,15 +261,15 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
           <div className="text-xs space-y-1 pt-2 border-t border-dashed">
             <div className="flex justify-between text-muted-foreground">
               <span>قيمة المنتجات</span>
-              <span className="tabular-nums">{order.subtotal.toLocaleString()} د.ع</span>
+              <span className="tabular-nums">{order.subtotal.toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>أجور التوصيل</span>
-              <span className="tabular-nums">{order.delivery_fee.toLocaleString()} د.ع</span>
+              <span className="tabular-nums">{order.delivery_fee.toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between font-black text-sm pt-1">
               <span>المجموع الكلي</span>
-              <span className="text-primary tabular-nums">{order.total_rounded.toLocaleString()} د.ع</span>
+              <span className="text-primary tabular-nums">{order.total_rounded.toLocaleString('en-US')} د.ع</span>
             </div>
           </div>
 
@@ -289,8 +289,8 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
                 <tr>
                   <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
                   <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
-                  <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString()}</td>
-                  <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString()}</td>
+                  <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price.toLocaleString('en-US')}</td>
+                  <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${(item.product_price * item.quantity).toLocaleString('en-US')}</td>
                 </tr>
               `).join('');
 
@@ -302,7 +302,7 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
                 <div class="section"><div class="section-title">معلومات التاجر</div><div class="info-grid"><div class="info-item"><span class="info-label">التاجر: </span><span class="info-value">${order.merchant_name || '---'}</span></div>${order.support_phone ? `<div class="info-item"><span class="info-label">هاتف الدعم: </span><span class="info-value" dir="ltr">${order.support_phone}</span></div>` : ''}</div></div>
                 <div class="section"><div class="section-title">معلومات التوصيل</div><div class="info-grid"><div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div><div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div><div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div></div></div>
                 <div class="section"><div class="section-title">تفاصيل المنتجات</div><table><thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:center;">سعر الوحدة</th><th style="text-align:left;">المجموع</th></tr></thead><tbody>${itemsRows}</tbody></table></div>
-                <div class="totals"><div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString()} د.ع</span></div><div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString()} د.ع</span></div><div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString()} د.ع</span></div></div>
+                <div class="totals"><div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div><div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString('en-US')} د.ع</span></div><div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div></div>
                 <div class="verification"><div class="label">كود التحقق</div><div class="code">${maskedCode}</div></div>
                 <div class="footer"><p>تم إنشاء هذه القائمة عبر منصة جُملتي</p></div>
                 <div class="no-print" style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#e85d26;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-family:Cairo;font-size:14px;font-weight:700;cursor:pointer;">🖨️ طباعة</button></div>

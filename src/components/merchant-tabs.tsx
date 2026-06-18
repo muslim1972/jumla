@@ -75,7 +75,7 @@ export function MerchantTabs() {
   ]
 
   return (
-    <div className="bg-background/90 backdrop-blur-md border-b border-border/40 sticky top-[160px] sm:top-[192px] z-30 transition-all shadow-sm">
+    <div className="bg-background/90 backdrop-blur-md border-b border-border/40 sticky top-16 z-30 transition-all shadow-sm">
       <div className="container mx-auto max-w-6xl relative">
         
         {canScrollRight && (

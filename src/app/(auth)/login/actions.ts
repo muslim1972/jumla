@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 export async function signIn(formData: FormData) {
   const email = formData.get("email") as string
@@ -31,14 +32,50 @@ export async function signIn(formData: FormData) {
 export async function checkUserRoleByEmail(email: string) {
   if (!email || !email.includes('@')) return null
   
-  const supabase = await createClient()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   
-  // نستخدم الـ RPC function التي أنشأناها لجلب الـ role
-  const { data, error } = await supabase.rpc('get_role_by_email', {
-    user_email: email
-  })
-
-  if (error || !data) return null
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("Missing Supabase configuration in environment variables")
+    return null
+  }
   
-  return data as string
+  try {
+    // إنشاء عميل باستخدام مفتاح الخدمة لتخطي قيود الـ RLS والوصول الآمن للمستخدمين
+    const adminClient = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+    
+    // 1. جلب قائمة المستخدمين والبحث عن المستخدم بواسطة الإيميل
+    const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers()
+    if (listError) {
+      console.error("Error listing users in checkUserRoleByEmail:", listError.message)
+      return null
+    }
+    
+    const user = usersData.users.find(u => u.email?.toLowerCase() === email.toLowerCase().trim())
+    if (!user) {
+      return null
+    }
+    
+    // 2. جلب دور المستخدم من جدول profiles
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      
+    if (profileError) {
+      console.error("Error fetching profile role in checkUserRoleByEmail:", profileError.message)
+      return null
+    }
+    
+    return profile?.role || null
+  } catch (e) {
+    console.error("Unexpected error in checkUserRoleByEmail:", e)
+    return null
+  }
 }

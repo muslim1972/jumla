@@ -66,17 +66,18 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <ScrollToTop />
-          <FloatingTopRight userRole={role} fullName={fullName} />
+          <FloatingMenuProvider>
+            <FloatingTopRight 
+              userRole={role} 
+              fullName={fullName} 
+              settings={settings}
+              cartCount={cartCount}
+            />
+          </FloatingMenuProvider>
           <TopAnnouncementBar initialBanners={topBanners} />
-          <main className="flex-1 pb-32 sm:pb-40">
+          <main className="flex-1 pb-12 sm:pb-16">
             {children}
           </main>
-          
-          {/* حاوية الأزرار العائمة السفلية في اليسار الذكية */}
-          <FloatingMenuProvider>
-            <FloatingContactButton settings={settings} />
-            <FloatingAppMenu userRole={role} fullName={fullName} cartCount={cartCount} />
-          </FloatingMenuProvider>
           
           <PromoBanners />
         </ThemeProvider>

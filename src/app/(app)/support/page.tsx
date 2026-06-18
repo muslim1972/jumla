@@ -321,7 +321,7 @@ export default function SupportPage() {
                         {new Date(order.created_at).toLocaleString("ar-IQ")}
                       </td>
                       <td className="p-3 text-center font-bold tabular-nums">
-                        {order.total_rounded.toLocaleString()}
+                        {order.total_rounded.toLocaleString('en-US')}
                       </td>
                       <td className="p-3 text-center">
                         <select 

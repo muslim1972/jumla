@@ -184,7 +184,7 @@ export function StoreClient({
                   <div className="flex items-center gap-1">
                     <Truck className="w-3.5 h-3.5" />
                     {merchant.delivery_fee !== null 
-                      ? `${merchant.delivery_fee.toLocaleString()} د.ع` 
+                      ? `${merchant.delivery_fee.toLocaleString('en-US')} د.ع` 
                       : "حسب المنطقة"}
                   </div>
                   <div className="flex items-center gap-1">
@@ -261,7 +261,7 @@ export function StoreClient({
                 <div className="text-right">
                   <div className="font-bold text-lg leading-none mb-1">عرض السلة</div>
                   <div className="text-sm font-medium text-white/80">
-                    المجموع: {totalCartPrice.toLocaleString()} د.ع
+                    المجموع: {totalCartPrice.toLocaleString('en-US')} د.ع
                   </div>
                 </div>
               </div>

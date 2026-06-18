@@ -170,7 +170,7 @@ function BillingDialog({ bill, open, onOpenChange }: { bill: any | null, open: b
               <div className="space-y-4 text-sm sm:text-base">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">إجمالي المبيعات المكتملة</span>
-                  <span className="font-black">{bill.total_sales.toLocaleString()} د.ع</span>
+                  <span className="font-black">{bill.total_sales.toLocaleString('en-US')} د.ع</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">نسبة استقطاع التطبيق</span>
@@ -180,7 +180,7 @@ function BillingDialog({ bill, open, onOpenChange }: { bill: any | null, open: b
                 <div className="pt-4 border-t-2 border-dashed border-border/80">
                   <div className="flex justify-between items-center">
                     <span className="font-black text-brand-blue">المبلغ المستحق للدفع</span>
-                    <span className="font-black text-xl sm:text-2xl text-brand-orange">{bill.amount_due.toLocaleString()} د.ع</span>
+                    <span className="font-black text-xl sm:text-2xl text-brand-orange">{bill.amount_due.toLocaleString('en-US')} د.ع</span>
                   </div>
                 </div>
               </div>

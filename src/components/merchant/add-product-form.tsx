@@ -89,7 +89,7 @@ export function AddProductForm({ disabled }: { disabled: boolean }) {
               {units.map((unit, index) => (
                 <div key={index} className="flex items-center gap-2 bg-background p-2 rounded-md border">
                   <span className="font-medium text-sm flex-1">{unit.type}</span>
-                  <span className="text-brand-orange font-bold flex-1" dir="ltr">{unit.price.toLocaleString()} د.ع</span>
+                  <span className="text-brand-orange font-bold flex-1" dir="ltr">{unit.price.toLocaleString('en-US')} د.ع</span>
                   <Button 
                     type="button" 
                     variant="ghost" 

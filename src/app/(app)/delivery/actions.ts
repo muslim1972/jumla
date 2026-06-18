@@ -146,7 +146,11 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
     .eq("id", orderId)
 
   if (updateError) {
-    return { error: "حدث خطأ أثناء تحديث حالة الطلب: " + updateError.message }
+    console.error("Delivery confirm update error:", updateError);
+    if (updateError.message.includes('schema cache') || updateError.message.includes('delivered_at')) {
+      return { error: "عذراً، يوجد نقص في إعدادات قاعدة البيانات (عمود delivered_at مفقود أو الكاش غير محدث). يرجى التواصل مع الإدارة الفنية." }
+    }
+    return { error: "حدث خطأ غير متوقع أثناء تحديث حالة الطلب. يرجى المحاولة مرة أخرى لاحقاً." }
   }
 
   // إعادة جلب المسارات لتحديث الواجهات

@@ -225,9 +225,9 @@ export function InvoicePreview({
                     <span className="text-[10px] text-muted-foreground">{item.unit_type}</span>
                   </td>
                   <td className="text-center p-2.5 font-bold tabular-nums">{item.quantity}</td>
-                  <td className="text-center p-2.5 tabular-nums">{item.price.toLocaleString()}</td>
+                  <td className="text-center p-2.5 tabular-nums">{item.price.toLocaleString('en-US')}</td>
                   <td className="text-left p-2.5 font-bold tabular-nums">
-                    {(item.price * item.quantity).toLocaleString()}
+                    {(item.price * item.quantity).toLocaleString('en-US')}
                   </td>
                 </tr>
               ))}
@@ -239,21 +239,21 @@ export function InvoicePreview({
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-muted-foreground">
             <span>قيمة المنتجات</span>
-            <span className="tabular-nums font-medium">{subtotal.toLocaleString()} د.ع</span>
+            <span className="tabular-nums font-medium">{subtotal.toLocaleString('en-US')} د.ع</span>
           </div>
           <div className="flex justify-between text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5" />
               أجور التوصيل
             </span>
-            <span className="tabular-nums font-medium">{deliveryFee.toLocaleString()} د.ع</span>
+            <span className="tabular-nums font-medium">{deliveryFee.toLocaleString('en-US')} د.ع</span>
           </div>
           {roundingDiff !== 0 && (
             <div className="flex justify-between text-muted-foreground text-xs">
               <span>تقريب لأقرب 250 د.ع</span>
               <span className="tabular-nums">
                 {roundingDiff > 0 ? "+" : ""}
-                {roundingDiff.toLocaleString()} د.ع
+                {roundingDiff.toLocaleString('en-US')} د.ع
               </span>
             </div>
           )}
@@ -261,7 +261,7 @@ export function InvoicePreview({
             <span className="text-lg font-black">المبلغ الكلي</span>
             <div className="text-left">
               <span className="text-3xl font-black text-primary block leading-none tabular-nums">
-                {totalRounded.toLocaleString()}
+                {totalRounded.toLocaleString('en-US')}
               </span>
               <span className="text-[10px] text-muted-foreground">دينار عراقي</span>
             </div>

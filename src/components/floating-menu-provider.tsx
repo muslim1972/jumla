@@ -11,9 +11,7 @@ export function FloatingMenuProvider({ children }: { children: React.ReactNode }
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   return (
     <FloatingMenuContext.Provider value={{ openMenu, setOpenMenu }}>
-      <div className="fixed bottom-4 sm:bottom-6 left-4 sm:left-6 z-[100] flex flex-col-reverse gap-2 pointer-events-none">
-        {children}
-      </div>
+      {children}
     </FloatingMenuContext.Provider>
   )
 }

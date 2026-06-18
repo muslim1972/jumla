@@ -84,13 +84,13 @@ export default async function DashboardPage() {
                       {product.units && product.units.length > 0 ? (
                         product.units.map((unit: any, idx: number) => (
                           <div key={idx} className="flex justify-between items-center text-xs border-b border-border/50 pb-1 last:border-0 last:pb-0">
-                            <span className="font-bold text-brand-blue" dir="ltr">{unit.price.toLocaleString()}</span>
+                            <span className="font-bold text-brand-blue" dir="ltr">{unit.price.toLocaleString('en-US')}</span>
                             <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{unit.type}</span>
                           </div>
                         ))
                       ) : (
                         <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-brand-blue" dir="ltr">{product.price?.toLocaleString()}</span>
+                          <span className="font-bold text-brand-blue" dir="ltr">{product.price?.toLocaleString('en-US')}</span>
                           <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{product.unit_type}</span>
                         </div>
                       )}

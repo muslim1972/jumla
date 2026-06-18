@@ -26,6 +26,8 @@ export default async function MerchantLayout({
 
   return (
     <div className="flex flex-col flex-1 w-full">
+      {/* غطاء خلفية علوي ملتصف لحجب المحتوى المار لأعلى أثناء التمرير */}
+      <div className="sticky top-0 h-16 w-full bg-background/95 backdrop-blur-md z-30" />
       <MerchantTabs />
       <main className="flex-1 bg-muted/20">
         {children}

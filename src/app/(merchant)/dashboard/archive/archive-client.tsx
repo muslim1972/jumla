@@ -59,7 +59,7 @@ export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: 
               `).join('')}
             </tbody>
           </table>
-          <div class="total">المجموع الكلي: ${order.total_rounded.toLocaleString()} د.ع</div>
+          <div class="total">المجموع الكلي: ${order.total_rounded.toLocaleString('en-US')} د.ع</div>
         </body>
       </html>
     `
@@ -163,7 +163,7 @@ function ArchiveOrderCard({ order, onPrint }: { order: any, onPrint: () => void 
         </div>
         <div className="text-left shrink-0 flex flex-col items-end">
           <div className="font-black text-brand-orange tabular-nums">
-            {order.total_rounded.toLocaleString()} د.ع
+            {order.total_rounded.toLocaleString('en-US')} د.ع
           </div>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1">
             {new Date(order.created_at).toLocaleTimeString('ar-IQ')}
@@ -196,7 +196,7 @@ function ArchiveOrderCard({ order, onPrint }: { order: any, onPrint: () => void 
                       </td>
                       <td className="text-center p-2 font-bold tabular-nums text-brand-orange">{item.quantity}</td>
                       <td className="text-left p-2 font-bold tabular-nums text-brand-blue dark:text-foreground">
-                        {(item.product_price * item.quantity).toLocaleString()}
+                        {(item.product_price * item.quantity).toLocaleString('en-US')}
                       </td>
                     </tr>
                   ))}

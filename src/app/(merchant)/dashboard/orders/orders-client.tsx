@@ -110,13 +110,13 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         alert("تم استلام المبلغ بنجاح ونقل الطلب للأرشيف!")
       } else if (result && result.error) {
         setErrorMsg(result.error)
-        alert("خطأ من الخادم: " + result.error)
+        alert("عذراً، حدث خطأ: " + result.error)
       } else {
-        alert("حدث خطأ غريب: لم يرجع الخادم أي نتيجة.")
+        alert("عذراً، لم نتمكن من استلام تأكيد من الخادم.")
       }
     } catch (err: any) {
       console.error(err)
-      alert("خطأ في النظام أثناء محاولة الاتصال بالخادم: " + err.message)
+      alert("عذراً، حدث خطأ غير متوقع في النظام. يرجى المحاولة مرة أخرى.")
     } finally {
       setProcessingId(null)
     }
@@ -245,7 +245,7 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
 
           <div className="shrink-0 flex flex-row-reverse sm:flex-col justify-between items-center sm:items-end mt-1 sm:mt-0">
              <div className="font-black text-brand-orange text-xs sm:text-sm">
-               {order.total_rounded.toLocaleString()} د.ع
+               {order.total_rounded.toLocaleString('en-US')} د.ع
              </div>
             {isDelivered ? (
               <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-500/10 text-red-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
@@ -338,7 +338,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                          </td>
                          <td className="text-center p-2 sm:p-2.5 font-black tabular-nums text-brand-orange text-xs sm:text-sm">{item.quantity}</td>
                          <td className="text-left p-2 sm:p-2.5 font-bold tabular-nums text-brand-blue dark:text-foreground">
-                           {(item.product_price * item.quantity).toLocaleString()}
+                           {(item.product_price * item.quantity).toLocaleString('en-US')}
                          </td>
                        </tr>
                      ))}
@@ -350,7 +350,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
              {/* المجموع */}
              <div className="flex justify-between items-center p-3 sm:p-4 bg-brand-orange/5 border border-brand-orange/10 rounded-lg">
                 <span className="font-bold text-xs sm:text-sm text-brand-blue">المجموع الكلي</span>
-                <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString()} د.ع</span>
+                <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString('en-US')} د.ع</span>
              </div>
 
              {/* الإجراءات */}
@@ -414,10 +414,10 @@ function handlePrintOrder(order: any, dateStr: string) {
   
   const itemsRows = (order.items || []).map((item: any) => `
     <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">\${item.product_name} <span style="color:#888;font-size:11px;">(\${item.unit_type})</span></td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">\${item.quantity}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">\${item.product_price?.toLocaleString() || 0}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">\${((item.product_price || 0) * item.quantity).toLocaleString()}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;font-size:13px;">${item.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${item.product_price?.toLocaleString('en-US') || 0}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:left;font-weight:bold;font-size:13px;">${((item.product_price || 0) * item.quantity).toLocaleString('en-US')}</td>
     </tr>
   `).join('');
 
@@ -432,7 +432,7 @@ function handlePrintOrder(order: any, dateStr: string) {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>فاتورة المبيعات #\${invoiceNum}</title>
+  <title>فاتورة المبيعات #${invoiceNum}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Cairo', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; color: #111; }
@@ -517,9 +517,9 @@ function handlePrintOrder(order: any, dateStr: string) {
     </div>
 
     <div class="totals">
-      <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString()} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString()} د.ع</span></div>
+      <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString('en-US')} د.ع</span></div>
     </div>
 
     <div class="verification">

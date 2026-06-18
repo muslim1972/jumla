@@ -24,22 +24,47 @@ export function LoginClient({ message }: { message?: string }) {
   const [isChecking, setIsChecking] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState(message || "")
+  const lastCheckedEmailRef = useRef("")
   
-  const handlePasswordFocus = async () => {
-    if (!email || !email.includes('@')) {
+  const checkEmailRole = async (emailValue: string) => {
+    const trimmed = emailValue.trim()
+    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
       setRole(null)
       return
     }
     
+    if (trimmed === lastCheckedEmailRef.current) return
+
+    lastCheckedEmailRef.current = trimmed
     setIsChecking(true)
     try {
-      const foundRole = await checkUserRoleByEmail(email)
+      const foundRole = await checkUserRoleByEmail(trimmed)
       setRole(foundRole)
     } catch (e) {
       console.error(e)
     } finally {
       setIsChecking(false)
     }
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    
+    if (!value || !value.includes('@')) {
+      setRole(null)
+      lastCheckedEmailRef.current = ""
+    }
+    
+    // Check automatically when email has a valid format (to avoid setTimeout)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (emailRegex.test(value.trim())) {
+      checkEmailRole(value)
+    }
+  }
+
+  const handleEmailBlur = () => {
+    checkEmailRole(email)
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -83,28 +108,26 @@ export function LoginClient({ message }: { message?: string }) {
                 className="text-right"
                 dir="ltr"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (role) setRole(null) // Reset role if email changes
-                }}
+                onChange={handleEmailChange}
+                onBlur={handleEmailBlur}
               />
+              
+              {/* Role Indicator below email input */}
+              <div className="h-6 flex items-center justify-end">
+                {isChecking ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                ) : role && roleLabels[role] ? (
+                  <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${roleLabels[role].color}`}>
+                    <UserCircle className="w-3.5 h-3.5" />
+                    {roleLabels[role].label}
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label htmlFor="password">كلمة المرور</Label>
-                
-                {/* Role Indicator */}
-                <div className="h-6 flex items-center">
-                  {isChecking ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                  ) : role && roleLabels[role] ? (
-                    <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${roleLabels[role].color}`}>
-                      <UserCircle className="w-3.5 h-3.5" />
-                      {roleLabels[role].label}
-                    </div>
-                  ) : null}
-                </div>
               </div>
               
               <Input 
@@ -113,7 +136,6 @@ export function LoginClient({ message }: { message?: string }) {
                 type="password" 
                 required 
                 dir="ltr" 
-                onFocus={handlePasswordFocus}
               />
             </div>
             

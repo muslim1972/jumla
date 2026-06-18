@@ -3,21 +3,27 @@
 import Link from "next/link"
 import { useState } from "react"
 import { UserProfileModal } from "@/components/user-profile-modal"
+import { FloatingContactButton } from "@/components/floating-contact-button"
+import { FloatingAppMenu } from "@/components/floating-app-menu"
 
 export function FloatingTopRight({
   userRole,
-  fullName
+  fullName,
+  settings,
+  cartCount
 }: {
   userRole?: string | null
   fullName?: string | null
+  settings?: any
+  cartCount?: number
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   return (
     <>
-      {/* اسم المستخدم قابل للنقر (في اليسار) */}
-      <div className="fixed top-4 left-4 z-[100] flex items-center">
-        <div className="relative">
+      {/* اسم المستخدم والأزرار العائمة (في اليسار) */}
+      <div className="fixed top-4 left-4 z-[100] flex items-center gap-1.5 sm:gap-2 pointer-events-none">
+        <div className="relative pointer-events-auto">
           <button
             onClick={() => setIsProfileOpen(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-background/90 backdrop-blur-md rounded-full text-[10px] sm:text-xs font-bold border shadow-lg transition-all hover:bg-muted hover:scale-105 active:scale-95"
@@ -29,6 +35,9 @@ export function FloatingTopRight({
             </span>
           </button>
         </div>
+
+        <FloatingContactButton settings={settings} />
+        <FloatingAppMenu userRole={userRole} fullName={fullName} cartCount={cartCount} />
       </div>
 
       <UserProfileModal 

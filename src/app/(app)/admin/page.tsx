@@ -491,7 +491,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-emerald-600">{totalPaidRevenue.toLocaleString()}</div>
+                <div className="text-lg sm:text-2xl font-black text-emerald-600">{totalPaidRevenue.toLocaleString('en-US')}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">د.ع تم استلامها من التجار</p>
               </CardContent>
             </Card>
@@ -504,7 +504,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-orange">{totalUnpaidRevenue.toLocaleString()}</div>
+                <div className="text-lg sm:text-2xl font-black text-brand-orange">{totalUnpaidRevenue.toLocaleString('en-US')}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">د.ع بانتظار دفعها من التجار</p>
               </CardContent>
             </Card>

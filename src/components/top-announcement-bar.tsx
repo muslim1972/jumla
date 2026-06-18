@@ -122,7 +122,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
     setIsModalOpen(true)
   }
 
-  if (pathname?.startsWith('/store/')) return null
+  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard')) return null
 
   if (activeItems.length === 0) return null
 
@@ -131,7 +131,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
       {/* Creative Hero Billboard Banner */}
       <div 
         onClick={handleBannerClick}
-        className="w-full max-w-4xl mx-auto px-3 sm:px-4 cursor-pointer sticky top-0 sm:top-2 z-40 py-2 bg-background/90 backdrop-blur-md"
+        className="w-full max-w-4xl mx-auto px-3 sm:px-4 cursor-pointer sticky top-16 z-40 py-2 bg-background/90 backdrop-blur-md"
       >
         <div className="relative overflow-hidden rounded-3xl h-36 sm:h-44 border border-border/40 shadow-premium bg-card/60 backdrop-blur-sm group flex items-center justify-center transition-all duration-300 hover:border-primary/30">
           {/* Creative ambient glows */}
