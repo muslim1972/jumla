@@ -327,30 +327,37 @@ export function CartClient({
   if (items.length === 0) {
     return (
       <>
-        {/* زر تتبع المشتريات والأرشيف حتى لو السلة فارغة */}
-        <div className="mb-6 flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setShowArchive(true)}
-            className="gap-2 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700"
-          >
-            <Archive className="w-4 h-4" />
-            الأرشيف
-          </Button>
+        {/* Sticky Header for Action Buttons even when empty */}
+        <div className="sticky top-[160px] sm:top-[192px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
+          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowArchive(true)}
+              className="gap-1.5 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/5 hover:text-violet-700 shrink-0 h-9 px-3"
+            >
+              <Archive className="w-4 h-4" />
+              <span className="text-xs font-bold">الأرشيف</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            onClick={handleOpenMyOrders}
-            disabled={isLoadingOrders}
-            className="gap-2 rounded-xl border-primary/30 hover:bg-primary/5"
-          >
-            {isLoadingOrders ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Package className="w-4 h-4 text-primary" />
-            )}
-            تتبع مشترياتي
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenMyOrders}
+              disabled={isLoadingOrders}
+              className="gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+            >
+              {isLoadingOrders ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Package className="w-4 h-4 text-primary" />
+              )}
+              <span className="text-xs font-bold">تتبع مشترياتي</span>
+            </Button>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-black mt-3 text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 w-fit">
+            سلة المشتريات
+          </h1>
         </div>
 
         <div className="text-center py-20 bg-muted/30 rounded-xl border border-dashed">
