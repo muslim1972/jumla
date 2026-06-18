@@ -436,12 +436,22 @@ function handlePrintOrder(order: any, dateStr: string) {
   <title>فاتورة المبيعات #${invoiceNum}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    * { box-sizing: border-box; }
     body { font-family: 'Cairo', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; color: #111; }
-    .invoice { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .invoice { width: 100%; max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .header { text-align: center; margin-bottom: 25px; border-bottom: 2px dashed #eee; padding-bottom: 20px; }
     .header h1 { font-weight: 900; color: #e85d26; margin: 0; font-size: 28px; letter-spacing: -0.5px; }
     .invoice-num { font-size: 14px; color: #666; margin-top: 5px; font-weight: 600; }
     .date { font-size: 12px; color: #999; margin-top: 2px; }
+    
+    @media screen and (max-width: 600px) {
+      body { padding: 10px; }
+      .invoice { padding: 15px; box-shadow: none; border: 1px solid #eee; }
+      .header h1 { font-size: 24px; }
+      th, td { font-size: 11px !important; padding: 6px !important; }
+      .info-grid { grid-template-columns: 1fr; }
+      .info-item[style*="grid-column"] { grid-column: 1 !important; }
+    }
     
     .status { text-align: center; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 20px; display: inline-block; }
     .status.pending { background: #fff3cd; color: #856404; }
@@ -540,9 +550,14 @@ function handlePrintOrder(order: any, dateStr: string) {
 </body>
 </html>`;
 
-  const printWindow = window.open('', '_blank');
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, '_blank');
+  
   if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
+    printWindow.onload = () => {
+      // Optional: URL.revokeObjectURL(url) can be called after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
   }
 }
