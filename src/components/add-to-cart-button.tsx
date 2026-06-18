@@ -166,29 +166,29 @@ export function AddToCartButton({
     <div className={cn("flex flex-col gap-2 w-full", isCompact ? "" : "max-w-xs")}>
       {/* Quantity Selector & Price Preview */}
       <div className="flex items-center justify-between bg-muted/30 rounded-lg p-1.5 border border-border/40">
-        <div className="flex items-center border rounded-md overflow-hidden h-8 bg-background shadow-sm">
+        <div className="flex items-center border rounded-md overflow-hidden h-7 sm:h-8 bg-background shadow-sm shrink-0">
           <button
             onClick={() => handleUpdateQuantity(localQuantity + 1)}
             disabled={isLoading}
-            className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            className="px-2 sm:px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange shrink-0 flex items-center justify-center"
           >
             <Plus className="w-3 h-3" />
           </button>
-          <span className="px-3 font-black min-w-[28px] text-center border-x text-sm">
+          <span className="px-2 sm:px-3 font-black min-w-[24px] sm:min-w-[28px] text-center border-x text-xs sm:text-sm flex items-center justify-center h-full">
             {localQuantity}
           </span>
           <button
             onClick={() => handleUpdateQuantity(localQuantity - 1)}
             disabled={isLoading || localQuantity <= 1}
-            className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            className="px-2 sm:px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange shrink-0 flex items-center justify-center"
           >
             <Minus className="w-3 h-3" />
           </button>
         </div>
         
-        <div className="text-left pl-2">
-          <div className="text-[10px] text-muted-foreground font-medium leading-none mb-0.5">المجموع</div>
-          <div className="text-xs font-black text-brand-blue dark:text-foreground leading-none">{totalStr}</div>
+        <div className="text-left pl-1 sm:pl-2 min-w-0 flex-1">
+          <div className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mb-0.5 truncate">المجموع</div>
+          <div className="text-[11px] sm:text-xs font-black text-brand-blue dark:text-foreground leading-none truncate" dir="ltr">{totalStr}</div>
         </div>
       </div>
 

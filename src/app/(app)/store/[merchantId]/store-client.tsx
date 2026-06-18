@@ -131,7 +131,7 @@ export function StoreClient({
       {/* Sticky Header Group: Navbar + Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
         {/* Top Navbar */}
-        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] flex items-center h-[60px]">
+        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] pl-[140px] flex items-center h-[60px]">
           <button 
             onClick={() => {
               startTransition(() => {
