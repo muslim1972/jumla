@@ -131,7 +131,7 @@ export function StoreClient({
       {/* Sticky Header Group: Navbar + Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
         {/* Top Navbar */}
-        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] pl-[140px] flex items-center h-[60px]">
+        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] pl-[140px] flex items-center h-[50px] sm:h-[60px]">
           <button 
             onClick={() => {
               startTransition(() => {
@@ -140,58 +140,43 @@ export function StoreClient({
             }}
             disabled={isPending}
             className={cn(
-              "flex items-center gap-3 w-full text-right p-2 rounded-2xl transition-all duration-300 group",
+              "flex items-center gap-2 text-right p-1.5 rounded-full transition-all duration-300 group w-fit",
               isPending 
                 ? "opacity-60" 
                 : "hover:bg-muted/50 active:scale-[0.98]"
             )}
           >
-            <div className="bg-muted group-hover:bg-muted/80 p-2 rounded-full transition-colors relative overflow-hidden shrink-0 shadow-lg shadow-brand-orange/20">
+            <div className="bg-brand-orange/10 text-brand-orange group-hover:bg-brand-orange/20 p-1.5 sm:p-2 rounded-full transition-colors shrink-0">
               {isPending ? (
                 <div className="w-4 h-4 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
               ) : (
-                <ChevronRight className="w-4 h-4 animate-fade-orange group-active:-translate-x-1 transition-transform" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 group-active:-translate-x-1 transition-transform" />
               )}
             </div>
-            <h1 className="font-bold text-base animate-fade-orange truncate">{merchant.full_name}</h1>
+            <span className="font-bold text-xs sm:text-sm text-brand-orange">العودة للرئيسية</span>
           </button>
         </div>
 
-        {/* Hero Header */}
-        <div className="relative">
-          <div className="h-24 sm:h-32 bg-gradient-to-r from-brand-blue/80 to-brand-orange/80 relative overflow-hidden">
-            {/* Pattern overlay using CSS */}
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "16px 16px" }}></div>
-          </div>
-
-          {/* Store Info Card (Overlapping Hero) */}
-          <div className="max-w-4xl mx-auto px-4 relative -mt-10 sm:-mt-12 mb-3">
-            <div className="bg-card rounded-2xl shadow-sm border border-border/40 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 items-center sm:items-start text-center sm:text-right">
-              {/* Store Logo Avatar */}
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background border-4 border-background shadow-sm flex items-center justify-center shrink-0 -mt-8 sm:-mt-10 relative overflow-hidden">
-                <span className="text-2xl sm:text-3xl font-black text-brand-orange">
-                  {merchant.full_name.charAt(0)}
-                </span>
+        {/* Artistic Merchant Header */}
+        <div className="px-4 py-2 sm:py-3 bg-background/95 backdrop-blur-md border-b border-border/40">
+          <div className="flex flex-col items-center justify-center gap-2 max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-brand-orange to-brand-blue drop-shadow-sm">
+              {merchant.full_name}
+            </h2>
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground font-medium">
+              <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold shadow-sm">
+                <Star className="w-3.5 h-3.5 fill-brand-orange" />
+                {rating.toFixed(1)} (100+)
               </div>
-
-              <div className="flex-grow space-y-1 sm:mt-0">
-                <h2 className="text-lg sm:text-xl font-black text-foreground">{merchant.full_name}</h2>
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold">
-                    <Star className="w-3.5 h-3.5 fill-brand-orange" />
-                    {rating.toFixed(1)} (100+)
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5" />
-                    {merchant.delivery_fee !== null 
-                      ? `${merchant.delivery_fee.toLocaleString('en-US')} د.ع` 
-                      : "حسب المنطقة"}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Info className="w-3.5 h-3.5" />
-                    جملة
-                  </div>
-                </div>
+              <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
+                <Truck className="w-3.5 h-3.5 text-primary" />
+                {merchant.delivery_fee !== null 
+                  ? `${merchant.delivery_fee.toLocaleString('en-US')} د.ع` 
+                  : "حسب المنطقة"}
+              </div>
+              <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
+                <Info className="w-3.5 h-3.5 text-brand-blue" />
+                متجر جملة
               </div>
             </div>
           </div>
