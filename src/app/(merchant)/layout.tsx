@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import { MerchantTabs } from "@/components/merchant-tabs"
+import { MerchantTabs } from "@/features/merchant/components/merchant-tabs"
 
 export default async function MerchantLayout({
   children,

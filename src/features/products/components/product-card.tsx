@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AddToCartButton } from "@/components/add-to-cart-button"
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button"
 import Image from "next/image"
 import { PackageOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -108,6 +108,7 @@ export function ProductCard({
             unitType={selectedUnitType}
             initialCartItem={initialCartItem}
             variant="compact"
+            maxQuantity={Math.floor((product.stock_quantity ?? 0) / (hasMultipleUnits ? (product.units.find((u: any) => u.type === selectedUnitType)?.multiplier_to_base || 1) : 1))}
           />
         </CardFooter>
       </Card>
@@ -166,15 +167,16 @@ export function ProductCard({
       </div>
 
       <div className="shrink-0">
-        <AddToCartButton 
-          key={`list-${product.id}-${selectedUnitType}`}
-          user={user} 
-          productId={product.id} 
-          productPrice={currentPrice}
-          unitType={selectedUnitType}
-          initialCartItem={initialCartItem}
-          variant="icon"
-        />
+          <AddToCartButton 
+            key={`list-${product.id}-${selectedUnitType}`}
+            user={user} 
+            productId={product.id} 
+            productPrice={currentPrice}
+            unitType={selectedUnitType}
+            initialCartItem={initialCartItem}
+            variant="icon"
+            maxQuantity={Math.floor((product.stock_quantity ?? 0) / (hasMultipleUnits ? (product.units.find((u: any) => u.type === selectedUnitType)?.multiplier_to_base || 1) : 1))}
+          />
       </div>
     </div>
   )

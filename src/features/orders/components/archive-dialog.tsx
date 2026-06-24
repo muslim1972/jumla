@@ -19,7 +19,7 @@ import {
   Hash
 } from "lucide-react"
 import { searchArchivedOrders } from "@/app/(app)/cart/actions"
-import type { OrderData } from "@/components/my-orders"
+import type { OrderData } from "@/features/orders/components/my-orders"
 
 // مكون بطاقة الطلب المؤرشف (مُبسّطة - فقط طباعة بدون تعديل أو أرشفة)
 import dynamic from "next/dynamic"

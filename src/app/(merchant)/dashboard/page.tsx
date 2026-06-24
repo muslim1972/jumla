@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import Image from "next/image"
-import { MerchantSettings } from "@/components/merchant-settings"
+import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
 import { AlertCircle } from "lucide-react"
 import { AddProductForm } from "@/components/merchant/add-product-form"
 import { EditProductModal } from "@/components/merchant/edit-product-modal"
@@ -23,9 +23,24 @@ export default async function DashboardPage() {
 
   const { data: products } = await supabase
     .from('products')
-    .select('*')
+    .select('*, categories(name)')
     .eq('merchant_id', user?.id)
     .order('created_at', { ascending: false })
+
+  // Fetch categories safely in case the table doesn't exist yet
+  let categories: {id: string, name: string}[] = []
+  const { data: categoriesData, error: catError } = await supabase.from('categories').select('id, name')
+  if (!catError && categoriesData) {
+    const uniqueCategories = [];
+    const seenNames = new Set();
+    for (const cat of categoriesData) {
+      if (!seenNames.has(cat.name)) {
+        seenNames.add(cat.name);
+        uniqueCategories.push(cat);
+      }
+    }
+    categories = uniqueCategories;
+  }
 
   const isProfileComplete = profile?.delivery_fee !== null && profile?.delivery_fee !== undefined && profile?.support_phone;
 
@@ -47,7 +62,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <AddProductForm disabled={!isProfileComplete} />
+          <AddProductForm disabled={!isProfileComplete} categories={categories} />
         </div>
 
         {/* Products List */}
@@ -95,9 +110,20 @@ export default async function DashboardPage() {
                         </div>
                       )}
                     </div>
+                    
+                    <div className="mt-3 flex items-center justify-between border-t pt-2 border-border/50">
+                      <div className="text-xs text-muted-foreground flex flex-col gap-1">
+                        <span>المخزون: <span className="font-bold text-foreground">
+                          {product.stock_quantity !== undefined 
+                            ? Math.floor(product.stock_quantity / (product.units?.find((u: any) => u.type === (product.stock_unit || "كارتون"))?.multiplier_to_base || 1))
+                            : 0} {product.stock_unit || "كارتون"}
+                        </span></span>
+                        {product.categories?.name && <span>القسم: <span className="font-medium text-foreground">{product.categories.name}</span></span>}
+                      </div>
+                    </div>
                   </CardContent>
                   <div className="p-3 pt-0 mt-auto">
-                    <EditProductModal product={product} />
+                    <EditProductModal product={product} categories={categories} />
                   </div>
                 </Card>
               ))}

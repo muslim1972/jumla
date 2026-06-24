@@ -2,7 +2,7 @@
 
 import { useTransition } from "react"
 import { LogOut, Loader2 } from "lucide-react"
-import { buttonVariants } from "./ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { signOut } from "@/app/(auth)/actions"
 
 export function SignOutButton() {

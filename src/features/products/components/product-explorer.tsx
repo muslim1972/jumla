@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef, useDeferredValue } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AddToCartButton } from "@/components/add-to-cart-button"
-import { ProductCard } from "@/components/product-card"
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button"
+import { ProductCard } from "@/features/products/components/product-card"
 import Image from "next/image"
 import Link from "next/link"
 import { 
@@ -34,6 +34,8 @@ interface Product {
     full_name: string | null
     delivery_fee: number | null
   } | null
+  category_id?: string | null
+  stock_quantity?: number
 }
 
 interface Category {
@@ -56,11 +58,13 @@ const CATEGORIES: Category[] = [
 export function ProductExplorer({ 
   products, 
   user,
-  cartItems = []
+  cartItems = [],
+  dbCategories = []
 }: { 
   products: Product[] | null,
   user: any,
-  cartItems?: { id: string; product_id: string; quantity: number }[]
+  cartItems?: { id: string; product_id: string; quantity: number }[],
+  dbCategories?: {id: string, name: string, icon_url: string | null}[]
 }) {
   const [searchQuery, setSearchQuery] = useState("")
   const deferredSearchQuery = useDeferredValue(searchQuery)
@@ -103,15 +107,22 @@ export function ProductExplorer({
     }
 
     if (selectedCategory !== "all") {
-      const category = CATEGORIES.find(c => c.id === selectedCategory)
-      if (category && category.keywords.length > 0) {
-        filtered = filtered.filter(p => 
-          category.keywords.some(keyword => 
+      // Check if it's a legacy category ID or DB category ID
+      const legacyCategory = CATEGORIES.find(c => c.id === selectedCategory)
+      
+      filtered = filtered.filter(p => {
+        // Match by new DB category_id
+        if (p.category_id === selectedCategory) return true;
+        
+        // Fallback to legacy keyword search if it's a legacy category
+        if (legacyCategory && legacyCategory.keywords.length > 0) {
+          return legacyCategory.keywords.some(keyword => 
             p.name.toLowerCase().includes(keyword) || 
             (p.description && p.description.toLowerCase().includes(keyword))
           )
-        )
-      }
+        }
+        return false;
+      })
     }
 
     filtered.forEach(product => {
@@ -171,7 +182,29 @@ export function ProductExplorer({
           <div 
             className="flex gap-4 overflow-x-auto pb-3 pt-2 scrollbar-none px-6 scroll-smooth select-none hide-scrollbar"
           >
-            {CATEGORIES.map((category) => {
+            {/* عرض الكل */}
+            <div className="flex flex-col items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setSelectedCategory("all")}
+                className={cn(
+                  "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden relative border transition-all duration-300 shadow-sm flex items-center justify-center bg-card cursor-pointer select-none",
+                  selectedCategory === "all" 
+                    ? "border-brand-orange ring-2 ring-brand-orange/40 scale-105 bg-brand-orange/5" 
+                    : "border-border/60 hover:border-brand-blue/30 hover:shadow"
+                )}
+              >
+                <div className="text-2xl sm:text-3xl">🛍️</div>
+              </button>
+              <span className={cn(
+                "text-[10px] sm:text-xs font-bold transition-colors select-none",
+                selectedCategory === "all" ? "text-brand-orange font-black" : "text-muted-foreground hover:text-foreground"
+              )}>
+                الكل
+              </span>
+            </div>
+
+            {/* الأقسام الديناميكية أو الافتراضية */}
+            {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((category) => {
               const isActive = selectedCategory === category.id
               return (
                 <div 
@@ -187,16 +220,22 @@ export function ProductExplorer({
                         : "border-border/60 hover:border-brand-blue/30 hover:shadow"
                     )}
                   >
-                    <Image
-                      src={`/categories/cat_${category.id}.jpg`}
-                      alt={category.name}
-                      fill
-                      sizes="(max-width: 640px) 64px, 80px"
-                      className={cn(
-                        "object-contain p-2 transition-transform duration-500",
-                        isActive ? "scale-110" : "hover:scale-105"
-                      )}
-                    />
+                    {(category as any).icon_url ? (
+                      <Image
+                        src={(category as any).icon_url}
+                        alt={category.name}
+                        fill
+                        sizes="(max-width: 640px) 64px, 80px"
+                        className={cn(
+                          "object-contain p-2 transition-transform duration-500",
+                          isActive ? "scale-110" : "hover:scale-105"
+                        )}
+                      />
+                    ) : (
+                      <div className="text-2xl sm:text-3xl">
+                        {(category as any).emoji || "🏷️"}
+                      </div>
+                    )}
                   </button>
                   <span className={cn(
                     "text-[10px] sm:text-xs font-bold transition-colors select-none",

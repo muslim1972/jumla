@@ -20,14 +20,16 @@ export function AddToCartButton({
   productPrice = 0,
   unitType,
   initialCartItem,
-  variant = "default"
+  variant = "default",
+  maxQuantity
 }: { 
   user: any, 
   productId: string,
   productPrice?: number,
   unitType?: string,
   initialCartItem?: CartItem,
-  variant?: "default" | "compact" | "icon"
+  variant?: "default" | "compact" | "icon",
+  maxQuantity?: number
 }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -105,6 +107,7 @@ export function AddToCartButton({
 
   const isCompact = variant === "compact"
   const isIcon = variant === "icon"
+  const isOutOfStock = maxQuantity !== undefined && maxQuantity <= 0
 
   const totalStr = (productPrice * localQuantity).toLocaleString('en-US') + " د.ع"
 
@@ -121,7 +124,7 @@ export function AddToCartButton({
           <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">
             <button
               onClick={() => handleUpdateQuantity(localQuantity + 1)}
-              disabled={isLoading}
+              disabled={isLoading || (maxQuantity !== undefined && localQuantity >= maxQuantity)}
               className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
             >
               <Plus className="w-3 h-3" />
@@ -143,14 +146,17 @@ export function AddToCartButton({
           size="icon"
           className={cn(
             "h-8 w-8 transition-all duration-300",
+            isOutOfStock ? "bg-muted text-muted-foreground" :
             inCartItem ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-brand-orange hover:bg-brand-orange/90 shadow-brand-orange/20"
           )} 
           onClick={handleAction}
-          disabled={isLoading}
-          title={inCartItem ? "الذهاب للسلة" : "أضف للسلة"}
+          disabled={isLoading || isOutOfStock}
+          title={isOutOfStock ? "نفد من المخزون" : inCartItem ? "الذهاب للسلة" : "أضف للسلة"}
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin text-white" />
+          ) : isOutOfStock ? (
+            <span className="text-[10px] font-bold">نفد</span>
           ) : inCartItem ? (
             <Check className="w-4 h-4 text-white" />
           ) : (
@@ -169,7 +175,7 @@ export function AddToCartButton({
         <div className="flex items-center border rounded-md overflow-hidden h-7 sm:h-8 bg-background shadow-sm shrink-0">
           <button
             onClick={() => handleUpdateQuantity(localQuantity + 1)}
-            disabled={isLoading}
+            disabled={isLoading || (maxQuantity !== undefined && localQuantity >= maxQuantity)}
             className="px-2 sm:px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange shrink-0 flex items-center justify-center"
           >
             <Plus className="w-3 h-3" />
@@ -197,16 +203,20 @@ export function AddToCartButton({
         className={cn(
           "w-full transition-all duration-300 relative overflow-hidden font-bold",
           isCompact ? "h-9 text-xs gap-1.5" : "h-11 text-sm gap-2",
-          inCartItem 
-            ? "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 text-white" 
-            : "bg-brand-orange hover:bg-brand-orange/90 shadow-lg shadow-brand-orange/20 text-white"
+          isOutOfStock
+            ? "bg-muted text-muted-foreground cursor-not-allowed"
+            : inCartItem 
+              ? "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 text-white" 
+              : "bg-brand-orange hover:bg-brand-orange/90 shadow-lg shadow-brand-orange/20 text-white"
         )} 
         variant="default" 
         onClick={handleAction}
-        disabled={isLoading}
+        disabled={isLoading || isOutOfStock}
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
+        ) : isOutOfStock ? (
+          <Minus className={cn("w-4 h-4", isCompact && "w-3.5 h-3.5")} />
         ) : inCartItem ? (
           <Check className="w-4 h-4 animate-in zoom-in" />
         ) : (
@@ -214,7 +224,7 @@ export function AddToCartButton({
         )}
         
         <span className="transition-all duration-300">
-          {isLoading ? "جاري..." : inCartItem ? "الذهاب الى السلة" : "أضف للسلة"}
+          {isLoading ? "جاري..." : isOutOfStock ? "نفد من المخزون" : inCartItem ? "الذهاب الى السلة" : "أضف للسلة"}
         </span>
       </Button>
     </div>

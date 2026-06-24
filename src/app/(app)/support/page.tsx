@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { AuditLogViewer } from "@/components/audit-log-viewer"
+import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 
 interface Profile {
   id: string

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Phone, MessageCircle, Send, Globe, X, PhoneCall } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useFloatingMenu } from "@/components/floating-menu-provider"
+import { useFloatingMenu } from "@/components/global/floating-menu-provider"
 
 export function FloatingContactButton({ settings }: { settings: any }) {
   const { openMenu, setOpenMenu } = useFloatingMenu()

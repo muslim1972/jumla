@@ -12,10 +12,10 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
 import { generateVerificationCode } from "@/lib/generate-code"
-import { CheckoutDialog } from "@/components/checkout-dialog"
-import { InvoicePreview, type InvoiceItem } from "@/components/invoice-preview"
-import { MyOrders, type OrderData } from "@/components/my-orders"
-import { ArchiveDialog } from "@/components/archive-dialog"
+import { CheckoutDialog } from "@/features/orders/components/checkout-dialog"
+import { InvoicePreview, type InvoiceItem } from "@/features/orders/components/invoice-preview"
+import { MyOrders, type OrderData } from "@/features/orders/components/my-orders"
+import { ArchiveDialog } from "@/features/orders/components/archive-dialog"
 import { Archive } from "lucide-react"
 
 // نوع عنصر السلة
@@ -191,15 +191,20 @@ export function CartClient({
   }, [])
 
   // تحديث الكمية
-  const handleUpdateQuantity = useCallback(async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = useCallback(async (itemId: string, newQuantity: number, oldQuantity: number) => {
     if (newQuantity < 1) return
     setIsUpdating(itemId)
+    // Optimistic Update
+    setItems(prev => prev.map(item =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    ))
     try {
       await updateQuantity(itemId, newQuantity)
-      setItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      ))
     } catch {
+      // Revert on error
+      setItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, quantity: oldQuantity } : item
+      ))
       alert("خطأ في تحديث الكمية")
     } finally {
       setIsUpdating(null)
@@ -446,6 +451,7 @@ export function CartClient({
             (acc, item) => acc + getItemPrice(item) * item.quantity, 0
           )
           const groupTotal = roundTo250(groupSubtotal + group.deliveryFee)
+          const roundingDiff = groupTotal - (groupSubtotal + group.deliveryFee)
 
           const lastAddedDate = new Date(group.lastAddedAt).toLocaleDateString("ar-IQ", {
             month: "short",
@@ -510,6 +516,7 @@ export function CartClient({
                               src={item.products.image_url}
                               alt={item.products.name}
                               fill
+                              sizes="80px"
                               className="object-contain group-hover:scale-110 transition-transform duration-500"
                             />
                           ) : (
@@ -552,7 +559,7 @@ export function CartClient({
 
                               <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
                                 <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.quantity)}
                                   disabled={isUpdating === item.id}
                                   className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
                                 >
@@ -562,7 +569,7 @@ export function CartClient({
                                   {item.quantity}
                                </span>
                                 <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.quantity)}
                                   disabled={isUpdating === item.id || item.quantity <= 1}
                                   className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
                                 >
@@ -589,6 +596,15 @@ export function CartClient({
                       </span>
                       <span className="tabular-nums font-medium">{group.deliveryFee.toLocaleString('en-US')} د.ع</span>
                     </div>
+                    {roundingDiff !== 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>تقريب لأقرب 250 د.ع</span>
+                        <span className="tabular-nums font-medium">
+                          {roundingDiff > 0 ? "+" : ""}
+                          {roundingDiff.toLocaleString('en-US')} د.ع
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center border-t border-dashed pt-3">
                       <span className="font-bold">المجموع الكلي</span>
                       <div className="text-left">

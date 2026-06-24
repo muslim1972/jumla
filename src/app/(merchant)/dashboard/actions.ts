@@ -3,6 +3,68 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 
+function calculateUnitsMultipliers(
+  conversions: { from: string, to: string, multiplier: number }[],
+  units: { type: string, price: number }[]
+) {
+  if (!conversions || conversions.length === 0) {
+    return units.map(u => ({ ...u, multiplier_to_base: 1 }))
+  }
+
+  let baseUnit = "";
+  if (conversions.length > 0) {
+    baseUnit = conversions[conversions.length - 1].to;
+  }
+
+  const getMultiplierToBase = (unit: string): number => {
+    if (unit === baseUnit) return 1;
+    let multiplier = 1;
+    let current = unit;
+    
+    let loops = 0;
+    while (current !== baseUnit && loops < 20) {
+      const conv = conversions.find(c => c.from === current);
+      if (!conv) {
+        break;
+      }
+      multiplier *= conv.multiplier;
+      current = conv.to;
+      loops++;
+    }
+    return multiplier;
+  }
+
+  return units.map(u => ({
+    ...u,
+    multiplier_to_base: getMultiplierToBase(u.type)
+  }));
+}
+
+function getBaseStockQuantity(
+  stockQuantity: number,
+  stockUnit: string,
+  conversions: { from: string, to: string, multiplier: number }[]
+): number {
+  if (!conversions || conversions.length === 0) return stockQuantity;
+  
+  let baseUnit = conversions[conversions.length - 1].to;
+  
+  if (stockUnit === baseUnit) return stockQuantity;
+
+  let multiplier = 1;
+  let current = stockUnit;
+  let loops = 0;
+  while (current !== baseUnit && loops < 20) {
+    const conv = conversions.find(c => c.from === current);
+    if (!conv) break;
+    multiplier *= conv.multiplier;
+    current = conv.to;
+    loops++;
+  }
+  
+  return stockQuantity * multiplier;
+}
+
 export async function updateMerchantSettings(fee: number, phone: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -29,17 +91,27 @@ export async function addProductWithUnits(formData: FormData) {
   const description = formData.get("description") as string
   const unitsJson = formData.get("units") as string
   const image = formData.get("image") as File | null
+  const category_id = formData.get("category_id") as string | null
+  
+  const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
+  const stock_unit = formData.get("stock_unit") as string || ""
+  const conversionsJson = formData.get("unit_conversions") as string || "[]"
 
   let units = []
+  let unit_conversions = []
   try {
     units = JSON.parse(unitsJson)
+    unit_conversions = JSON.parse(conversionsJson)
   } catch (e) {
-    return { success: false, error: "Invalid units data" }
+    return { success: false, error: "Invalid json data" }
   }
 
   if (units.length === 0) {
     return { success: false, error: "يجب إضافة كمية واحدة على الأقل" }
   }
+
+  const enrichedUnits = calculateUnitsMultipliers(unit_conversions, units)
+  const baseStockQuantity = getBaseStockQuantity(stock_quantity, stock_unit, unit_conversions)
 
   let image_url = null
   if (image && image.size > 0) {
@@ -55,13 +127,11 @@ export async function addProductWithUnits(formData: FormData) {
       const { data: { publicUrl } } = supabase.storage
         .from('products')
         .getPublicUrl(filePath)
-      
       image_url = publicUrl
     }
   }
 
-  // To preserve backwards compatibility with buyer app until updated
-  const firstUnit = units[0]
+  const firstUnit = enrichedUnits[0]
 
   const { error } = await supabase.from('products').insert({
     merchant_id: user.id,
@@ -69,8 +139,12 @@ export async function addProductWithUnits(formData: FormData) {
     description,
     price: firstUnit.price,
     unit_type: firstUnit.type,
-    units,
+    units: enrichedUnits,
     image_url,
+    category_id: category_id || null,
+    stock_quantity: baseStockQuantity,
+    stock_unit: stock_unit,
+    unit_conversions: unit_conversions
   })
 
   if (error) return { success: false, error: error.message }
@@ -90,24 +164,38 @@ export async function editProductWithUnits(formData: FormData) {
   const description = formData.get("description") as string
   const unitsJson = formData.get("units") as string
   const image = formData.get("image") as File | null
+  const category_id = formData.get("category_id") as string | null
+  
+  const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
+  const stock_unit = formData.get("stock_unit") as string || ""
+  const conversionsJson = formData.get("unit_conversions") as string || "[]"
 
   let units = []
+  let unit_conversions = []
   try {
     units = JSON.parse(unitsJson)
+    unit_conversions = JSON.parse(conversionsJson)
   } catch (e) {
-    return { success: false, error: "Invalid units data" }
+    return { success: false, error: "Invalid json data" }
   }
 
   if (units.length === 0) {
     return { success: false, error: "يجب إضافة كمية واحدة على الأقل" }
   }
 
+  const enrichedUnits = calculateUnitsMultipliers(unit_conversions, units)
+  const baseStockQuantity = getBaseStockQuantity(stock_quantity, stock_unit, unit_conversions)
+
   const updates: any = {
     name,
     description,
-    units,
-    price: units[0].price,
-    unit_type: units[0].type
+    units: enrichedUnits,
+    price: enrichedUnits[0].price,
+    unit_type: enrichedUnits[0].type,
+    category_id: category_id || null,
+    stock_quantity: baseStockQuantity,
+    stock_unit: stock_unit,
+    unit_conversions: unit_conversions
   }
 
   if (image && image.size > 0) {
@@ -123,7 +211,6 @@ export async function editProductWithUnits(formData: FormData) {
       const { data: { publicUrl } } = supabase.storage
         .from('products')
         .getPublicUrl(filePath)
-      
       updates.image_url = publicUrl
     }
   }

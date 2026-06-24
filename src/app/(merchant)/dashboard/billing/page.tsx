@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { DollarSign, Receipt } from "lucide-react"
-import { RealtimeBillingListener } from "@/components/realtime-billing-listener"
+import { RealtimeBillingListener } from "@/features/merchant/components/realtime-billing-listener"
 import { BillingListClient } from "./billing-list-client"
 
 export const dynamic = "force-dynamic"

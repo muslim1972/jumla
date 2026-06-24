@@ -103,7 +103,7 @@ export function RegisterClient({ message }: { message?: string }) {
                 <SelectContent dir="rtl">
                   <SelectItem value="guest">مشتري (مفرد)</SelectItem>
                   <SelectItem value="merchant">تاجر (جملتي)</SelectItem>
-                  <SelectItem value="delivery">عامل توصيل</SelectItem>
+                  <SelectItem value="delivery">مندوب توصيل</SelectItem>
                   <SelectItem value="support">موظف دعم</SelectItem>
                 </SelectContent>
               </Select>

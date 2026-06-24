@@ -25,6 +25,7 @@ export async function getMerchantOrders() {
       invoice_number,
       verification_code,
       status,
+      cancel_requested,
       created_at,
       delivery_worker_name,
       items:order_items(
@@ -129,3 +130,29 @@ export async function receiveOrderAmount(orderId: string) {
   revalidatePath("/dashboard/orders")
   return { success: true }
 }
+
+// 5. موافقة التاجر على الحذف (يحذف الطلب من قاعدة البيانات نهائياً)
+export async function approveOrderDeletion(orderId: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: "يجب تسجيل الدخول" }
+  }
+
+  // نحذف الطلب مباشرة من قاعدة البيانات
+  const { error } = await supabase
+    .from("orders")
+    .delete()
+    .eq("id", orderId)
+    .eq("merchant_id", user.id)
+    .eq("cancel_requested", true) // تأكيد أن المشتري طلب الحذف
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath("/dashboard/orders")
+  return { success: true }
+}
+

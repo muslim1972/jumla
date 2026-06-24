@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import { ProductExplorer } from "@/components/product-explorer"
-import { PromoBanners } from "@/components/promo-banners"
+import { ProductExplorer } from "@/features/products/components/product-explorer"
+import { PromoBanners } from "@/components/global/promo-banners"
 import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
 import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
@@ -63,6 +63,13 @@ export default async function Home() {
     }
   }
 
+  // Fetch categories safely in case the table doesn't exist yet
+  let dbCategories: {id: string, name: string, icon_url: string | null}[] = []
+  const { data: categoriesData, error: catError } = await supabase.from('categories').select('id, name, icon_url')
+  if (!catError && categoriesData) {
+    dbCategories = categoriesData
+  }
+
   return (
     <div className="flex-1 w-full mesh-gradient pb-32 sm:pb-44">
 
@@ -74,7 +81,7 @@ export default async function Home() {
           </div>
         ) : (
           <>
-            <ProductExplorer products={products} user={user} cartItems={cartItems} />
+            <ProductExplorer products={products} user={user} cartItems={cartItems} dbCategories={dbCategories} />
             
             {cartItems.length > 0 && (
               <div className="fixed bottom-32 sm:bottom-40 left-4 right-4 z-50 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">

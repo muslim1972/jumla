@@ -26,9 +26,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { AuditLogViewer } from "@/components/audit-log-viewer"
+import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 import { ContactSettingsModal } from "./contact-settings-modal"
-import { MerchantBillingAdmin } from "@/components/merchant-billing-admin"
+import { MerchantBillingAdmin } from "@/features/merchant/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
 
 interface TopBanner {
@@ -989,7 +989,7 @@ export default function AdminPage() {
                           <option value="merchant">تاجر جملتي (Merchant)</option>
                           <option value="admin">مدير نظام (Admin)</option>
                           <option value="support">موظف دعم (Support)</option>
-                          <option value="delivery">عامل توصيل (Delivery)</option>
+                          <option value="delivery">مندوب توصيل (Delivery)</option>
                         </select>
                       </td>
                       <td className="p-3 text-center flex items-center justify-center gap-2">

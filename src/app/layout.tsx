@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/global/theme-provider";
 
 const cairo = Cairo({
   subsets: ["arabic"],
@@ -13,14 +13,14 @@ export const metadata: Metadata = {
   description: "منصة لبيع وشراء المنتجات بالجملة والمفرد",
 };
 
-import { FloatingContactButton } from "@/components/floating-contact-button";
-import { TopAnnouncementBar } from "@/components/top-announcement-bar";
-import { PromoBanners } from "@/components/promo-banners";
-import { FloatingTopRight } from "@/components/floating-top-right";
-import { FloatingAppMenu } from "@/components/floating-app-menu"
-import { FloatingMenuProvider } from "@/components/floating-menu-provider";
+import { FloatingContactButton } from "@/components/global/floating-contact-button";
+import { TopAnnouncementBar } from "@/components/global/top-announcement-bar";
+import { PromoBanners } from "@/components/global/promo-banners";
+import { FloatingTopRight } from "@/components/global/floating-top-right";
+import { FloatingAppMenu } from "@/components/global/floating-app-menu"
+import { FloatingMenuProvider } from "@/components/global/floating-menu-provider";
 import { createClient } from "@/utils/supabase/server";
-import { ScrollToTop } from "@/components/scroll-to-top";
+import { ScrollToTop } from "@/components/global/scroll-to-top";
 
 export default async function RootLayout({
   children,

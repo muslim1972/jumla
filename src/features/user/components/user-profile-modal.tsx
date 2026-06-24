@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { User, KeyRound, Trash2, ArrowRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import { deleteUserAccount } from "@/app/actions/auth-actions"
+import { getBuyerActiveOrders, deletePendingOrder, requestOrderDeletion } from "@/app/actions/buyer-orders-actions"
 
 interface UserProfileModalProps {
   isOpen: boolean
@@ -47,6 +48,10 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
   const [nameMessage, setNameMessage] = useState<{type: 'error'|'success', text: string} | null>(null)
   const [passwordMessage, setPasswordMessage] = useState<{type: 'error'|'success', text: string} | null>(null)
 
+  const [activeOrders, setActiveOrders] = useState<any[] | null>(null)
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false)
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -72,6 +77,60 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
     return () => window.removeEventListener('user-logout', handleLogout)
   }, [setIsOpen])
 
+  const handleCheckOrdersForDeletion = async (autoProceedToDeleteOrEvent?: boolean | React.BaseSyntheticEvent) => {
+    // Determine if we should auto-proceed
+    const autoProceedToDelete = typeof autoProceedToDeleteOrEvent === 'boolean' 
+      ? autoProceedToDeleteOrEvent 
+      : true; // Default to true when called from button click
+    
+    // If not a buyer (guest role usually means buyer in this system) or if we just want to be safe, check orders for everyone
+    // Admin, Merchant, Support don't make orders typically, but if they do, same rules apply.
+    setIsLoadingOrders(true)
+    try {
+      const res = await getBuyerActiveOrders()
+      if (res.orders && res.orders.length > 0) {
+        setActiveOrders(res.orders)
+      } else {
+        if (autoProceedToDelete) {
+          // No active orders, proceed to delete
+          handleDeleteAccount()
+        } else {
+          setActiveOrders(null)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      alert("حدث خطأ أثناء التحقق من الطلبات الفعالة.")
+    } finally {
+      setIsLoadingOrders(false)
+    }
+  }
+
+  const handleOrderAction = async (orderId: string, status: string, cancelRequested: boolean) => {
+    setActionLoadingId(orderId)
+    if (status === "pending") {
+      const res = await deletePendingOrder(orderId)
+      if (res.success) {
+        setActiveOrders(prev => prev ? prev.filter(o => o.id !== orderId) : null)
+      } else {
+        alert(res.error)
+      }
+    } else {
+      if (cancelRequested) {
+        setActionLoadingId(null)
+        return
+      }
+      const res = await requestOrderDeletion(orderId)
+      if (res.success) {
+        setActiveOrders(prev => prev ? prev.map(o => o.id === orderId ? { ...o, cancel_requested: true } : o) : null)
+        alert("تم إرسال طلب الحذف للتاجر. يرجى الانتظار حتى يوافق عليه.")
+      } else {
+        alert(res.error)
+      }
+    }
+    setActionLoadingId(null)
+  }
+
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm("هل أنت متأكد تماماً أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء!")
     if (!confirmDelete) return
@@ -84,7 +143,8 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
       const result = await deleteUserAccount(user.id)
       
       if (result.error) {
-        alert("حدث خطأ أثناء محاولة حذف الحساب: " + translateError(result.error))
+        console.error("Delete user account result.error:", result.error)
+        alert("حدث خطأ أثناء محاولة حذف الحساب: " + result.error)
       } else {
         alert("تم حذف حسابك بنجاح. نتمنى أن نراك مجدداً!")
         await supabase.auth.signOut()
@@ -325,24 +385,127 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
 
           {/* قسم حذف الحساب */}
           <div className="space-y-3 pt-2">
-            <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="space-y-1 text-right w-full">
-                <h3 className="font-bold text-destructive flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  منطقة الخطر
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  حذف حسابك سيؤدي إلى مسح جميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.
-                </p>
+            <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-right w-full">
+                  <h3 className="font-bold text-destructive flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    منطقة الخطر
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    حذف حسابك سيؤدي إلى مسح جميع بياناتك بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.
+                  </p>
+                </div>
+                {!activeOrders || activeOrders.length === 0 ? (
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleCheckOrdersForDeletion}
+                    disabled={isDeleting || isLoadingOrders}
+                    className="w-full sm:w-auto shrink-0 whitespace-nowrap min-w-[100px]"
+                  >
+                    {isDeleting || isLoadingOrders ? <Loader2 className="w-4 h-4 animate-spin" /> : "حذف الحساب"}
+                  </Button>
+                ) : null}
               </div>
-              <Button 
-                variant="destructive" 
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                className="w-full sm:w-auto shrink-0 whitespace-nowrap min-w-[100px]"
-              >
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حذف الحساب"}
-              </Button>
+
+              {activeOrders && activeOrders.length > 0 && (
+                <div className="mt-2 border-t border-destructive/20 pt-4 space-y-3">
+                  <div className="bg-orange-500/10 border border-orange-500/20 text-orange-700 p-3 rounded-lg text-xs font-bold flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      لا يمكنك حذف حسابك حالياً لوجود طلبات فعالة مرتبطة بك.
+                      <br />- الطلبات قيد الانتظار يجب حذفها أولاً.
+                      <br />- الطلبات الموافقة أو قيد التوصيل يجب إرسال طلب للتاجر لحذفها، وسيقوم بالتواصل معك أو مع المندوب لإرجاعها.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                    {activeOrders.map(order => {
+                      const merchantName = order.profiles?.store_name || order.profiles?.full_name || "تاجر غير معروف"
+                      const invoiceLabel = order.invoice_number
+                        ? `#${String(order.invoice_number).padStart(5, '0')}`
+                        : "بدون رقم"
+                      const orderDate = order.created_at
+                        ? new Date(order.created_at).toLocaleDateString("ar-IQ", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "—"
+                      return (
+                        <div key={order.id} className="bg-background border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                          <div className="text-right w-full space-y-1">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-[10px] font-bold text-muted-foreground">التاجر:</span>
+                              <span className="font-bold text-sm text-foreground">{merchantName}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-[10px] font-bold text-muted-foreground">رقم القائمة:</span>
+                              <span className="font-mono text-xs font-bold text-foreground">{invoiceLabel}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-[10px] font-bold text-muted-foreground">التأريخ:</span>
+                              <span className="text-xs text-muted-foreground">{orderDate}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span className="text-[10px] font-bold text-muted-foreground">المجموع:</span>
+                              <span className="text-xs font-bold text-foreground">{order.total_rounded?.toLocaleString("en-US")} د.ع</span>
+                            </div>
+                            <p className="text-[10px] font-bold mt-1.5">
+                              {order.status === "pending" ? (
+                                <span className="text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-full">بانتظار الموافقة</span>
+                              ) : order.status === "approved" ? (
+                                <span className="text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">تمت الموافقة / بانتظار المندوب</span>
+                              ) : (
+                                <span className="text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">قيد التوصيل</span>
+                              )}
+                            </p>
+                          </div>
+                          <Button
+                            variant={order.status === "pending" ? "destructive" : "outline"}
+                            size="sm"
+                            disabled={actionLoadingId === order.id || order.cancel_requested}
+                            onClick={() => handleOrderAction(order.id, order.status, order.cancel_requested)}
+                            className={`w-full sm:w-auto shrink-0 ${order.status !== "pending" && !order.cancel_requested ? "border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600" : ""}`}
+                          >
+                            {actionLoadingId === order.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : order.cancel_requested ? (
+                              "تم طلب الحذف"
+                            ) : order.status === "pending" ? (
+                              "حذف الطلب"
+                            ) : (
+                              "طلب حذف"
+                            )}
+                          </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-between gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setActiveOrders(null)}
+                      size="sm"
+                      className="border-muted-foreground/30"
+                    >
+                      تراجع عن الحذف
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleCheckOrdersForDeletion(false)}
+                      disabled={isLoadingOrders}
+                      size="sm"
+                    >
+                      {isLoadingOrders ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                      تحديث القائمة
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { UserProfileModal } from "@/components/user-profile-modal"
-import { FloatingContactButton } from "@/components/floating-contact-button"
-import { FloatingAppMenu } from "@/components/floating-app-menu"
+import { useRouter } from "next/navigation"
+import { UserProfileModal } from "@/features/user/components/user-profile-modal"
+import { FloatingContactButton } from "@/components/global/floating-contact-button"
+import { FloatingAppMenu } from "@/components/global/floating-app-menu"
 
 export function FloatingTopRight({
   userRole,
@@ -18,6 +19,16 @@ export function FloatingTopRight({
   cartCount?: number
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const router = useRouter()
+
+  const handleProfileClick = () => {
+    // If there is no fullName and role is empty/guest, they are a guest
+    if (!fullName && (!userRole || userRole === 'guest')) {
+      router.push('/register')
+    } else {
+      setIsProfileOpen(true)
+    }
+  }
 
   return (
     <>
@@ -25,7 +36,7 @@ export function FloatingTopRight({
       <div className="fixed top-4 left-4 z-[100] flex items-center gap-1.5 sm:gap-2 pointer-events-none">
         <div className="relative pointer-events-auto">
           <button
-            onClick={() => setIsProfileOpen(true)}
+            onClick={handleProfileClick}
             className="flex items-center gap-2 px-3 py-1.5 bg-background/90 backdrop-blur-md rounded-full text-[10px] sm:text-xs font-bold border shadow-lg transition-all hover:bg-muted hover:scale-105 active:scale-95"
           >
             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse" />

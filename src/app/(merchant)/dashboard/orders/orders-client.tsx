@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount } from "./actions"
+import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion } from "./actions"
 import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,7 +58,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         .from("orders")
         .select(`
           id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
-          invoice_number, verification_code, status, created_at, delivery_worker_name,
+          invoice_number, verification_code, status, cancel_requested, created_at, delivery_worker_name,
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
         .eq("merchant_id", user.id)
@@ -122,9 +122,26 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
     }
   }
 
-  const pendingOrders = orders.filter(o => o.status === "pending")
-  const approvedOrders = orders.filter(o => o.status === "approved")
-  const deliveredOrders = orders.filter(o => o.status === "delivered")
+  const pendingOrders = orders.filter(o => o.status === "pending" && !o.cancel_requested)
+  const approvedOrders = orders.filter(o => o.status === "approved" && !o.cancel_requested)
+  const deliveredOrders = orders.filter(o => o.status === "delivered" && !o.cancel_requested)
+  const cancellationRequests = orders.filter(o => o.cancel_requested)
+
+  const handleApproveDeletion = async (orderId: string) => {
+    if (!confirm("هل أنت متأكد من الموافقة على حذف هذا الطلب؟ سيتم إزالته نهائياً.")) return
+    
+    setProcessingId(orderId)
+    const result = await approveOrderDeletion(orderId)
+    if (result.success) {
+      setOrders(orders.filter(o => o.id !== orderId))
+      if (selectedOrder?.id === orderId) setSelectedOrder(null)
+      alert("تم حذف الطلب بنجاح.")
+    } else if (result.error) {
+      setErrorMsg(result.error)
+      alert("عذراً، حدث خطأ: " + result.error)
+    }
+    setProcessingId(null)
+  }
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-5xl space-y-4 sm:space-y-6 pb-20">
@@ -186,6 +203,21 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
               </div>
             </div>
           )}
+
+          {/* طلبات الإلغاء (المرفوضة) */}
+          {cancellationRequests.length > 0 && (
+            <div className="pt-4 sm:pt-8 border-t border-border/50">
+              <h2 className="font-bold text-xs sm:text-lg text-purple-600 flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                <XCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                طلبات الإلغاء ({cancellationRequests.length})
+              </h2>
+              <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
+                {cancellationRequests.map((order) => (
+                  <OrderCard key={order.id} order={order} isCancellation={true} onClick={() => setSelectedOrder(order)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -197,17 +229,19 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         onApprove={() => selectedOrder && handleApprove(selectedOrder.id)}
         onReject={() => selectedOrder && handleReject(selectedOrder.id)}
         onReceiveAmount={() => selectedOrder && handleReceiveAmount(selectedOrder.id)}
+        onApproveDeletion={() => selectedOrder && handleApproveDeletion(selectedOrder.id)}
       />
     </div>
   )
 }
 
-function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, isApproved?: boolean, isDelivered?: boolean, onClick: () => void }) {
+function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: { order: any, isApproved?: boolean, isDelivered?: boolean, isCancellation?: boolean, onClick: () => void }) {
   return (
     <Card 
       onClick={onClick}
       className={cn(
         "overflow-hidden border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
+        isCancellation ? "border-purple-500/30 hover:border-purple-500/60" :
         isDelivered ? "border-red-500/30 hover:border-red-500/60" :
         isApproved ? "border-emerald-500/30 hover:border-emerald-500/60" : "border-amber-500/30 hover:border-amber-500/60"
       )}
@@ -215,6 +249,7 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
       <div 
         className={cn(
           "w-full text-right p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3 transition-colors",
+          isCancellation ? "bg-purple-500/5" :
           isDelivered ? "bg-red-500/5" :
           isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
         )}
@@ -223,6 +258,7 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className={cn(
               "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
+              isCancellation ? "bg-purple-500/10 text-purple-600" :
               isDelivered ? "bg-red-500/10 text-red-600" :
               isApproved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
             )}>
@@ -231,6 +267,7 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
             <div className="min-w-0">
               <h3 className={cn(
                 "font-bold text-xs sm:text-sm truncate",
+                isCancellation ? "text-purple-700 dark:text-purple-500" :
                 isDelivered ? "text-red-700 dark:text-red-500" :
                 isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
               )}>
@@ -247,7 +284,12 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
              <div className="font-black text-brand-orange text-xs sm:text-sm">
                {order.total_rounded.toLocaleString('en-US')} د.ع
              </div>
-            {isDelivered ? (
+            {isCancellation ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-purple-500/10 text-purple-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+                <XCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                طلب إلغاء
+              </div>
+            ) : isDelivered ? (
               <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-500/10 text-red-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 تم التوصيل
@@ -270,11 +312,12 @@ function OrderCard({ order, isApproved, isDelivered, onClick }: { order: any, is
   )
 }
 
-function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onReceiveAmount }: any) {
+function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onReceiveAmount, onApproveDeletion }: any) {
   if (!order) return null
 
   const isApproved = order.status === 'approved'
   const isDelivered = order.status === 'delivered'
+  const isCancellation = order.cancel_requested
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,11 +325,13 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
         <div className="bg-card rounded-xl border border-border/40 shadow-premium overflow-hidden mx-2 sm:mx-0">
           <DialogHeader className={cn(
             "p-4 sm:p-6 border-b text-right",
+            isCancellation ? "bg-purple-500/5" :
             isDelivered ? "bg-red-500/5" :
             isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
           )}>
             <DialogTitle className={cn(
               "flex items-center justify-between text-base sm:text-lg font-black",
+              isCancellation ? "text-purple-700 dark:text-purple-500" :
               isDelivered ? "text-red-700 dark:text-red-500" :
               isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
             )}>
@@ -353,41 +398,60 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                 <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString('en-US')} د.ع</span>
              </div>
 
-             {/* الإجراءات */}
+              {/* الإجراءات */}
              <div className="pt-4 border-t border-border/50 space-y-2 sm:space-y-3">
-                {!isApproved && !isDelivered && (
-                  <div className="flex items-center gap-2">
+                {isCancellation ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="bg-purple-500/10 text-purple-700 border border-purple-500/20 p-3 rounded-lg text-xs font-bold text-center">
+                      لقد طلب المشتري إلغاء هذا الطلب ليتمكن من حذف حسابه.
+                    </div>
                     <Button 
-                      onClick={onApprove} 
-                      disabled={isProcessing}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
-                    >
-                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                      تجهيز للمندوب
-                    </Button>
-                    <Button 
-                      onClick={onReject} 
+                      onClick={onApproveDeletion} 
                       disabled={isProcessing}
                       variant="destructive"
-                      className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
+                      className="w-full font-bold text-xs sm:text-sm h-9 sm:h-10"
                     >
                       {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
-                      رفض
+                      موافق على الحذف
                     </Button>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {!isApproved && !isDelivered && (
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          onClick={onApprove} 
+                          disabled={isProcessing}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
+                        >
+                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                          تجهيز للمندوب
+                        </Button>
+                        <Button 
+                          onClick={onReject} 
+                          disabled={isProcessing}
+                          variant="destructive"
+                          className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
+                        >
+                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
+                          رفض
+                        </Button>
+                      </div>
+                    )}
 
-                {isDelivered && (
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      onClick={onReceiveAmount} 
-                      disabled={isProcessing}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
-                    >
-                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                      استلام المبلغ
-                    </Button>
-                  </div>
+                    {isDelivered && (
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          onClick={onReceiveAmount} 
+                          disabled={isProcessing}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+                        >
+                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                          استلام المبلغ
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <Button 

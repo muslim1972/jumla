@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronRight, Star, Truck, Info, Percent } from "lucide-react"
-import { ProductCard } from "@/components/product-card"
+import { ProductCard } from "@/features/products/components/product-card"
 import { cn } from "@/lib/utils"
 
 // Extracted static categories array to follow bundle best practices

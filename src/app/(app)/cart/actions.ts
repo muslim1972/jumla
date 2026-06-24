@@ -144,6 +144,74 @@ export async function createOrder(data: {
       .limit(1)
       .maybeSingle();
 
+    if (editingOrder) {
+      // Restore stock from old order items before updating
+      const { data: oldItems } = await supabase.from('order_items').select('product_id, quantity, unit_type').eq('order_id', editingOrder.id);
+      if (oldItems) {
+        const oldProductIds = oldItems.map(o => o.product_id);
+        const { data: oldProducts } = await supabase.from('products').select('id, stock_quantity, units').in('id', oldProductIds);
+        
+        for (const old of oldItems) {
+          const p = oldProducts?.find(prod => prod.id === old.product_id);
+          if (p) {
+             let multiplier = 1;
+             if (p.units) {
+               const matchingUnit = p.units.find((u: any) => u.type === old.unit_type);
+               if (matchingUnit && matchingUnit.multiplier_to_base) {
+                 multiplier = matchingUnit.multiplier_to_base;
+               }
+             }
+             const qtyToRestore = old.quantity * multiplier;
+             await supabase.from('products').update({ stock_quantity: (p.stock_quantity ?? 0) + qtyToRestore }).eq('id', old.product_id);
+          }
+        }
+      }
+    }
+
+    // 3. خصم المخزون قبل إنشاء/تحديث الطلب
+    const decrementedItems: {productId: string, qty: number}[] = [];
+    let stockErrorItem = null;
+
+    // Fetch all products at once
+    const productIds = data.items.map(item => item.productId);
+    const { data: products } = await supabase.from('products').select('id, units').in('id', productIds);
+
+    for (const item of data.items) {
+      const p = products?.find(prod => prod.id === item.productId);
+      
+      let multiplier = 1;
+      if (p && p.units) {
+        const matchingUnit = p.units.find((u: any) => u.type === item.unitType);
+        if (matchingUnit && matchingUnit.multiplier_to_base) {
+          multiplier = matchingUnit.multiplier_to_base;
+        }
+      }
+      
+      const qtyToDecrement = item.quantity * multiplier;
+
+      const { data: success, error: rpcError } = await supabase.rpc('decrement_stock', {
+        p_product_id: item.productId,
+        p_quantity: qtyToDecrement
+      });
+
+      if (rpcError || !success) {
+        stockErrorItem = item.productName;
+        break;
+      }
+      decrementedItems.push({ productId: item.productId, qty: qtyToDecrement });
+    }
+
+    if (stockErrorItem) {
+      // التراجع عن الكميات التي تم خصمها
+      for (const req of decrementedItems) {
+        const { data: p } = await supabase.from('products').select('stock_quantity').eq('id', req.productId).single();
+        if (p) {
+          await supabase.from('products').update({ stock_quantity: (p.stock_quantity ?? 0) + req.qty }).eq('id', req.productId);
+        }
+      }
+      throw new Error(`عذراً، الكمية غير متوفرة في المخزن للمنتج: ${stockErrorItem}`);
+    }
+
     let orderId = "";
     let invoiceNumber = null;
 
@@ -173,14 +241,14 @@ export async function createOrder(data: {
       await supabase.from('order_items').delete().eq('order_id', orderId);
 
     } else {
-      // 3. جلب رقم الفاتورة التسلسلي الجديد
+      // 4. جلب رقم الفاتورة التسلسلي الجديد
       const { data: nextInvoiceNumber, error: rpcError } = await supabase
         .rpc('get_next_invoice_number', { p_merchant_id: data.merchantId });
       
       if (rpcError) throw rpcError;
       invoiceNumber = nextInvoiceNumber;
 
-      // 4. إنشاء الطلب الجديد
+      // 5. إنشاء الطلب الجديد
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -204,14 +272,14 @@ export async function createOrder(data: {
       orderId = newOrder.id;
     }
 
-    // 5. إضافة عناصر الطلب
+    // 6. إضافة عناصر الطلب
     const orderItems = data.items.map(item => ({
       order_id: orderId,
       product_id: item.productId,
       product_name: item.productName,
       product_price: item.productPrice,
       quantity: item.quantity,
-      unit_type: item.unitType // This comes from checkout data which we will ensure has the correct unit
+      unit_type: item.unitType
     }))
 
     const { error: itemsError } = await supabase
@@ -220,7 +288,7 @@ export async function createOrder(data: {
 
     if (itemsError) throw itemsError
 
-    // 3. حذف عناصر السلة التي تم طلبها
+    // 7. حذف عناصر السلة التي تم طلبها
     const cartItemIds = data.items.map(item => item.cartItemId)
     const { error: deleteError } = await supabase
       .from('cart_items')
@@ -339,7 +407,8 @@ export async function editOrder(orderId: string) {
     const cartItemsToInsert = order.order_items.map((item: any) => ({
       user_id: user.id,
       product_id: item.product_id,
-      quantity: item.quantity
+      quantity: item.quantity,
+      unit_type: item.unit_type
     }))
 
     // نحذف المنتجات من السلة إذا كانت موجودة مسبقاً لكي لا تتكرر

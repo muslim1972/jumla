@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { useFloatingMenu } from "@/components/floating-menu-provider"
+import { useFloatingMenu } from "@/components/global/floating-menu-provider"
 import { signOut } from "@/app/(auth)/actions"
 
 export function FloatingAppMenu({
