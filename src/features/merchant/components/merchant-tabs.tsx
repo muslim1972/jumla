@@ -4,8 +4,9 @@ import { usePathname, useRouter } from "next/navigation"
 import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTransition, useState, useRef, useEffect } from "react"
+import { createClient } from "@/utils/supabase/client"
 
-export function MerchantTabs() {
+export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBillsCount }: { merchantId?: string, initialPendingCount?: number, initialUnpaidBillsCount?: number }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -14,6 +15,71 @@ export function MerchantTabs() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
+  
+  // Badge State
+  const [pendingCount, setPendingCount] = useState(initialPendingCount || 0)
+  const [unpaidBillsCount, setUnpaidBillsCount] = useState(initialUnpaidBillsCount || 0)
+  const supabase = createClient()
+
+  // Realtime subscription for pending/delivered orders and unpaid bills
+  useEffect(() => {
+    if (!merchantId) return
+
+    const ordersChannel = supabase
+      .channel('merchant_pending_orders')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `merchant_id=eq.${merchantId}`,
+        },
+        async () => {
+          // Fetch new count when any order changes for this merchant
+          const { count } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true })
+            .eq('merchant_id', merchantId)
+            .in('status', ['pending', 'delivered'])
+            
+          if (count !== null) {
+            setPendingCount(count)
+          }
+        }
+      )
+      .subscribe()
+
+    const billsChannel = supabase
+      .channel('merchant_unpaid_bills')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'merchant_billings',
+          filter: `merchant_id=eq.${merchantId}`,
+        },
+        async () => {
+          // Fetch new count when any billing changes for this merchant
+          const { count } = await supabase
+            .from('merchant_billings')
+            .select('*', { count: 'exact', head: true })
+            .eq('merchant_id', merchantId)
+            .neq('status', 'paid')
+            
+          if (count !== null) {
+            setUnpaidBillsCount(count)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(ordersChannel)
+      supabase.removeChannel(billsChannel)
+    }
+  }, [merchantId, supabase])
 
   const checkScroll = () => {
     if (scrollRef.current) {
@@ -60,12 +126,14 @@ export function MerchantTabs() {
     {
       name: "الطلبات الواردة",
       href: "/dashboard/orders",
-      icon: Inbox
+      icon: Inbox,
+      badge: pendingCount
     },
     {
       name: "التحاسب مع التطبيق",
       href: "/dashboard/billing",
-      icon: Receipt
+      icon: Receipt,
+      badge: unpaidBillsCount
     },
     {
       name: "الأرشيف",
@@ -122,7 +190,14 @@ export function MerchantTabs() {
                   isPending && !isTabPending && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {isTabPending ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                <div className="relative flex items-center justify-center">
+                  {isTabPending ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in shadow-sm">
+                      {tab.badge > 9 ? '+9' : tab.badge}
+                    </span>
+                  )}
+                </div>
                 {tab.name}
               </button>
             )

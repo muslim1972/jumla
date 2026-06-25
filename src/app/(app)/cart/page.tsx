@@ -44,9 +44,21 @@ export default async function CartPage() {
     console.error("Error fetching cart items:", error)
   }
 
+  // Fetch unread notifications count
+  const { count: unreadCount } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('is_read', false)
+
   return (
     <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
-      <CartClient initialItems={cartItems || []} buyerProfile={profile || {}} userId={user.id} />
+      <CartClient 
+        initialItems={cartItems || []} 
+        buyerProfile={profile || {}} 
+        userId={user.id} 
+        initialUnreadNotificationsCount={unreadCount || 0}
+      />
     </div>
   )
 }

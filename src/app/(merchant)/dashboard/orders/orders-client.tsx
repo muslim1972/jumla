@@ -194,7 +194,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
             <div className="pt-4 sm:pt-8 border-t border-border/50">
               <h2 className="font-bold text-xs sm:text-lg text-red-600 flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
                 <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                مُسلمة بانتظار استلام المبلغ ({deliveredOrders.length})
+                مُسلمة بانتظار استلام المبلغ من المندوب ({deliveredOrders.length})
               </h2>
               <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
                 {deliveredOrders.map((order) => (

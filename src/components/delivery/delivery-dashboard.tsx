@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory } from "@/app/(app)/delivery/actions"
+import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory, getDeliveryPendingCount } from "@/app/(app)/delivery/actions"
 import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2, Clock, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,32 @@ import { AddMerchantDialog } from "./add-merchant-dialog"
 
 export function DeliveryDashboard() {
   const [activeTab, setActiveTab] = useState<"current" | "settlement" | "history">("current")
+  const [pendingCount, setPendingCount] = useState(0)
+
+  const loadPendingCount = useCallback(async () => {
+    const { count } = await getDeliveryPendingCount()
+    setPendingCount(count)
+  }, [])
+
+  useEffect(() => {
+    loadPendingCount()
+    
+    const supabase = createClient()
+    const channel = supabase
+      .channel('delivery_dashboard_badge')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          loadPendingCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [loadPendingCount])
 
   return (
     <div className="space-y-6">
@@ -25,13 +51,20 @@ export function DeliveryDashboard() {
           <button 
             onClick={() => setActiveTab("current")}
             className={cn(
-              "flex items-center gap-2 pb-3 px-2 border-b-2 font-bold text-sm transition-colors whitespace-nowrap",
+              "flex items-center gap-2 pb-3 px-2 border-b-2 font-bold text-sm transition-colors whitespace-nowrap relative",
               activeTab === "current" 
                 ? "border-brand-orange text-brand-orange" 
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
           >
-            <Clock className="w-4 h-4" />
+            <div className="relative flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+              {pendingCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in shadow-sm">
+                  {pendingCount > 9 ? '+9' : pendingCount}
+                </span>
+              )}
+            </div>
             الطلبات الحالية
           </button>
           <button 

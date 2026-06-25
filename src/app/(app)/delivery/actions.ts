@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
+import { sendNotificationToUser } from "@/utils/onesignal"
 
 // 1. جلب قائمة التجار التابعين لعامل التوصيل (أو التجار الذين لديهم طلبات جاهزة إن لم يكن مخصصاً له تجار)
 export async function getDeliveryMerchants() {
@@ -50,6 +51,40 @@ export async function getDeliveryMerchants() {
   }
 
   return { merchants }
+}
+
+// 1.5 جلب عدد الطلبات الجاهزة للتوصيل للمندوب
+export async function getDeliveryPendingCount() {
+  const supabase = await createClient()
+
+  const { data: userResponse, error: authError } = await supabase.auth.getUser()
+  if (authError || !userResponse?.user) {
+    return { count: 0 }
+  }
+
+  // جلب التجار المخصصين لهذا المندوب
+  const { data: profile } = await supabase.from('profiles').select('assigned_merchants').eq('id', userResponse.user.id).single()
+  const metaMerchants = userResponse.user.user_metadata?.assigned_merchants || []
+  const profileMerchants = profile?.assigned_merchants || []
+  
+  const assignedMerchants = [...new Set([...metaMerchants, ...profileMerchants])]
+
+  let query = supabase
+    .from("orders")
+    .select("*", { count: 'exact', head: true })
+    .eq("status", "approved")
+
+  if (assignedMerchants.length > 0) {
+    query = query.in("merchant_id", assignedMerchants)
+  }
+
+  const { count, error } = await query
+
+  if (error) {
+    return { count: 0 }
+  }
+
+  return { count: count || 0 }
 }
 
 // 2. جلب القوائم (الطلبات) الخاصة بتاجر معين والتي تنتظر التوصيل
@@ -144,7 +179,7 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
   // جلب الطلب للتحقق من الكود
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, verification_code, status")
+    .select("id, verification_code, status, merchant_id, user_id, invoice_number")
     .eq("id", orderId)
     .single()
 
@@ -177,6 +212,25 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
       return { error: "عذراً، يوجد نقص في إعدادات قاعدة البيانات (عمود delivered_at مفقود أو الكاش غير محدث). يرجى التواصل مع الإدارة الفنية." }
     }
     return { error: "حدث خطأ غير متوقع أثناء تحديث حالة الطلب. يرجى المحاولة مرة أخرى لاحقاً." }
+  }
+
+  // إرسال إشعارات
+  try {
+    // 1. إشعار التاجر
+    await sendNotificationToUser(
+      order.merchant_id,
+      "تم التوصيل!",
+      `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري وهي بانتظار استلامك للمبلغ من المندوب.`
+    )
+    
+    // 2. إشعار المشتري
+    await sendNotificationToUser(
+      order.user_id,
+      "تم التوصيل بنجاح!",
+      `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!`
+    )
+  } catch (notifError) {
+    console.error("Error sending delivery notifications:", notifError)
   }
 
   // إعادة جلب المسارات لتحديث الواجهات

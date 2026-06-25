@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
+import { sendBillingNotification } from "@/app/(app)/admin/actions"
 import { 
   FileText, 
   CheckCircle, 
@@ -151,6 +152,12 @@ export function MerchantBillingAdmin() {
     if (updateError) {
       alert("تم إصدار الفاتورة ولكن حدث خطأ في ربط الطلبات: " + updateError.message)
     } else {
+      // إرسال إشعار للتاجر
+      try {
+        await sendBillingNotification(selectedMerchantId, amountDue)
+      } catch (e) {
+        console.error("Notification sending error", e)
+      }
       alert("تم إصدار الفاتورة بنجاح!")
       loadMerchantData() // Refresh
       loadAllBillings()

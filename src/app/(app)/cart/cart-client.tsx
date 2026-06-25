@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { removeFromCart, updateQuantity, createOrder, getMyOrders } from "./actions"
+import { removeFromCart, updateQuantity, createOrder, getMyOrders, markAllNotificationsAsRead } from "./actions"
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
@@ -64,13 +64,16 @@ interface MerchantGroup {
 export function CartClient({ 
   initialItems, 
   buyerProfile,
-  userId
+  userId,
+  initialUnreadNotificationsCount
 }: { 
   initialItems: CartItemType[],
   buyerProfile?: { store_name?: string, address?: string, phone?: string },
-  userId: string
+  userId: string,
+  initialUnreadNotificationsCount?: number
 }) {
   const [items, setItems] = useState<CartItemType[]>(initialItems)
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(initialUnreadNotificationsCount || 0)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
 
   // حالة الأقسام المطوية (مفتوح/مغلق لكل تاجر)
@@ -127,8 +130,32 @@ export function CartClient({
       )
       .subscribe()
 
+    // Realtime Notifications Listener
+    const notifChannel = supabase
+      .channel('my_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        async () => {
+          const { count } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('is_read', false)
+          
+          if (count !== null) setUnreadNotificationsCount(count)
+        }
+      )
+      .subscribe()
+
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(notifChannel)
     }
   }, [showMyOrders, supabase, userId])
 
@@ -303,12 +330,18 @@ export function CartClient({
     try {
       const result = await getMyOrders()
       setMyOrders(result.orders as OrderData[])
+      
+      // Mark notifications as read if there are unread ones
+      if (unreadNotificationsCount > 0) {
+        await markAllNotificationsAsRead()
+        setUnreadNotificationsCount(0)
+      }
     } catch {
       alert("خطأ في جلب الطلبات")
     } finally {
       setIsLoadingOrders(false)
     }
-  }, [])
+  }, [unreadNotificationsCount])
 
   // بيانات المجموعة الحالية للفاتورة
   const currentGroup = useMemo(() =>
@@ -332,8 +365,7 @@ export function CartClient({
   if (items.length === 0) {
     return (
       <>
-        {/* Sticky Header for Action Buttons even when empty */}
-        <div className="sticky top-[224px] sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
+        <div className="sticky top-16 sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
           <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
             <Button
               variant="outline"
@@ -350,8 +382,13 @@ export function CartClient({
               size="sm"
               onClick={handleOpenMyOrders}
               disabled={isLoadingOrders}
-              className="gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+              className="relative gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
             >
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-sm">
+                  {unreadNotificationsCount > 9 ? '+9' : unreadNotificationsCount}
+                </span>
+              )}
               {isLoadingOrders ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -395,7 +432,7 @@ export function CartClient({
   return (
     <>
       {/* Sticky Header Group: Tabs + Title */}
-      <div className="sticky top-[224px] sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
+      <div className="sticky top-16 sm:top-[256px] z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
         {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
         <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
           {merchantGroups.length > 0 && (
@@ -426,8 +463,13 @@ export function CartClient({
             size="sm"
             onClick={handleOpenMyOrders}
             disabled={isLoadingOrders}
-            className="gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+            className="relative gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
           >
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-sm">
+                {unreadNotificationsCount > 9 ? '+9' : unreadNotificationsCount}
+              </span>
+            )}
             {isLoadingOrders ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (

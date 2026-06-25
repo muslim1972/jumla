@@ -46,3 +46,34 @@ export async function updateContactSettings(data: {
     return { error: error.message || "حدث خطأ غير متوقع" }
   }
 }
+
+import { sendNotificationToUser } from "@/utils/onesignal"
+
+export async function sendBillingNotification(merchantId: string, amountDue: number) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "غير مصرح" }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    return { error: "صلاحيات غير كافية" }
+  }
+
+  try {
+    await sendNotificationToUser(
+      merchantId,
+      "فاتورة جديدة من التطبيق",
+      `تم إصدار فاتورة تحاسب جديدة من تطبيق جُملتي بمبلغ ${amountDue.toLocaleString('en-US')} د.ع، يرجى مراجعتها وتسديدها.`
+    )
+    return { success: true }
+  } catch (e) {
+    console.error("Failed to send billing notification", e)
+    return { error: "فشل إرسال الإشعار" }
+  }
+}
