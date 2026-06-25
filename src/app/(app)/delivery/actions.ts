@@ -68,6 +68,7 @@ export async function getMerchantPendingOrders(merchantId: string) {
       created_at,
       invoice_number,
       merchant_id,
+      user_id,
       verification_code,
       delivery_worker_name,
       items:order_items(
@@ -84,6 +85,31 @@ export async function getMerchantPendingOrders(merchantId: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Fetch coordinates for buyers
+  if (orders && orders.length > 0) {
+    const buyerIds = [...new Set(orders.map(o => o.user_id).filter(Boolean))]
+    if (buyerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, latitude, longitude')
+        .in('id', buyerIds)
+        
+      if (profiles) {
+        const profileMap = profiles.reduce((acc: any, p: any) => {
+          acc[p.id] = p
+          return acc
+        }, {})
+        
+        orders.forEach((o: any) => {
+          if (o.user_id && profileMap[o.user_id]) {
+            o.latitude = profileMap[o.user_id].latitude
+            o.longitude = profileMap[o.user_id].longitude
+          }
+        })
+      }
+    }
   }
 
   return { orders }

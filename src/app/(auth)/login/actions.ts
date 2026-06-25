@@ -64,7 +64,7 @@ export async function checkUserRoleByEmail(email: string) {
     // 2. جلب دور المستخدم من جدول profiles
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
-      .select('role')
+      .select('role, full_name')
       .eq('id', user.id)
       .single()
       
@@ -73,7 +73,7 @@ export async function checkUserRoleByEmail(email: string) {
       return null
     }
     
-    return profile?.role || null
+    return profile ? { role: profile.role, name: profile.full_name } : null
   } catch (e) {
     console.error("Unexpected error in checkUserRoleByEmail:", e)
     return null

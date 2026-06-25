@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
+import { sendNotificationToUser, sendNotificationToRole } from "@/utils/onesignal"
 
 // 1. جلب الطلبات الواردة (pending) و (approved) و (delivered) للتاجر
 export async function getMerchantOrders() {
@@ -56,6 +57,13 @@ export async function approveOrder(orderId: string) {
     return { error: "يجب تسجيل الدخول" }
   }
 
+  // جلب تفاصيل الطلب لمعرفة المشتري ورقم الفاتورة
+  const { data: order } = await supabase
+    .from("orders")
+    .select("user_id, invoice_number")
+    .eq("id", orderId)
+    .single()
+
   const { error } = await supabase
     .from("orders")
     .update({ status: "approved" })
@@ -65,6 +73,22 @@ export async function approveOrder(orderId: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (order) {
+    // إرسال إشعار للمشتري
+    await sendNotificationToUser(
+      order.user_id,
+      "تم تجهيز طلبك!",
+      `تم تجهيز فاتورتك رقم #${order.invoice_number} من قبل التاجر وهي بانتظار المندوب.`
+    )
+    
+    // إرسال إشعار للمناديب (لإعلامهم بوجود طلب جاهز للتوصيل)
+    await sendNotificationToRole(
+      "delivery",
+      "طلب جديد جاهز للتوصيل!",
+      `هناك طلب جديد برقم #${order.invoice_number} بانتظار التوصيل.`
+    )
   }
 
   revalidatePath("/dashboard/orders")
@@ -80,6 +104,13 @@ export async function rejectOrder(orderId: string) {
     return { error: "يجب تسجيل الدخول" }
   }
 
+  // جلب تفاصيل الطلب لمعرفة المشتري
+  const { data: order } = await supabase
+    .from("orders")
+    .select("user_id, invoice_number")
+    .eq("id", orderId)
+    .single()
+
   const { error } = await supabase
     .from("orders")
     .update({ status: "rejected" })
@@ -89,6 +120,15 @@ export async function rejectOrder(orderId: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (order) {
+    // إرسال إشعار للمشتري
+    await sendNotificationToUser(
+      order.user_id,
+      "نعتذر، تم رفض طلبك",
+      `تم رفض فاتورتك رقم #${order.invoice_number} من قبل التاجر.`
+    )
   }
 
   revalidatePath("/dashboard/orders")

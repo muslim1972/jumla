@@ -398,26 +398,28 @@ export default function AdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-brand-blue dark:text-foreground">لوحة إدارة النظام</h1>
-            <Button 
-              onClick={() => setShowAuditLogs(true)}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm gap-2 border-slate-500/30 text-slate-700 hover:text-slate-800 hover:bg-slate-500/10"
-            >
-              <History className="w-4 h-4" />
-              سجل الحركات
-            </Button>
-            <Button 
-              onClick={() => setShowContactSettings(true)}
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-sm gap-2 border-emerald-500/30 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-500/10"
-            >
-              <MessageCircle className="w-4 h-4" />
-              إعدادات التواصل
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setShowAuditLogs(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-full shadow-sm gap-1 sm:gap-2 border-slate-500/30 text-slate-700 hover:text-slate-800 hover:bg-slate-500/10 text-xs sm:text-sm"
+              >
+                <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                سجل الحركات
+              </Button>
+              <Button 
+                onClick={() => setShowContactSettings(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-full shadow-sm gap-1 sm:gap-2 border-emerald-500/30 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-500/10 text-xs sm:text-sm"
+              >
+                <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                إعدادات التواصل
+              </Button>
+            </div>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">تتبع الأداء، وأدر المتاجر، وخصص الإعلانات الترويجية.</p>
         </div>

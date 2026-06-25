@@ -8,7 +8,7 @@ import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { signIn, checkUserRoleByEmail } from "./actions"
 import { useState, useRef, useTransition } from "react"
-import { Loader2, UserCircle } from "lucide-react"
+import { Loader2, UserCircle, Eye, EyeOff } from "lucide-react"
 
 const roleLabels: Record<string, { label: string, color: string }> = {
   "guest": { label: "حساب مشتري", color: "bg-blue-100 text-blue-700" },
@@ -20,16 +20,17 @@ const roleLabels: Record<string, { label: string, color: string }> = {
 
 export function LoginClient({ message }: { message?: string }) {
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState<string | null>(null)
+  const [roleInfo, setRoleInfo] = useState<{ role: string, name: string | null } | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState(message || "")
+  const [showPassword, setShowPassword] = useState(false)
   const lastCheckedEmailRef = useRef("")
   
   const checkEmailRole = async (emailValue: string) => {
     const trimmed = emailValue.trim()
     if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
-      setRole(null)
+      setRoleInfo(null)
       return
     }
     
@@ -39,7 +40,7 @@ export function LoginClient({ message }: { message?: string }) {
     setIsChecking(true)
     try {
       const foundRole = await checkUserRoleByEmail(trimmed)
-      setRole(foundRole)
+      setRoleInfo(foundRole)
     } catch (e) {
       console.error(e)
     } finally {
@@ -52,7 +53,7 @@ export function LoginClient({ message }: { message?: string }) {
     setEmail(value)
     
     if (!value || !value.includes('@')) {
-      setRole(null)
+      setRoleInfo(null)
       lastCheckedEmailRef.current = ""
     }
     
@@ -113,13 +114,16 @@ export function LoginClient({ message }: { message?: string }) {
               />
               
               {/* Role Indicator below email input */}
-              <div className="h-6 flex items-center justify-end">
+              <div className="h-6 flex items-center justify-between">
+                <div className="text-sm font-bold text-brand-blue flex-1 text-right">
+                   {roleInfo?.name ? <span className="animate-in fade-in slide-in-from-right-2">أهلاً بك، {roleInfo.name} 👋</span> : null}
+                </div>
                 {isChecking ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                ) : role && roleLabels[role] ? (
-                  <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${roleLabels[role].color}`}>
+                ) : roleInfo?.role && roleLabels[roleInfo.role] ? (
+                  <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${roleLabels[roleInfo.role].color}`}>
                     <UserCircle className="w-3.5 h-3.5" />
-                    {roleLabels[role].label}
+                    {roleLabels[roleInfo.role].label}
                   </div>
                 ) : null}
               </div>
@@ -130,13 +134,23 @@ export function LoginClient({ message }: { message?: string }) {
                 <Label htmlFor="password">كلمة المرور</Label>
               </div>
               
-              <Input 
-                id="password" 
-                name="password" 
-                type="password" 
-                required 
-                dir="ltr" 
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  dir="ltr" 
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             
           </CardContent>

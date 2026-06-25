@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server"
+import OneSignalProvider from "@/components/global/onesignal-provider"
 export default async function AppLayout({
   children,
 }: {
@@ -40,6 +41,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex flex-col flex-1 w-full">
+      <OneSignalProvider userId={user?.id} />
       <main className="flex-1">
         {children}
       </main>

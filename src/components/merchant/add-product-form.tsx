@@ -33,7 +33,7 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
   const [error, setError] = useState("")
 
   // UOM State
-  const [stockQuantity, setStockQuantity] = useState("0")
+  const [stockQuantity, setStockQuantity] = useState("")
   const [stockUnit, setStockUnit] = useState("كارتون")
   const [categoryId, setCategoryId] = useState("none")
   const [conversions, setConversions] = useState<Conversion[]>([])
@@ -132,15 +132,23 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
     }
 
     // Validate Conversions
-    const firstConv = conversions[0]
+    let firstConv = conversions[0]
     if (!firstConv) {
       setError("يجب تحديد علاقة الكميات")
       return
     }
 
     if (!firstConv.isConfirmed && !firstConv.isNoParts) {
-      setError("يجب تأكيد علاقة المخزون الأولى (بالضغط على علامة الصح أو زر بدون أجزاء)")
-      return
+      if (firstConv.multiplier && firstConv.to && parseFloat(firstConv.multiplier) > 0) {
+        // Auto confirm if valid
+        firstConv.isConfirmed = true
+      } else if (!firstConv.multiplier && !firstConv.to) {
+        // Auto no-parts if empty
+        firstConv.isNoParts = true
+      } else {
+        setError("يرجى إكمال وتأكيد علاقة الوحدات (تحويل المخزون) أو اختيار 'بدون أجزاء'")
+        return
+      }
     }
 
     const validConversions = conversions.filter(c => c.isConfirmed).map(c => ({
@@ -166,7 +174,7 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
       setUnits([])
       setCurrentPrice("")
       setCurrentUnitType("كارتون")
-      setStockQuantity("0")
+      setStockQuantity("")
       setStockUnit("كارتون")
       setCategoryId("none")
       setConversions([])
@@ -220,7 +228,7 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
                   type="number" 
                   min="0" 
                   value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
+                  onChange={(e) => setStockQuantity(e.target.value.replace(/^0+(?=\d)/, ''))}
                   required 
                   dir="ltr" 
                   className="text-right flex-1" 
@@ -237,6 +245,25 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
                 </Select>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="min_stock_alert" className="flex items-center gap-1.5">
+              <span>أقل كمية لإصدار تنبيه نفاد المخزون (اختياري)</span>
+              <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
+            </Label>
+            <Input 
+              id="min_stock_alert" 
+              name="min_stock_alert" 
+              type="number" 
+              min="0" 
+              defaultValue=""
+              dir="ltr" 
+              className="text-right w-full sm:w-[200px]" 
+            />
+            <p className="text-xs text-muted-foreground">
+              ضع القيمة صفر لإلغاء التنبيه. إذا كان المخزون أقل من هذه القيمة، سيظهر لك تنبيه في لوحة التحكم.
+            </p>
           </div>
 
           {/* Unit Conversions Section */}
@@ -371,7 +398,7 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
               </div>
             </div>
 
-            {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+            {error && <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm font-bold flex items-center gap-2"><AlertCircle className="w-4 h-4"/> {error}</div>}
           </div>
 
           <div className="space-y-2 pt-2 border-t mt-4">

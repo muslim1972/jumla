@@ -9,7 +9,7 @@ import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { signUp, getMerchantsForRegistration } from "./actions"
 import { useState, useEffect, useTransition } from "react"
-import { Loader2, Search, CheckSquare, Square } from "lucide-react"
+import { Loader2, Search, CheckSquare, Square, MapPin } from "lucide-react"
 
 export function RegisterClient({ message }: { message?: string }) {
   const [role, setRole] = useState("guest")
@@ -18,6 +18,10 @@ export function RegisterClient({ message }: { message?: string }) {
   const [selectedMerchants, setSelectedMerchants] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
   const [isLoadingMerchants, setIsLoadingMerchants] = useState(false)
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationError, setLocationError] = useState("")
 
   useEffect(() => {
     if (role === "delivery") {
@@ -39,6 +43,28 @@ export function RegisterClient({ message }: { message?: string }) {
     (m.full_name || "").includes(searchQuery) || 
     (m.store_name || "").includes(searchQuery)
   )
+
+  const handleGetLocation = () => {
+    setIsLocating(true)
+    setLocationError("")
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude)
+          setLongitude(position.coords.longitude)
+          setIsLocating(false)
+        },
+        (error) => {
+          setIsLocating(false)
+          setLocationError("تعذر تحديد الموقع. يرجى التأكد من تفعيل خدمات الموقع والمحاولة مرة أخرى.")
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      )
+    } else {
+      setIsLocating(false)
+      setLocationError("المتصفح الخاص بك لا يدعم تحديد الموقع.")
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -108,6 +134,36 @@ export function RegisterClient({ message }: { message?: string }) {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Location Section */}
+            {(role === "guest" || role === "merchant") && (
+              <div className="space-y-2 pt-2 border-t mt-4">
+                <Label>الموقع الجغرافي للمتجر / البقالة (اختياري لكنه يسهل التوصيل)</Label>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    type="button" 
+                    variant={latitude ? "secondary" : "outline"} 
+                    className="w-full gap-2 border-primary/20 hover:bg-primary/5"
+                    onClick={handleGetLocation}
+                    disabled={isLocating}
+                  >
+                    {isLocating ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <MapPin className={`w-4 h-4 ${latitude ? "text-emerald-500" : "text-brand-orange"}`} />
+                    )}
+                    {latitude ? "تم تحديد الموقع بنجاح ✓" : "التقاط موقعي الحالي"}
+                  </Button>
+                  {locationError && <p className="text-xs text-destructive">{locationError}</p>}
+                </div>
+                {latitude && longitude && (
+                  <>
+                    <input type="hidden" name="latitude" value={latitude} />
+                    <input type="hidden" name="longitude" value={longitude} />
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Delivery Merchants Selection */}
             {role === "delivery" && (

@@ -425,7 +425,19 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
             <MapPin className="w-3.5 h-3.5" />
             <span>{order.address}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono" dir="ltr">
+          {order.latitude && order.longitude && (
+            <div 
+              className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-500/10 px-2 py-1 rounded w-fit mt-1 cursor-pointer hover:bg-blue-500/20 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`, '_blank');
+              }}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>فتح مسار الخريطة للتوصيل</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono mt-1" dir="ltr">
             <Phone className="w-3.5 h-3.5" />
             <span>{order.phone}</span>
           </div>

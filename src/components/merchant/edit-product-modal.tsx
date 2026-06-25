@@ -43,7 +43,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
      }
   }
   
-  const initialStockQty = product.stock_quantity !== undefined ? Math.floor(product.stock_quantity / stockMultiplier) : 0;
+  const initialStockQty = product.stock_quantity !== undefined && product.stock_quantity !== 0 ? Math.floor(product.stock_quantity / stockMultiplier) : "";
 
   // UOM State
   const [stockQuantity, setStockQuantity] = useState(initialStockQty.toString())
@@ -82,7 +82,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
             stockMultiplier = su.multiplier_to_base;
          }
       }
-      const initialStockQty = product.stock_quantity !== undefined ? Math.floor(product.stock_quantity / stockMultiplier) : 0;
+      const initialStockQty = product.stock_quantity !== undefined && product.stock_quantity !== 0 ? Math.floor(product.stock_quantity / stockMultiplier) : "";
       setStockQuantity(initialStockQty.toString())
       setUnits(product.units || (product.price ? [{ type: product.unit_type, price: product.price }] : []))
     }
@@ -176,15 +176,21 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
       return
     }
 
-    const firstConv = conversions[0]
+    let firstConv = conversions[0]
     if (!firstConv) {
       setError("يجب تحديد علاقة الكميات")
       return
     }
 
     if (!firstConv.isConfirmed && !firstConv.isNoParts) {
-      setError("يجب تأكيد علاقة المخزون الأولى (بالضغط على علامة الصح أو زر بدون أجزاء)")
-      return
+      if (firstConv.multiplier && firstConv.to && parseFloat(firstConv.multiplier) > 0) {
+        firstConv.isConfirmed = true
+      } else if (!firstConv.multiplier && !firstConv.to) {
+        firstConv.isNoParts = true
+      } else {
+        setError("يرجى إكمال وتأكيد علاقة الوحدات (تحويل المخزون) أو اختيار 'بدون أجزاء'")
+        return
+      }
     }
 
     const validConversions = conversions.filter(c => c.isConfirmed).map(c => ({
@@ -206,10 +212,11 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
 
     if (!result?.success) {
       setError(result?.error || "حدث خطأ أثناء التعديل")
+      setIsSubmitting(false)
     } else {
+      setIsSubmitting(false)
       setOpen(false)
     }
-    setIsSubmitting(false)
   }
 
   const handleDelete = async () => {
@@ -282,7 +289,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
                   type="number" 
                   min="0" 
                   value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
+                  onChange={(e) => setStockQuantity(e.target.value.replace(/^0+(?=\d)/, ''))}
                   required 
                   dir="ltr" 
                   className="text-right flex-1" 
@@ -299,6 +306,25 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
                 </Select>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit_min_stock_alert" className="flex items-center gap-1.5">
+              <span>أقل كمية لإصدار تنبيه نفاد المخزون (اختياري)</span>
+              <AlertCircle className="w-3.5 h-3.5 text-muted-foreground" />
+            </Label>
+            <Input 
+              id="edit_min_stock_alert" 
+              name="min_stock_alert" 
+              type="number" 
+              min="0" 
+              defaultValue={product.min_stock_alert || ""}
+              dir="ltr" 
+              className="text-right w-full sm:w-[200px]" 
+            />
+            <p className="text-xs text-muted-foreground">
+              ضع القيمة صفر لإلغاء التنبيه. إذا كان المخزون أقل من هذه القيمة، سيظهر لك تنبيه في لوحة التحكم.
+            </p>
           </div>
 
           {/* Unit Conversions Section */}
@@ -433,7 +459,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
               </div>
             </div>
 
-            {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+            {error && <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm font-bold flex items-center gap-2 mb-4"><AlertCircle className="w-4 h-4"/> {error}</div>}
           </div>
 
           <div className="space-y-2 pt-2 border-t mt-4">

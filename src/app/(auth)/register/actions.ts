@@ -19,8 +19,12 @@ export async function signUp(formData: FormData) {
   const full_name = formData.get("full_name") as string
   const role = formData.get("role") as string
   const assigned_merchants_str = formData.get("assigned_merchants") as string
+  const latStr = formData.get("latitude") as string
+  const lngStr = formData.get("longitude") as string
   
   const assigned_merchants = assigned_merchants_str ? JSON.parse(assigned_merchants_str) : []
+  const latitude = latStr ? parseFloat(latStr) : null
+  const longitude = lngStr ? parseFloat(lngStr) : null
 
   const supabase = await createClient()
 
@@ -31,7 +35,9 @@ export async function signUp(formData: FormData) {
       data: {
         full_name,
         role,
-        assigned_merchants
+        assigned_merchants,
+        latitude,
+        longitude
       },
     },
   })

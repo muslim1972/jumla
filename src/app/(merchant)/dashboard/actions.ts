@@ -95,6 +95,7 @@ export async function addProductWithUnits(formData: FormData) {
   
   const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
   const stock_unit = formData.get("stock_unit") as string || ""
+  const min_stock_alert = parseInt(formData.get("min_stock_alert") as string || "0", 10)
   const conversionsJson = formData.get("unit_conversions") as string || "[]"
 
   let units = []
@@ -144,6 +145,7 @@ export async function addProductWithUnits(formData: FormData) {
     category_id: category_id || null,
     stock_quantity: baseStockQuantity,
     stock_unit: stock_unit,
+    min_stock_alert: min_stock_alert,
     unit_conversions: unit_conversions
   })
 
@@ -168,6 +170,7 @@ export async function editProductWithUnits(formData: FormData) {
   
   const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
   const stock_unit = formData.get("stock_unit") as string || ""
+  const min_stock_alert = parseInt(formData.get("min_stock_alert") as string || "0", 10)
   const conversionsJson = formData.get("unit_conversions") as string || "[]"
 
   let units = []
@@ -195,6 +198,7 @@ export async function editProductWithUnits(formData: FormData) {
     category_id: category_id || null,
     stock_quantity: baseStockQuantity,
     stock_unit: stock_unit,
+    min_stock_alert: min_stock_alert,
     unit_conversions: unit_conversions
   }
 
@@ -233,13 +237,26 @@ export async function deleteProductAction(id: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: "Unauthorized" }
 
+  // 1. Remove from any user's cart to prevent simple FK issues
+  await supabase.from('cart_items').delete().eq('product_id', id);
+
+  // 2. Attempt to delete the product
   const { error } = await supabase
     .from('products')
     .delete()
     .eq('id', id)
     .eq('merchant_id', user.id)
 
-  if (error) return { success: false, error: error.message }
+  if (error) {
+    // 23503 is PostgreSQL code for foreign_key_violation
+    if (error.code === '23503' || error.message.includes('foreign key')) {
+      return { 
+        success: false, 
+        error: "لا يمكن حذف هذا المنتج لوجود فواتير وطلبات سابقة مرتبطة به. لتجنب تلف السجلات، يرجى (تعديل) المنتج أو تصفير مخزونه بدلاً من حذفه." 
+      }
+    }
+    return { success: false, error: error.message }
+  }
 
   revalidatePath("/dashboard")
   revalidatePath("/")

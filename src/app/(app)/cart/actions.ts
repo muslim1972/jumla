@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
+import { sendNotificationToUser } from "@/utils/onesignal"
 
 export async function addToCart(productId: string, quantity: number = 1, unitType?: string) {
   const supabase = await createClient()
@@ -287,6 +288,13 @@ export async function createOrder(data: {
       .insert(orderItems)
 
     if (itemsError) throw itemsError
+
+    // إرسال إشعار للتاجر
+    await sendNotificationToUser(
+      data.merchantId,
+      "طلب جديد!",
+      `وصلك طلب جديد من ${data.storeName} بقيمة ${data.totalRounded.toLocaleString('en-US')} د.ع`
+    )
 
     // 7. حذف عناصر السلة التي تم طلبها
     const cartItemIds = data.items.map(item => item.cartItemId)
