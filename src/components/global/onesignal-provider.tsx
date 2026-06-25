@@ -28,6 +28,13 @@ export default function OneSignalProvider({ userId }: { userId?: string }) {
             });
             isInitialized = true;
           }
+          
+          // إجبار ظهور النافذة المنزلقة (ستجلب التعريب من لوحة OneSignal)
+          if (isInitialized) {
+            // @ts-ignore
+            await OneSignal.Slidedown.promptPush({ force: true });
+          }
+
           if (userId) {
             await OneSignal.login(userId);
           } else {
