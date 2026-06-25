@@ -24,9 +24,33 @@ export default function OneSignalProvider({ userId }: { userId?: string }) {
               notifyButton: {
                 enable: true,
               },
+              promptOptions: {
+                slidedown: {
+                  prompts: [
+                    {
+                      type: "push",
+                      autoPrompt: true,
+                      text: {
+                        actionMessage: "نود إرسال إشعارات لك حول حالة طلباتك والتحديثات المهمة.",
+                        acceptButton: "السماح",
+                        cancelButton: "ليس الآن"
+                      },
+                      delay: {
+                        pageViews: 1,
+                        timeDelay: 2
+                      }
+                    }
+                  ]
+                }
+              },
               allowLocalhostAsSecureOrigin: true,
             });
             isInitialized = true;
+          }
+          
+          // عرض نافذة الموافقة المنزلقة بشكل إجباري إذا لم يكن المستخدم مشتركاً
+          if (isInitialized) {
+            await OneSignal.Slidedown.promptPush();
           }
           
           if (userId) {
