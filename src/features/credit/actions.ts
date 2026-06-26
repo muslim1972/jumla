@@ -7,8 +7,19 @@ import { createClient } from "@/utils/supabase/server"
 export async function getTrustedBuyers(merchantId: string) {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== merchantId) {
+    return { error: "غير مصرح" }
+  }
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // First, get the trusted buyers' IDs
-  const { data: trusted, error: trustedError } = await supabase
+  const { data: trusted, error: trustedError } = await supabaseAdmin
     .from("trusted_buyers")
     .select("buyer_id")
     .eq("merchant_id", merchantId)
@@ -20,7 +31,7 @@ export async function getTrustedBuyers(merchantId: string) {
   if (buyerIds.length === 0) return { buyers: [] }
 
   // Then get their profiles
-  const { data: buyers, error: profilesError } = await supabase
+  const { data: buyers, error: profilesError } = await supabaseAdmin
     .from("profiles")
     .select("id, full_name, store_name, phone")
     .in("id", buyerIds)
