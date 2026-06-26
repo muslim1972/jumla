@@ -51,8 +51,11 @@ export default async function CartPage() {
     .eq('user_id', user.id)
     .eq('is_read', false)
 
+  // Use service role to bypass RLS for trusted_buyers since buyer might not have SELECT permission
+  const { supabaseAdmin } = await import("@/utils/supabase/admin")
+
   // Fetch trusted merchants for this buyer
-  const { data: trustedData } = await supabase
+  const { data: trustedData } = await supabaseAdmin
     .from('trusted_buyers')
     .select('merchant_id')
     .eq('buyer_id', user.id)

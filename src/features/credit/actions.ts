@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { supabaseAdmin } from "@/utils/supabase/admin"
 
 // --- Trusted Buyers Actions ---
 
@@ -12,11 +13,7 @@ export async function getTrustedBuyers(merchantId: string) {
     return { error: "غير مصرح" }
   }
 
-  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // Removed dynamic import of supabase admin
 
   // First, get the trusted buyers' IDs
   const { data: trusted, error: trustedError } = await supabaseAdmin
@@ -67,11 +64,7 @@ export async function addTrustedBuyer(merchantId: string, buyerId: string) {
     return { error: "غير مصرح لك بإضافة مشترين لهذا التاجر" }
   }
 
-  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // Removed dynamic import of supabase admin
 
   const { error } = await supabaseAdmin
     .from("trusted_buyers")
@@ -95,11 +88,7 @@ export async function removeTrustedBuyer(merchantId: string, buyerId: string) {
     return { error: "غير مصرح" }
   }
 
-  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // Removed dynamic import of supabase admin
 
   const { error } = await supabaseAdmin
     .from("trusted_buyers")
