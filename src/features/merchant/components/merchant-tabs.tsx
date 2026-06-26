@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft } from "lucide-react"
+import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft, UserCheck, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTransition, useState, useRef, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
@@ -134,6 +134,16 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
       href: "/dashboard/billing",
       icon: Receipt,
       badge: unpaidBillsCount
+    },
+    {
+      name: "قائمة الثقات",
+      href: "/dashboard/trusted-buyers",
+      icon: UserCheck
+    },
+    {
+      name: "الديون والتسديد",
+      href: "/dashboard/debts",
+      icon: Wallet
     },
     {
       name: "الأرشيف",

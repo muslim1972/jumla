@@ -476,8 +476,18 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
           </div>
         </div>
         <div className="text-left shrink-0">
-          <div className="font-black text-brand-orange tabular-nums">
-            {order.total_rounded.toLocaleString('en-US')} د.ع
+          <div className="flex flex-col items-end">
+            <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
+              المبلغ المطلوب تحصيله:
+            </div>
+            <div className="font-black text-brand-orange tabular-nums text-lg">
+              {(order.amount_paid ?? order.total_rounded).toLocaleString('en-US')} د.ع
+            </div>
+            {order.is_credit && (
+              <div className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded mt-1">
+                باقي الفاتورة دين (آجل)
+              </div>
+            )}
           </div>
           {isHistoryMode && order.delivered_at && (
             <div className="text-[10px] mt-1 text-muted-foreground text-left">

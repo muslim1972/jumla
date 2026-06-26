@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +46,8 @@ interface InvoicePreviewProps {
     address: string
     phone: string
   }
-  onConfirmOrder: () => Promise<void>
+  isTrusted: boolean
+  onConfirmOrder: (upfrontPayment: number) => Promise<void>
   onCancelOrder: () => void
 }
 
@@ -58,6 +59,7 @@ export function InvoicePreview({
   deliveryFee,
   verificationCode,
   deliveryInfo,
+  isTrusted,
   onConfirmOrder,
   onCancelOrder,
 }: InvoicePreviewProps) {
@@ -68,6 +70,15 @@ export function InvoicePreview({
   const rawTotal = subtotal + deliveryFee
   const totalRounded = roundTo250(rawTotal)
   const roundingDiff = totalRounded - rawTotal
+
+  // حالة المبلغ الواصل (المقدم) للمشترين الثقات
+  // يبدأ مبدئياً كأنه سيدفع كامل المبلغ
+  const [upfrontPayment, setUpfrontPayment] = useState(totalRounded)
+
+  // تحديث القيمة الابتدائية إذا تغير المجموع
+  useEffect(() => {
+    setUpfrontPayment(totalRounded)
+  }, [totalRounded])
 
   const now = new Date()
   const dateStr = now.toLocaleDateString("ar-IQ", {
@@ -80,10 +91,10 @@ export function InvoicePreview({
     minute: "2-digit",
   })
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(async (amount: number) => {
     setIsConfirming(true)
     try {
-      await onConfirmOrder()
+      await onConfirmOrder(amount)
     } finally {
       setIsConfirming(false)
     }
@@ -268,17 +279,60 @@ export function InvoicePreview({
           </div>
         </div>
 
-        {/* ملاحظة الدفع */}
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-center">
-          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-            💰 الدفع نقداً عند الاستلام — يُرجى تجهيز المبلغ
-          </p>
-        </div>
+        {/* ملاحظة الدفع ومربعات الإدخال للمشترين الثقات */}
+        {isTrusted ? (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <p className="text-sm font-bold text-primary">أنت ضمن قائمة الثقات للتاجر</p>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground mb-1.5 block">
+                  المبلغ الواصل (المقدم) للمندوب:
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalRounded}
+                    value={upfrontPayment}
+                    onChange={(e) => {
+                      let val = parseInt(e.target.value)
+                      if (isNaN(val)) val = 0
+                      if (val > totalRounded) val = totalRounded
+                      if (val < 0) val = 0
+                      setUpfrontPayment(val)
+                    }}
+                    className="w-full h-12 bg-background border rounded-lg px-4 font-bold tabular-nums focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">
+                    د.ع
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center bg-background rounded-lg p-3 border">
+                <span className="text-sm font-bold text-muted-foreground">الباقي (دين):</span>
+                <span className="font-black text-destructive tabular-nums">
+                  {(totalRounded - upfrontPayment).toLocaleString('en-US')} د.ع
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 text-center">
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+              💰 الدفع نقداً عند الاستلام — يُرجى تجهيز كامل المبلغ
+            </p>
+          </div>
+        )}
 
         {/* أزرار التحكم */}
         <div className="flex flex-col gap-3 pt-2">
           <Button
-            onClick={handleConfirm}
+            onClick={() => handleConfirm(upfrontPayment)}
             disabled={isConfirming}
             className="w-full h-14 text-lg font-black rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.01] transition-transform active:scale-95 bg-gradient-to-r from-emerald-600 to-emerald-500"
           >

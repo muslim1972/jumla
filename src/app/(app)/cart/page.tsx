@@ -51,6 +51,14 @@ export default async function CartPage() {
     .eq('user_id', user.id)
     .eq('is_read', false)
 
+  // Fetch trusted merchants for this buyer
+  const { data: trustedData } = await supabase
+    .from('trusted_buyers')
+    .select('merchant_id')
+    .eq('buyer_id', user.id)
+
+  const trustedMerchantIds = trustedData?.map(t => t.merchant_id) || []
+
   return (
     <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
       <CartClient 
@@ -58,6 +66,7 @@ export default async function CartPage() {
         buyerProfile={profile || {}} 
         userId={user.id} 
         initialUnreadNotificationsCount={unreadCount || 0}
+        trustedMerchantIds={trustedMerchantIds}
       />
     </div>
   )

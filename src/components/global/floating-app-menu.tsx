@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition } from "react"
-import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun } from "lucide-react"
+import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTheme } from "next-themes"
@@ -165,6 +165,23 @@ export function FloatingAppMenu({
             {mounted && theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </div>
         </button>
+
+        {/* Debts */}
+        {(!userRole || !['admin', 'merchant', 'delivery', 'support'].includes(userRole)) && (
+          <Link
+            href="/debts"
+            onClick={() => setOpenMenu(null)}
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-destructive/10 transition-colors group"
+            title="الديون والتسديد"
+          >
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap text-destructive">
+              <span className="text-[11px] font-black">الديون</span>
+            </span>
+            <div className="bg-destructive/10 p-1 rounded-full text-destructive shrink-0">
+              <Wallet className="w-4 h-4" />
+            </div>
+          </Link>
+        )}
 
         {/* Cart */}
         {(!userRole || !['admin', 'merchant', 'delivery', 'support'].includes(userRole)) && (

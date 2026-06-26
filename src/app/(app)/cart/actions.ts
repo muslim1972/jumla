@@ -103,6 +103,8 @@ export async function createOrder(data: {
   subtotal: number
   deliveryFee: number
   totalRounded: number
+  isCredit?: boolean
+  amountPaid?: number
   items: {
     cartItemId: string
     productId: string
@@ -229,7 +231,9 @@ export async function createOrder(data: {
           delivery_fee: data.deliveryFee,
           total_rounded: data.totalRounded,
           status: 'pending',
-          support_phone: merchantProfile?.support_phone
+          support_phone: merchantProfile?.support_phone,
+          is_credit: data.isCredit || false,
+          amount_paid: data.amountPaid ?? data.totalRounded
         })
         .eq('id', editingOrder.id);
 
@@ -264,7 +268,9 @@ export async function createOrder(data: {
           total_rounded: data.totalRounded,
           status: 'pending',
           support_phone: merchantProfile?.support_phone,
-          invoice_number: invoiceNumber
+          invoice_number: invoiceNumber,
+          is_credit: data.isCredit || false,
+          amount_paid: data.amountPaid ?? data.totalRounded
         })
         .select('id')
         .single();

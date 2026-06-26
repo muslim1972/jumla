@@ -61,17 +61,21 @@ interface MerchantGroup {
   lastAddedAt: string
 }
 
+interface CartClientProps {
+  initialItems: CartItemType[]
+  buyerProfile?: { store_name?: string, address?: string, phone?: string }
+  userId: string
+  initialUnreadNotificationsCount?: number
+  trustedMerchantIds?: string[]
+}
+
 export function CartClient({ 
   initialItems, 
   buyerProfile,
   userId,
-  initialUnreadNotificationsCount
-}: { 
-  initialItems: CartItemType[],
-  buyerProfile?: { store_name?: string, address?: string, phone?: string },
-  userId: string,
-  initialUnreadNotificationsCount?: number
-}) {
+  initialUnreadNotificationsCount,
+  trustedMerchantIds = []
+}: CartClientProps) {
   const [items, setItems] = useState<CartItemType[]>(initialItems)
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(initialUnreadNotificationsCount || 0)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
@@ -267,7 +271,7 @@ export function CartClient({
   }, [])
 
   // إتمام إصدار الفاتورة
-  const handleConfirmOrder = useCallback(async () => {
+  const handleConfirmOrder = useCallback(async (upfrontPayment: number) => {
     if (!checkoutMerchantId || !deliveryInfo) return
 
     const group = merchantGroups.find(g => g.merchantId === checkoutMerchantId)
@@ -276,6 +280,7 @@ export function CartClient({
     const subtotal = group.items.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0)
     const rawTotal = subtotal + group.deliveryFee
     const totalRounded = roundTo250(rawTotal)
+    const isCredit = upfrontPayment < totalRounded
 
     const result = await createOrder({
       merchantId: checkoutMerchantId,
@@ -286,6 +291,8 @@ export function CartClient({
       subtotal,
       deliveryFee: group.deliveryFee,
       totalRounded,
+      isCredit,
+      amountPaid: upfrontPayment,
       items: group.items.map(item => ({
         cartItemId: item.id,
         productId: item.products.id,
@@ -707,6 +714,7 @@ export function CartClient({
           deliveryFee={currentGroup.deliveryFee}
           verificationCode={verificationCode}
           deliveryInfo={deliveryInfo}
+          isTrusted={trustedMerchantIds.includes(currentGroup.merchantId)}
           onConfirmOrder={handleConfirmOrder}
           onCancelOrder={handleCancelOrder}
         />
