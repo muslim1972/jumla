@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getBuyerDebts } from "./actions"
+import { getBuyerDebts } from "../actions"
 import { Wallet, ChevronDown, ChevronUp, Loader2, Store, Phone, Receipt } from "lucide-react"
 
 export function BuyerDebtsClient({ userId }: { userId: string }) {

@@ -4,8 +4,10 @@ import { useState, useMemo, useRef, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Star, Truck, Info, Percent } from "lucide-react"
+import { ChevronRight, Star, Truck, Info, Percent, Search, LayoutGrid, List } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
+import { Input } from "@/components/ui/input"
+import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 
 // Extracted static categories array to follow bundle best practices
@@ -35,6 +37,10 @@ export function StoreClient({
   const categoryNavRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  
+  const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
 
   // Generate stable mock rating
   const rating = useMemo(() => {
@@ -44,11 +50,20 @@ export function StoreClient({
 
   // Group products by categories based on keywords
   const groupedProducts = useMemo(() => {
+    // 1. Filter by search query first
+    const filteredProducts = debouncedSearchQuery 
+      ? products.filter(p => 
+          (p.name && p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+          (p.description && p.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        )
+      : products
+
+    // 2. Group the filtered products
     const groups: Record<string, any[]> = {
-      "popular": products.slice(0, 6) // Mock popular products
+      "popular": filteredProducts.slice(0, 6) // Mock popular products
     }
 
-    products.forEach(product => {
+    filteredProducts.forEach(product => {
       let matched = false
       const name = (product.name || "").toLowerCase()
       const desc = (product.description || "").toLowerCase()
@@ -69,7 +84,7 @@ export function StoreClient({
     })
 
     return groups
-  }, [products])
+  }, [products, debouncedSearchQuery])
 
   // Categories that actually have products
   const activeCategoriesList = [
@@ -207,6 +222,38 @@ export function StoreClient({
       </div>
 
       {/* Products Grid Sections */}
+      <div className="max-w-4xl mx-auto px-4 mt-4 mb-4 flex gap-2">
+        <div className="relative flex-grow">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="ابحث عن منتج..."
+            className="pr-10 bg-card"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex bg-card border rounded-md shrink-0">
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "px-3 py-2 flex items-center justify-center transition-colors rounded-r-md",
+              viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            <List className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={cn(
+              "px-3 py-2 flex items-center justify-center transition-colors rounded-l-md border-r",
+              viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto px-4 mt-6 space-y-12">
         {activeCategoriesList.map(cat => {
           const catProducts = groupedProducts[cat.id]
@@ -215,14 +262,19 @@ export function StoreClient({
           return (
             <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
               <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className={cn(
+                "gap-3 sm:gap-4",
+                viewMode === "grid" 
+                  ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4" 
+                  : "flex flex-col"
+              )}>
                 {catProducts.map(product => (
                   <ProductCard 
                     key={`${cat.id}-${product.id}`}
                     product={product}
                     user={user}
                     cartItems={cartItems}
-                    viewMode="grid"
+                    viewMode={viewMode}
                   />
                 ))}
               </div>

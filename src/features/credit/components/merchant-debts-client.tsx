@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getMerchantDebts, payDebt } from "./actions"
+import { getMerchantDebts, payDebt } from "../actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Wallet, ChevronDown, ChevronUp, Loader2, Store, Phone, Receipt, User } from "lucide-react"

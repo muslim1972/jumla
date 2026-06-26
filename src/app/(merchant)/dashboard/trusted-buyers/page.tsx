@@ -1,4 +1,4 @@
-import { TrustedBuyersClient } from "./trusted-buyers-client"
+import { TrustedBuyersClient } from "@/features/credit/components/trusted-buyers-client"
 import { createClient } from "@/utils/supabase/server"
 
 export default async function TrustedBuyersPage() {

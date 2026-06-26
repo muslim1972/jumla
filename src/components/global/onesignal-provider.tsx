@@ -15,6 +15,12 @@ export default function OneSignalProvider({ userId }: { userId?: string }) {
           return;
         }
 
+        // Disable OneSignal on localhost to prevent domain mismatch errors from the SDK
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          console.log("OneSignal initialization skipped on localhost.");
+          return;
+        }
+
         try {
           if (!isInitialized) {
             await OneSignal.init({

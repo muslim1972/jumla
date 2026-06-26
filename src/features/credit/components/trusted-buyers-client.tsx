@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getTrustedBuyers, searchBuyers, addTrustedBuyer, removeTrustedBuyer } from "./actions"
+import { getTrustedBuyers, searchBuyers, addTrustedBuyer, removeTrustedBuyer } from "../actions"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { UserCheck, UserX, Search, Loader2, Store, Phone } from "lucide-react"
-import { useDebounce } from "@/hooks/use-debounce"
+import { AutocompleteSearch } from "@/components/global/autocomplete-search"
 
 type Buyer = {
   id: string
@@ -16,26 +15,13 @@ type Buyer = {
 
 export function TrustedBuyersClient({ merchantId }: { merchantId: string }) {
   const [trustedBuyers, setTrustedBuyers] = useState<Buyer[]>([])
-  const [searchResults, setSearchResults] = useState<Buyer[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [isSearching, setIsSearching] = useState(false)
   const [isAdding, setIsAdding] = useState<string | null>(null)
   const [isRemoving, setIsRemoving] = useState<string | null>(null)
-
-  const debouncedQuery = useDebounce(searchQuery, 500)
 
   useEffect(() => {
     loadTrustedBuyers()
   }, [])
-
-  useEffect(() => {
-    if (debouncedQuery.trim().length >= 2) {
-      performSearch(debouncedQuery)
-    } else {
-      setSearchResults([])
-    }
-  }, [debouncedQuery])
 
   async function loadTrustedBuyers() {
     setIsLoading(true)
@@ -46,24 +32,19 @@ export function TrustedBuyersClient({ merchantId }: { merchantId: string }) {
     setIsLoading(false)
   }
 
-  async function performSearch(query: string) {
-    setIsSearching(true)
-    const { buyers, error } = await searchBuyers(merchantId, query)
-    if (!error && buyers) {
-      setSearchResults(buyers)
-    }
-    setIsSearching(false)
+  async function handleSearch(query: string) {
+    const { buyers } = await searchBuyers(merchantId, query)
+    return buyers || []
   }
 
-  async function handleAdd(buyerId: string) {
+  async function handleAdd(buyerId: string, closeDropdown: () => void) {
     setIsAdding(buyerId)
     const { success, error } = await addTrustedBuyer(merchantId, buyerId)
     if (error) {
       alert(error)
     } else {
       await loadTrustedBuyers()
-      setSearchQuery("")
-      setSearchResults([])
+      closeDropdown()
     }
     setIsAdding(null)
   }
@@ -95,64 +76,52 @@ export function TrustedBuyersClient({ merchantId }: { merchantId: string }) {
         </div>
       </div>
 
-      <div className="bg-card border rounded-2xl p-4 sm:p-6 shadow-sm">
+      <div className="bg-card border rounded-2xl p-4 sm:p-6 shadow-sm relative z-20">
         <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
           <Search className="w-5 h-5 text-muted-foreground" />
           إضافة مشتري جديد
         </h2>
-        <div className="relative">
-          <Input
-            type="search"
-            placeholder="ابحث عن مشتري بالاسم، اسم المتجر، أو رقم الهاتف..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 bg-background/50"
-          />
-          {isSearching && (
-            <div className="absolute left-3 top-3.5">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </div>
-
-        {searchResults.length > 0 && (
-          <div className="mt-4 border rounded-xl divide-y overflow-hidden">
-            {searchResults.map(buyer => {
-              const isAlreadyTrusted = trustedBuyers.some(tb => tb.id === buyer.id)
-              return (
-                <div key={buyer.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background hover:bg-muted/30 transition-colors">
-                  <div>
-                    <p className="font-bold">{buyer.full_name}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                      {buyer.store_name && (
-                        <span className="flex items-center gap-1">
-                          <Store className="w-3.5 h-3.5" /> {buyer.store_name}
-                        </span>
-                      )}
-                      {buyer.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5" /> {buyer.phone}
-                        </span>
-                      )}
-                    </div>
+        
+        <AutocompleteSearch<Buyer>
+          placeholder="ابحث عن مشتري بالاسم، اسم المتجر، أو رقم الهاتف..."
+          onSearch={handleSearch}
+          minChars={2}
+          renderItem={(buyer, index, closeDropdown) => {
+            const isAlreadyTrusted = trustedBuyers.some(tb => tb.id === buyer.id)
+            return (
+              <div key={buyer.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background hover:bg-muted/30 transition-colors">
+                <div>
+                  <p className="font-bold">{buyer.full_name}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-1">
+                    {buyer.store_name && (
+                      <span className="flex items-center gap-1">
+                        <Store className="w-3.5 h-3.5" /> {buyer.store_name}
+                      </span>
+                    )}
+                    {buyer.phone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5" /> {buyer.phone}
+                      </span>
+                    )}
                   </div>
-                  <Button 
-                    variant={isAlreadyTrusted ? "outline" : "default"}
-                    onClick={() => handleAdd(buyer.id)}
-                    disabled={isAlreadyTrusted || isAdding === buyer.id}
-                    className="shrink-0"
-                  >
-                    {isAdding === buyer.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 
-                     isAlreadyTrusted ? "موجود في القائمة" : "إضافة للثقات"}
-                  </Button>
                 </div>
-              )
-            })}
-          </div>
-        )}
+                <Button 
+                  variant={isAlreadyTrusted ? "outline" : "default"}
+                  onClick={() => handleAdd(buyer.id, closeDropdown)}
+                  disabled={isAlreadyTrusted || isAdding === buyer.id}
+                  className="shrink-0"
+                  size="sm"
+                >
+                  {isAdding === buyer.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 
+                   isAlreadyTrusted ? "موجود في القائمة" : "إضافة للثقات"}
+                </Button>
+              </div>
+            )
+          }}
+        />
       </div>
 
-      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-card border rounded-2xl overflow-hidden shadow-sm relative z-10">
         <div className="p-4 sm:p-6 border-b bg-muted/10">
           <h2 className="font-bold text-lg flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-brand-orange" />
@@ -180,7 +149,7 @@ export function TrustedBuyersClient({ merchantId }: { merchantId: string }) {
               <div key={buyer.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/10 transition-colors">
                 <div>
                   <h3 className="font-bold text-lg">{buyer.full_name}</h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1.5">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1.5">
                     {buyer.store_name && (
                       <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
                         <Store className="w-4 h-4" /> {buyer.store_name}

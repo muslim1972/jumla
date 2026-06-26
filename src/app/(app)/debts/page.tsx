@@ -1,4 +1,4 @@
-import { BuyerDebtsClient } from "./debts-client"
+import { BuyerDebtsClient } from "@/features/credit/components/buyer-debts-client"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 
