@@ -51,7 +51,18 @@ export async function searchBuyers(merchantId: string, query: string) {
 export async function addTrustedBuyer(merchantId: string, buyerId: string) {
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== merchantId) {
+    return { error: "غير مصرح لك بإضافة مشترين لهذا التاجر" }
+  }
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { error } = await supabaseAdmin
     .from("trusted_buyers")
     .insert({ merchant_id: merchantId, buyer_id: buyerId })
 
@@ -68,7 +79,18 @@ export async function addTrustedBuyer(merchantId: string, buyerId: string) {
 export async function removeTrustedBuyer(merchantId: string, buyerId: string) {
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== merchantId) {
+    return { error: "غير مصرح" }
+  }
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { error } = await supabaseAdmin
     .from("trusted_buyers")
     .delete()
     .eq("merchant_id", merchantId)
