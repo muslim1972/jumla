@@ -39,7 +39,7 @@ export async function searchBuyers(merchantId: string, query: string) {
   const { data: buyers, error } = await supabase
     .from("profiles")
     .select("id, full_name, store_name, phone")
-    .eq("role", "buyer")
+    .eq("role", "guest")
     .or(`full_name.ilike.%${query}%,store_name.ilike.%${query}%,phone.ilike.%${query}%`)
     .limit(10)
 
