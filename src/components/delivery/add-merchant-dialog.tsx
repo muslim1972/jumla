@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Search, Plus, Loader2, Store } from "lucide-react"
 import { getAllMerchants, assignMerchantToDeliveryWorker } from "@/app/(app)/delivery/actions"
 
-export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => void }) {
+export function AddMerchantDialog({ 
+  onMerchantAdded, 
+  existingMerchantIds = [] 
+}: { 
+  onMerchantAdded: () => void
+  existingMerchantIds?: string[] 
+}) {
   const [open, setOpen] = useState(false)
   const [merchants, setMerchants] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -92,29 +98,38 @@ export function AddMerchantDialog({ onMerchantAdded }: { onMerchantAdded: () => 
               لم يتم العثور على تجار
             </div>
           ) : (
-            filteredMerchants.map(merchant => (
-              <div key={merchant.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-brand-blue/10 rounded-lg text-brand-blue">
-                    <Store className="w-5 h-5" />
+            filteredMerchants.map(merchant => {
+              const isExisting = existingMerchantIds.includes(merchant.id)
+              return (
+                <div key={merchant.id} className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${isExisting ? 'bg-muted/50 opacity-70' : 'hover:bg-muted/30'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-brand-blue/10 rounded-lg text-brand-blue">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-brand-blue">{merchant.full_name}</p>
+                      {merchant.store_name && (
+                        <p className="text-xs text-muted-foreground">{merchant.store_name}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm text-brand-blue">{merchant.full_name}</p>
-                    {merchant.store_name && (
-                      <p className="text-xs text-muted-foreground">{merchant.store_name}</p>
-                    )}
-                  </div>
+                  {isExisting ? (
+                    <div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-md">
+                      تمت الإضافة
+                    </div>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAddMerchant(merchant.id)}
+                      disabled={addingId === merchant.id}
+                      className="bg-brand-orange hover:bg-brand-orange/90 text-white"
+                    >
+                      {addingId === merchant.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "إضافة"}
+                    </Button>
+                  )}
                 </div>
-                <Button 
-                  size="sm" 
-                  onClick={() => handleAddMerchant(merchant.id)}
-                  disabled={addingId === merchant.id}
-                  className="bg-brand-orange hover:bg-brand-orange/90 text-white"
-                >
-                  {addingId === merchant.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "إضافة"}
-                </Button>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
         </DialogContent>

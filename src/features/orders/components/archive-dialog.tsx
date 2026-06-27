@@ -197,16 +197,34 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
               {order.merchant_name || "طلب"}
               {order.invoice_number && <span className="text-muted-foreground ml-1">#{String(order.invoice_number).padStart(5, '0')}</span>}
             </p>
-            <p className="text-[10px] text-muted-foreground">{dateStr}</p>
+            <p className="text-[10px] text-muted-foreground">تاريخ الطلب: {dateStr}</p>
+            {order.delivered_at && (
+              <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">
+                تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 text-[10px] font-bold border border-violet-500/20">
             مؤرشف
           </span>
-          <span className="font-black text-primary tabular-nums text-sm">
-            {order.total_rounded.toLocaleString('en-US')}
-          </span>
+          <div className="text-left flex flex-col items-end">
+            {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? (
+              <>
+                <p className="text-[10px] text-muted-foreground line-through">
+                  {order.total_rounded.toLocaleString('en-US')}
+                </p>
+                <p className="font-black text-red-600 tabular-nums text-sm">
+                  الباقي {(order.total_rounded - order.amount_paid).toLocaleString('en-US')}
+                </p>
+              </>
+            ) : (
+              <span className="font-black text-primary tabular-nums text-sm">
+                {order.total_rounded.toLocaleString('en-US')}
+              </span>
+            )}
+          </div>
         </div>
       </button>
 
@@ -226,6 +244,14 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
               <span className="text-muted-foreground text-xs">📞</span>
               <span className="font-mono">{order.phone}</span>
             </div>
+            {order.delivered_at && (
+              <div className="flex items-center gap-2 pt-1 border-t border-muted-foreground/10">
+                <span className="text-emerald-600 text-xs">✅</span>
+                <span className="text-xs font-medium">
+                  تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* عناصر الطلب */}
@@ -273,6 +299,20 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
             </div>
           </div>
 
+          {/* تفاصيل الدين */}
+          {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded && (
+            <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-lg p-3 mt-2 space-y-1.5 text-xs sm:text-sm">
+              <div className="flex justify-between">
+                <span className="text-emerald-600">المبلغ الواصل</span>
+                <span className="font-bold text-emerald-600 tabular-nums">{order.amount_paid.toLocaleString('en-US')} د.ع</span>
+              </div>
+              <div className="flex justify-between pt-1.5 border-t border-red-200 dark:border-red-900/50">
+                <span className="text-red-600 font-bold">الباقي (دين)</span>
+                <span className="font-black text-red-600 tabular-nums">{(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span>
+              </div>
+            </div>
+          )}
+
           {/* زر الطباعة فقط */}
           <Button
             variant="outline"
@@ -297,12 +337,20 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
               const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>قائمة #${invoiceNum}</title>
               <style>@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',sans-serif;background:#fff;color:#1a1a1a;padding:20px;direction:rtl}.invoice{max-width:520px;margin:0 auto}.header{text-align:center;padding-bottom:16px;border-bottom:3px solid #e85d26;margin-bottom:20px}.header h1{font-size:28px;font-weight:800;color:#e85d26;margin-bottom:4px}.header .invoice-num{font-size:14px;color:#666}.header .date{font-size:12px;color:#999;margin-top:2px}.section{margin-bottom:16px}.section-title{font-size:12px;font-weight:700;color:#e85d26;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #f0f0f0}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}.info-item{font-size:12px}.info-label{color:#888}.info-value{font-weight:600}table{width:100%;border-collapse:collapse;margin-bottom:16px}thead tr{background:#f8f8f8}thead th{padding:8px 12px;font-size:11px;font-weight:700;color:#666;text-align:right;border-bottom:2px solid #e85d26}thead th:nth-child(2),thead th:nth-child(3){text-align:center}thead th:last-child{text-align:left}.totals{background:#fafafa;border-radius:8px;padding:12px 16px}.total-row{display:flex;justify-content:space-between;font-size:12px;color:#666;padding:3px 0}.total-row.grand{font-size:16px;font-weight:800;color:#1a1a1a;border-top:2px solid #e85d26;padding-top:8px;margin-top:6px}.total-row.grand .amount{color:#e85d26}.verification{text-align:center;margin:20px 0 16px;padding:16px;border:2px dashed #22c55e;border-radius:12px;background:#f0fdf4}.verification .label{font-size:11px;font-weight:700;color:#15803d;margin-bottom:6px}.verification .code{font-family:monospace;font-size:28px;font-weight:900;letter-spacing:.3em;color:#15803d}.verification .warning{font-size:10px;color:#dc2626;margin-top:8px;font-weight:600}.status{text-align:center;font-size:11px;font-weight:700;padding:6px;border-radius:6px;margin-bottom:16px;background:#ede9fe;color:#6d28d9}.footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:12px;margin-top:20px}@media print{body{padding:10px}.no-print{display:none!important}}</style></head>
               <body><div class="invoice">
-                <div class="header"><h1>جُملتي</h1><div class="invoice-num">قائمة رقم #${invoiceNum}</div><div class="date">${dateStr}</div></div>
+                <div class="header"><h1>جُملتي</h1><div class="invoice-num">قائمة رقم #${invoiceNum}</div><div class="date">تاريخ القائمة: ${dateStr}</div></div>
                 <div class="status">مؤرشف</div>
                 <div class="section"><div class="section-title">معلومات التاجر</div><div class="info-grid"><div class="info-item"><span class="info-label">التاجر: </span><span class="info-value">${order.merchant_name || '---'}</span></div>${order.support_phone ? `<div class="info-item"><span class="info-label">هاتف الدعم: </span><span class="info-value" dir="ltr">${order.support_phone}</span></div>` : ''}</div></div>
-                <div class="section"><div class="section-title">معلومات التوصيل</div><div class="info-grid"><div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div><div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div><div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div></div></div>
+                <div class="section"><div class="section-title">معلومات التوصيل</div><div class="info-grid"><div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div><div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div><div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>${order.delivered_at ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${new Date(order.delivered_at).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' })}</span></div>` : ''}</div></div>
                 <div class="section"><div class="section-title">تفاصيل المنتجات</div><table><thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:center;">سعر الوحدة</th><th style="text-align:left;">المجموع</th></tr></thead><tbody>${itemsRows}</tbody></table></div>
-                <div class="totals"><div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div><div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString('en-US')} د.ع</span></div><div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div></div>
+                <div class="totals">
+                  <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div>
+                  <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString('en-US')} د.ع</span></div>
+                  <div class="total-row grand" ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? 'style="border-bottom:none; margin-bottom: 0; padding-bottom: 5px;"' : ''}><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div>
+                  ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? `
+                    <div class="total-row" style="color: #059669; font-weight: bold;"><span>المبلغ الواصل</span><span>${order.amount_paid.toLocaleString('en-US')} د.ع</span></div>
+                    <div class="total-row grand" style="color: #dc2626; border-top: 1px dashed #fca5a5; padding-top: 10px;"><span>الباقي (دين)</span><span>${(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span></div>
+                  ` : ''}
+                </div>
                 <div class="verification"><div class="label">كود التحقق</div><div class="code">${maskedCode}</div></div>
                 <div class="footer"><p>تم إنشاء هذه القائمة عبر منصة جُملتي</p></div>
                 <div class="no-print" style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#e85d26;color:#fff;border:none;padding:10px 32px;border-radius:8px;font-family:Cairo;font-size:14px;font-weight:700;cursor:pointer;">🖨️ طباعة</button></div>

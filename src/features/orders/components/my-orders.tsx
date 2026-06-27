@@ -44,6 +44,9 @@ export interface OrderData {
   items?: OrderItemData[]
   invoice_number?: number
   support_phone?: string
+  is_credit?: boolean
+  amount_paid?: number
+  delivered_at?: string
 }
 
 export interface OrderItemData {
@@ -61,7 +64,7 @@ interface MyOrdersProps {
 }
 
 // دالة طباعة القائمة
-function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: string) {
+function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: string, appSupportPhone?: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
   const maskedCode = order.verification_code.length > 2 
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
@@ -76,11 +79,16 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
     </tr>
   `).join('');
 
-  const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
+  const statusLabel = 
+    order.status === 'pending' ? 'بإنتظار تأكيد التاجر'
     : order.status === 'approved' ? 'مجهز للمندوب'
     : order.status === 'delivered' ? 'تم التسليم'
-    : order.status === 'rejected' ? 'مرفوض من التاجر'
-    : 'ملغي';
+    : order.status === 'completed' ? 'مكتمل'
+    : order.status === 'rejected' ? 'مرفوض'
+    : order.status === 'cancelled' ? 'ملغي'
+    : order.status === 'editing' ? 'قيد التعديل'
+    : order.status === 'archived' ? 'مؤرشف'
+    : 'غير معروف';
 
   const html = `
 <!DOCTYPE html>
@@ -132,7 +140,7 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
     <div class="header">
       <h1>جُملتي</h1>
       <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
-      <div class="date">${dateStr}</div>
+      <div class="date">تاريخ القائمة: ${dateStr}</div>
     </div>
 
     <div class="status ${order.status}">${statusLabel}</div>
@@ -152,6 +160,7 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
         <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
         <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
         ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
+        ${deliveryDateStr ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${deliveryDateStr}</span></div>` : ''}
       </div>
     </div>
 
@@ -175,7 +184,11 @@ function handlePrintOrder(order: OrderData, dateStr: string, appSupportPhone?: s
     <div class="totals">
       <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div>
       <div class="total-row"><span>أجور التوصيل</span><span>${order.delivery_fee.toLocaleString('en-US')} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row grand" ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? 'style="border-bottom:none; margin-bottom: 0; padding-bottom: 5px;"' : ''}><span>المجموع الكلي</span><span class="amount">${order.total_rounded.toLocaleString('en-US')} د.ع</span></div>
+      ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? `
+        <div class="total-row" style="color: #059669; font-weight: bold;"><span>المبلغ الواصل</span><span>${order.amount_paid.toLocaleString('en-US')} د.ع</span></div>
+        <div class="total-row grand" style="color: #dc2626; border-top: 1px dashed #fca5a5; padding-top: 10px;"><span>الباقي (دين)</span><span class="amount">${(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span></div>
+      ` : ''}
     </div>
 
     <div class="verification">
@@ -275,16 +288,32 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {dateStr}
+              تاريخ الطلب: {dateStr}
             </p>
+            {order.delivered_at && (
+              <p className="text-[10px] text-emerald-600 mt-0.5 font-medium flex items-center gap-1">
+                تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-left">
-            <p className="font-black text-primary text-sm sm:text-base">
-              {order.total_rounded.toLocaleString('en-US')}
-            </p>
+          <div className="text-left flex flex-col items-end">
+            {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? (
+              <>
+                <p className="text-[10px] text-muted-foreground line-through">
+                  {order.total_rounded.toLocaleString('en-US')}
+                </p>
+                <p className="font-black text-red-600 text-sm sm:text-base">
+                  الباقي {(order.total_rounded - order.amount_paid).toLocaleString('en-US')}
+                </p>
+              </>
+            ) : (
+              <p className="font-black text-primary text-sm sm:text-base">
+                {order.total_rounded.toLocaleString('en-US')}
+              </p>
+            )}
             <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max mr-auto`}>
               {statusConfig.icon}
               {statusConfig.label}
@@ -375,13 +404,28 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
               <span>{order.total_rounded.toLocaleString('en-US')} د.ع</span>
             </div>
 
+            {/* تفاصيل الدين */}
+            {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded && (
+              <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-lg p-3 mt-2 space-y-1.5">
+                <div className="flex justify-between text-xs sm:text-sm">
+                  <span className="text-emerald-600">المبلغ الواصل</span>
+                  <span className="font-bold text-emerald-600">{order.amount_paid.toLocaleString('en-US')} د.ع</span>
+                </div>
+                <div className="flex justify-between text-xs sm:text-sm pt-1.5 border-t border-red-200 dark:border-red-900/50">
+                  <span className="text-red-600 font-bold">الباقي (دين)</span>
+                  <span className="font-black text-red-600">{(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span>
+                </div>
+              </div>
+            )}
+
             {!isArchiveView && (
               <Button 
                 variant="outline" 
                 className="w-full mt-2 border-primary/30 text-primary hover:bg-primary/5"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handlePrintOrder(order, dateStr, appSupportPhone || undefined);
+                  const deliveryDate = order.delivered_at ? new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' }) : undefined;
+                  handlePrintOrder(order, dateStr, deliveryDate, appSupportPhone || undefined);
                 }}
               >
                 <Printer className="w-4 h-4 ml-2" />
@@ -484,11 +528,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
   }, [open])
 
   const pendingOrders = useMemo(() =>
-    orders.filter(o => ['pending', 'approved'].includes(o.status)),
-    [orders]
-  )
-  const completedOrders = useMemo(() =>
-    orders.filter(o => !['pending', 'approved'].includes(o.status)),
+    orders.filter(o => ['pending', 'approved', 'editing'].includes(o.status)),
     [orders]
   )
 
@@ -522,19 +562,6 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
                 </p>
                 {pendingOrders.map(order => (
                   <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
-                ))}
-              </div>
-            )}
-
-            {/* الطلبات المكتملة */}
-            {completedOrders.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  مكتملة ({completedOrders.length})
-                </p>
-                {completedOrders.map(order => (
-                  <OrderCard key={order.id} order={order} appSupportPhone={appSupportPhone} />
                 ))}
               </div>
             )}

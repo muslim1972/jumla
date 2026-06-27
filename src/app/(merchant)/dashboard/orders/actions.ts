@@ -29,6 +29,8 @@ export async function getMerchantOrders() {
       cancel_requested,
       created_at,
       delivery_worker_name,
+      is_credit,
+      amount_paid,
       items:order_items(
         id,
         product_name,

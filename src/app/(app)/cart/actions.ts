@@ -339,9 +339,7 @@ export async function getMyOrders() {
         order_items (*)
       `)
       .eq('user_id', user.id)
-      .neq('status', 'cancelled')
-      .neq('status', 'editing')
-      .neq('status', 'archived')
+      .in('status', ['pending', 'approved', 'editing'])
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -502,7 +500,7 @@ export async function searchArchivedOrders(params: {
         order_items (*)
       `)
       .eq('user_id', user.id)
-      .eq('status', 'archived')
+      .in('status', ['archived', 'delivered', 'completed'])
       .order('created_at', { ascending: false })
 
     // فلترة حسب رقم الوصل

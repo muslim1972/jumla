@@ -59,6 +59,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         .select(`
           id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
           invoice_number, verification_code, status, cancel_requested, created_at, delivery_worker_name,
+          is_credit, amount_paid, delivered_at,
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
         .eq("merchant_id", user.id)
@@ -282,7 +283,7 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
 
           <div className="shrink-0 flex flex-row-reverse sm:flex-col justify-between items-center sm:items-end mt-1 sm:mt-0">
              <div className="font-black text-brand-orange text-xs sm:text-sm">
-               {order.total_rounded.toLocaleString('en-US')} د.ع
+               {(order.is_credit ? order.amount_paid : order.total_rounded).toLocaleString('en-US')} د.ع
              </div>
             {isCancellation ? (
               <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-purple-500/10 text-purple-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
@@ -398,6 +399,19 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                 <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString('en-US')} د.ع</span>
              </div>
 
+             {order.is_credit && (
+               <div className="flex flex-col gap-2 mt-2 p-3 sm:p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg text-sm">
+                 <div className="flex justify-between">
+                   <span className="text-emerald-700 font-bold">المبلغ الواصل للمندوب:</span>
+                   <span className="font-black text-emerald-700">{order.amount_paid.toLocaleString('en-US')} د.ع</span>
+                 </div>
+                 <div className="flex justify-between">
+                   <span className="text-red-600 font-bold">الباقي (يُسجل ديناً):</span>
+                   <span className="font-black text-red-600">{(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span>
+                 </div>
+               </div>
+             )}
+
               {/* الإجراءات */}
              <div className="pt-4 border-t border-border/50 space-y-2 sm:space-y-3">
                 {isCancellation ? (
@@ -455,7 +469,11 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                 )}
 
                 <Button 
-                  onClick={() => handlePrintOrder(order, new Date(order.created_at).toLocaleString('ar-IQ'))} 
+                  onClick={() => {
+                    const printDate = new Date(order.created_at).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' });
+                    const deliveryDate = order.delivered_at ? new Date(order.delivered_at).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' }) : undefined;
+                    handlePrintOrder(order, printDate, deliveryDate);
+                  }} 
                   variant="outline" 
                   className="w-full flex items-center justify-center gap-2 text-xs sm:text-sm h-9 sm:h-10 border-brand-blue/20 text-brand-blue hover:bg-brand-blue/5"
                 >
@@ -470,7 +488,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
   )
 }
 
-function handlePrintOrder(order: any, dateStr: string) {
+function handlePrintOrder(order: any, dateStr: string, deliveryDateStr?: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
   const maskedCode = order.verification_code && order.verification_code.length > 2 
     ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
@@ -557,7 +575,7 @@ function handlePrintOrder(order: any, dateStr: string) {
     <div class="header">
       <h1>جُملتي</h1>
       <div class="invoice-num">قائمة رقم #${invoiceNum}</div>
-      <div class="date">${dateStr}</div>
+      <div class="date">تاريخ القائمة: ${dateStr}</div>
     </div>
 
     <div style="text-align: center;">
@@ -571,6 +589,7 @@ function handlePrintOrder(order: any, dateStr: string) {
         <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
         <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
         ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
+        ${deliveryDateStr ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${deliveryDateStr}</span></div>` : ''}
       </div>
     </div>
 
@@ -594,7 +613,11 @@ function handlePrintOrder(order: any, dateStr: string) {
     <div class="totals">
       <div class="total-row"><span>قيمة المنتجات</span><span>${(order.subtotal || 0).toLocaleString('en-US')} د.ع</span></div>
       <div class="total-row"><span>أجور التوصيل</span><span>${(order.delivery_fee || 0).toLocaleString('en-US')} د.ع</span></div>
-      <div class="total-row grand"><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString('en-US')} د.ع</span></div>
+      <div class="total-row grand" ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? 'style="border-bottom:none; margin-bottom: 0; padding-bottom: 5px;"' : ''}><span>المجموع الكلي</span><span class="amount">${(order.total_rounded || 0).toLocaleString('en-US')} د.ع</span></div>
+      ${order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? `
+        <div class="total-row" style="color: #059669; font-weight: bold;"><span>المبلغ الواصل</span><span>${order.amount_paid.toLocaleString('en-US')} د.ع</span></div>
+        <div class="total-row grand" style="color: #dc2626; border-top: 1px dashed #fca5a5; padding-top: 10px;"><span>الباقي (دين)</span><span class="amount">${((order.total_rounded || 0) - order.amount_paid).toLocaleString('en-US')} د.ع</span></div>
+      ` : ''}
     </div>
 
     <div class="verification">

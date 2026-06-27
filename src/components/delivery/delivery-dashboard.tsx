@@ -139,7 +139,10 @@ function CurrentDeliveries() {
     <div className="space-y-6">
       {/* Add Merchant Button */}
       <div className="max-w-3xl mx-auto flex justify-end">
-        <AddMerchantDialog onMerchantAdded={loadMerchants} />
+        <AddMerchantDialog 
+          onMerchantAdded={loadMerchants} 
+          existingMerchantIds={merchants.map(m => m.id)} 
+        />
       </div>
 
       {/* Merchants List */}
