@@ -126,11 +126,11 @@ export async function getMerchantPendingOrders(merchantId: string) {
 
   // Fetch coordinates for buyers
   if (orders && orders.length > 0) {
-    const buyerIds = [...new Set(orders.map(o => o.user_id).filter(Boolean))]
+    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
     if (buyerIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, latitude, longitude')
+        .select('id, address')
         .in('id', buyerIds)
         
       if (profiles) {
@@ -141,8 +141,7 @@ export async function getMerchantPendingOrders(merchantId: string) {
         
         orders.forEach((o: any) => {
           if (o.user_id && profileMap[o.user_id]) {
-            o.latitude = profileMap[o.user_id].latitude
-            o.longitude = profileMap[o.user_id].longitude
+            o.profile_address = profileMap[o.user_id].address
           }
         })
       }
@@ -258,6 +257,7 @@ export async function getDeliveryHistory(startDate?: string, endDate?: string) {
     .select(`
       id,
       merchant_id,
+      user_id,
       store_name,
       address,
       phone,
@@ -312,6 +312,27 @@ export async function getDeliveryHistory(startDate?: string, endDate?: string) {
         o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
       })
     }
+
+    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
+    if (buyerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, address')
+        .in('id', buyerIds)
+        
+      if (profiles) {
+        const profileMap = profiles.reduce((acc: any, p: any) => {
+          acc[p.id] = p
+          return acc
+        }, {})
+        
+        orders.forEach((o: any) => {
+          if (o.user_id && profileMap[o.user_id]) {
+            o.profile_address = profileMap[o.user_id].address
+          }
+        })
+      }
+    }
   }
 
   return { orders }
@@ -333,6 +354,7 @@ export async function getDeliverySettlementOrders() {
     .select(`
       id,
       merchant_id,
+      user_id,
       store_name,
       address,
       phone,
@@ -375,6 +397,27 @@ export async function getDeliverySettlementOrders() {
       orders.forEach((o: any) => {
         o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
       })
+    }
+
+    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
+    if (buyerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, address')
+        .in('id', buyerIds)
+        
+      if (profiles) {
+        const profileMap = profiles.reduce((acc: any, p: any) => {
+          acc[p.id] = p
+          return acc
+        }, {})
+        
+        orders.forEach((o: any) => {
+          if (o.user_id && profileMap[o.user_id]) {
+            o.profile_address = profileMap[o.user_id].address
+          }
+        })
+      }
     }
   }
 

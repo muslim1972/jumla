@@ -457,24 +457,40 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               <span>التاجر: {order.merchant_name}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{order.address}</span>
-          </div>
-          {order.latitude && order.longitude && (
-            <div 
-              className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-500/10 px-2 py-1 rounded w-fit mt-1 cursor-pointer hover:bg-blue-500/20 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`, '_blank');
-              }}
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>فتح مسار الخريطة للتوصيل</span>
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span>{order.address?.split('https://')[0]}</span>
             </div>
-          )}
+            {(order.address?.includes('https://www.google.com/maps') || order.profile_address?.includes('https://www.google.com/maps')) && (
+              <div 
+                className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-500/10 px-2 py-1 rounded w-fit cursor-pointer hover:bg-blue-500/20 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const addressToUse = order.address?.includes('https://www.google.com/maps') ? order.address : order.profile_address;
+                  const url = 'https://' + addressToUse.split('https://')[1];
+                  window.open(url, '_blank');
+                }}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>فتح مسار الخريطة للتوصيل (GPS)</span>
+              </div>
+            )}
+            {order.latitude && order.longitude && !order.address?.includes('https://www.google.com/maps') && !order.profile_address?.includes('https://www.google.com/maps') && (
+              <div 
+                className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-500/10 px-2 py-1 rounded w-fit cursor-pointer hover:bg-blue-500/20 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`, '_blank');
+                }}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>فتح مسار الخريطة للتوصيل (GPS)</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono mt-1" dir="ltr">
-            <Phone className="w-3.5 h-3.5" />
+            <Phone className="w-3.5 h-3.5 shrink-0" />
             <span>{order.phone}</span>
           </div>
         </div>
