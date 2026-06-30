@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { addProductWithUnits } from "@/app/(merchant)/dashboard/actions"
-import { Plus, X, Loader2, CheckCircle2, Circle, AlertCircle } from "lucide-react"
+import { Plus, X, Loader2, CheckCircle2, Circle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Unit = { type: string, price: number }
@@ -37,6 +37,9 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
   const [stockUnit, setStockUnit] = useState("كارتون")
   const [categoryId, setCategoryId] = useState("none")
   const [conversions, setConversions] = useState<Conversion[]>([])
+  
+  // Collapsible state
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     // Reset conversions if stock unit changes and there are no confirmed conversions yet
@@ -185,14 +188,24 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
   }
 
   return (
-    <Card className={disabled ? "opacity-50 pointer-events-none" : "sticky top-16"}>
-      <CardHeader>
-        <CardTitle>إضافة منتج جديد</CardTitle>
-        <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>
+    <Card className={cn(disabled ? "opacity-50 pointer-events-none" : "sticky top-16 transition-all", isOpen ? "shadow-md border-primary/20" : "")}>
+      <CardHeader 
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>إضافة منتج جديد</CardTitle>
+            <CardDescription>قم بإضافة منتجاتك للبيع بالجملة</CardDescription>
+          </div>
+          {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+        </div>
       </CardHeader>
-      <CardContent>
-        <form id="add-product-form" action={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+      
+      {isOpen && (
+        <CardContent className="animate-in slide-in-from-top-2 duration-300 border-t pt-4">
+          <form id="add-product-form" action={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
             <Label htmlFor="name">اسم المادة</Label>
             <Input id="name" name="name" required />
           </div>
@@ -410,7 +423,8 @@ export function AddProductForm({ disabled, categories = [] }: { disabled: boolea
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "نشر المنتج"}
           </Button>
         </form>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   )
 }

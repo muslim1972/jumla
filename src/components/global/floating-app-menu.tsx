@@ -33,15 +33,29 @@ export function FloatingAppMenu({
     setMounted(true)
   }, [])
 
-  // Auto-close menu after 3 seconds of inactivity
+  // Auto-close menu when clicking outside or after 5 seconds of inactivity
   useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (isOpen && !target.closest('.floating-app-menu-container')) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    // Auto-close timeout (5 seconds)
     let timeoutId: NodeJS.Timeout;
     if (isOpen && !isHovered) {
       timeoutId = setTimeout(() => {
         setOpenMenu(null);
-      }, 3000);
+      }, 5000);
     }
+
     return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [isOpen, isHovered, setOpenMenu]);
@@ -89,7 +103,7 @@ export function FloatingAppMenu({
 
   return (
     <div 
-      className="relative flex flex-col items-end pointer-events-auto"
+      className="relative flex flex-col items-end pointer-events-auto floating-app-menu-container"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -145,6 +159,23 @@ export function FloatingAppMenu({
             </span>
             <div className="bg-blue-500/20 p-1 rounded-full text-blue-500 shrink-0">
               <HeadphonesIcon className="w-4 h-4" />
+            </div>
+          </Link>
+        )}
+
+        {/* Wallet Link (Available to all logged-in users) */}
+        {userRole && (
+          <Link
+            href="/wallet"
+            onClick={() => setOpenMenu(null)}
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+            title="المحفظة"
+          >
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">المحفظة</span>
+            </span>
+            <div className="bg-green-500/20 p-1 rounded-full text-green-600 shrink-0">
+              <Wallet className="w-4 h-4" />
             </div>
           </Link>
         )}

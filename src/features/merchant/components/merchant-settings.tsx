@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Check, Loader2, Phone } from "lucide-react"
+import { Check, Loader2, Phone, Settings, ChevronDown, ChevronUp } from "lucide-react"
 import { updateMerchantSettings } from "@/app/(merchant)/dashboard/actions"
 
 interface MerchantSettingsProps {
@@ -38,10 +38,24 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
   }
 
   const isComplete = fee !== "" && phone.trim() !== ""
+  const [isOpen, setIsOpen] = useState(!isComplete)
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-primary/5 rounded-xl border border-primary/20 mb-6">
-      <div className="space-y-2">
+    <div className="flex flex-col bg-primary/5 rounded-xl border border-primary/20 mb-6 overflow-hidden">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-primary/10 hover:bg-primary/15 transition-colors font-bold text-primary"
+      >
+        <div className="flex items-center gap-2">
+          <Settings className="w-5 h-5" />
+          <span>إعدادات المتجر (أجور التوصيل والدعم)</span>
+        </div>
+        {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+      </button>
+      
+      {isOpen && (
+        <div className="p-4 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
+          <div className="space-y-2">
         <Label htmlFor="delivery_fee" className="text-primary font-bold">أجور التوصيل (د.ع)</Label>
         <div className="relative">
           <Input 
@@ -98,9 +112,9 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
         )}
       </button>
 
-      <p className="text-xs text-muted-foreground italic border-t border-primary/10 pt-2">
-        * يجب تحديد أجور التوصيل ورقم الدعم قبل إضافة أي منتجات جديدة.
-      </p>
+      <p className="text-[10px] text-muted-foreground text-center mt-1">* يجب تحديد أجور التوصيل ورقم الدعم قبل إضافة أي منتجات جديدة.</p>
+        </div>
+      )}
     </div>
   )
 }

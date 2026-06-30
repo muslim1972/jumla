@@ -7,9 +7,10 @@ import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import Image from "next/image"
 import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
-import { AlertCircle, TrendingUp, PackageX, DollarSign, Target } from "lucide-react"
+import { AlertCircle, TrendingUp, PackageX, DollarSign, Target, Award, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import { AddProductForm } from "@/components/merchant/add-product-form"
-import { EditProductModal } from "@/components/merchant/edit-product-modal"
+import { MerchantProductsList } from "@/components/merchant/merchant-products-list"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -155,73 +156,8 @@ export default async function DashboardPage() {
           </div>
 
           {/* Products List */}
-          <div>
-            <h2 className="text-2xl font-bold mb-6">منتجاتي ({products?.length || 0})</h2>
-            
-            {!products || products.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-xl border border-dashed">
-              <p className="text-muted-foreground">لم تقم بإضافة أي منتجات بعد.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden flex flex-col rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                  {product.image_url && (
-                    <div className="h-28 relative bg-muted">
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        fill
-                        sizes="(max-width: 768px) 50vw, 33vw"
-                        className="object-contain"
-                      />
-                    </div>
-                  )}
-                  <CardHeader className="p-3 pb-1">
-                    <CardTitle className="text-sm font-bold line-clamp-1">{product.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0 flex-1">
-                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1">
-                      {product.description || "لا يوجد وصف"}
-                    </p>
-                    <div className="mt-3 space-y-1">
-                      {product.units && product.units.length > 0 ? (
-                        product.units.map((unit: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center text-xs border-b border-border/50 pb-1 last:border-0 last:pb-0">
-                            <span className="font-bold text-brand-blue" dir="ltr">{unit.price.toLocaleString('en-US')}</span>
-                            <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{unit.type}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-brand-blue" dir="ltr">{product.price?.toLocaleString('en-US')}</span>
-                          <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">{product.unit_type}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-3 flex items-center justify-between border-t pt-2 border-border/50">
-                      <div className="text-xs text-muted-foreground flex flex-col gap-1">
-                        <span>المخزون: <span className="font-bold text-foreground">
-                          {product.stock_quantity !== undefined 
-                            ? Math.floor(product.stock_quantity / (product.units?.find((u: any) => u.type === (product.stock_unit || "كارتون"))?.multiplier_to_base || 1))
-                            : 0} {product.stock_unit || "كارتون"}
-                        </span></span>
-                        {product.categories?.name && <span>القسم: <span className="font-medium text-foreground">{product.categories.name}</span></span>}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <div className="p-3 pt-0 mt-auto">
-                    <EditProductModal product={product} categories={categories} />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          <MerchantProductsList products={products || []} categories={categories} />
         </div>
-
-        </div>
-
       </div>
     </div>
   )

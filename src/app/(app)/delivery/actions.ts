@@ -1,8 +1,9 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
-import { revalidatePath } from "next/cache"
 import { sendNotificationToUser } from "@/utils/onesignal"
+import { addPoints } from "@/app/(app)/rewards/actions"
+import { revalidatePath } from "next/cache"
 
 // 1. جلب قائمة التجار التابعين لعامل التوصيل (أو التجار الذين لديهم طلبات جاهزة إن لم يكن مخصصاً له تجار)
 export async function getDeliveryMerchants() {
@@ -215,23 +216,37 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
     return { error: "حدث خطأ غير متوقع أثناء تحديث حالة الطلب. يرجى المحاولة مرة أخرى لاحقاً." }
   }
 
-  // إرسال إشعارات
+  // إرسال إشعارات و إعطاء نقاط
   try {
-    // 1. إشعار التاجر
-    await sendNotificationToUser(
-      order.merchant_id,
-      "تم التوصيل!",
-      `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري وهي بانتظار استلامك للمبلغ من المندوب.`
-    )
-    
-    // 2. إشعار المشتري
-    await sendNotificationToUser(
-      order.user_id,
-      "تم التوصيل بنجاح!",
-      `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!`
-    )
+    // Vercel best practice: async-parallel
+    await Promise.all([
+      // 1. إشعار التاجر
+      sendNotificationToUser(
+        order.merchant_id,
+        "تم التوصيل!",
+        `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري وهي بانتظار استلامك للمبلغ من المندوب.`
+      ),
+      // 2. إشعار المشتري
+      sendNotificationToUser(
+        order.user_id,
+        "تم التوصيل بنجاح!",
+        `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!`
+      ),
+      // 3. نقاط للتاجر (نقطة عن كل طلب منجز)
+      addPoints(
+        order.merchant_id,
+        10,
+        `نقاط إنجاز طلب رقم #${order.invoice_number}`
+      ),
+      // 4. نقاط للمشتري (نقطة عن كل طلب مستلم)
+      addPoints(
+        order.user_id,
+        50,
+        `مكافأة استلام طلب رقم #${order.invoice_number}`
+      )
+    ])
   } catch (notifError) {
-    console.error("Error sending delivery notifications:", notifError)
+    console.error("Error sending delivery notifications or points:", notifError)
   }
 
   // إعادة جلب المسارات لتحديث الواجهات
@@ -297,41 +312,34 @@ export async function getDeliveryHistory(startDate?: string, endDate?: string) {
   // Fetch merchant names
   if (orders && orders.length > 0) {
     const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id).filter(Boolean))]
-    if (merchantIds.length > 0) {
-      const { data: merchants } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", merchantIds)
-      
-      const merchantMap = merchants?.reduce((acc: any, m: any) => {
+    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
+    
+    // Fetch both merchants and buyers in parallel (Vercel best practice: async-parallel)
+    const [merchantsResult, profilesResult] = await Promise.all([
+      merchantIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", merchantIds) : Promise.resolve({ data: null }),
+      buyerIds.length > 0 ? supabase.from('profiles').select('id, address').in('id', buyerIds) : Promise.resolve({ data: null })
+    ]);
+
+    if (merchantsResult.data) {
+      const merchantMap = merchantsResult.data.reduce((acc: any, m: any) => {
         acc[m.id] = m.full_name
         return acc
-      }, {}) || {}
-
+      }, {})
       orders.forEach((o: any) => {
         o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
       })
     }
 
-    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
-    if (buyerIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, address')
-        .in('id', buyerIds)
-        
-      if (profiles) {
-        const profileMap = profiles.reduce((acc: any, p: any) => {
-          acc[p.id] = p
-          return acc
-        }, {})
-        
-        orders.forEach((o: any) => {
-          if (o.user_id && profileMap[o.user_id]) {
-            o.profile_address = profileMap[o.user_id].address
-          }
-        })
-      }
+    if (profilesResult.data) {
+      const profileMap = profilesResult.data.reduce((acc: any, p: any) => {
+        acc[p.id] = p
+        return acc
+      }, {})
+      orders.forEach((o: any) => {
+        if (o.user_id && profileMap[o.user_id]) {
+          o.profile_address = profileMap[o.user_id].address
+        }
+      })
     }
   }
 
@@ -383,41 +391,34 @@ export async function getDeliverySettlementOrders() {
   // Fetch merchant names
   if (orders && orders.length > 0) {
     const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id).filter(Boolean))]
-    if (merchantIds.length > 0) {
-      const { data: merchants } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", merchantIds)
-      
-      const merchantMap = merchants?.reduce((acc: any, m: any) => {
+    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
+    
+    // Fetch both merchants and buyers in parallel (Vercel best practice: async-parallel)
+    const [merchantsResult, profilesResult] = await Promise.all([
+      merchantIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", merchantIds) : Promise.resolve({ data: null }),
+      buyerIds.length > 0 ? supabase.from('profiles').select('id, address').in('id', buyerIds) : Promise.resolve({ data: null })
+    ]);
+
+    if (merchantsResult.data) {
+      const merchantMap = merchantsResult.data.reduce((acc: any, m: any) => {
         acc[m.id] = m.full_name
         return acc
-      }, {}) || {}
-
+      }, {})
       orders.forEach((o: any) => {
         o.merchant_name = merchantMap[o.merchant_id] || "تاجر غير معروف"
       })
     }
 
-    const buyerIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))]
-    if (buyerIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, address')
-        .in('id', buyerIds)
-        
-      if (profiles) {
-        const profileMap = profiles.reduce((acc: any, p: any) => {
-          acc[p.id] = p
-          return acc
-        }, {})
-        
-        orders.forEach((o: any) => {
-          if (o.user_id && profileMap[o.user_id]) {
-            o.profile_address = profileMap[o.user_id].address
-          }
-        })
-      }
+    if (profilesResult.data) {
+      const profileMap = profilesResult.data.reduce((acc: any, p: any) => {
+        acc[p.id] = p
+        return acc
+      }, {})
+      orders.forEach((o: any) => {
+        if (o.user_id && profileMap[o.user_id]) {
+          o.profile_address = profileMap[o.user_id].address
+        }
+      })
     }
   }
 

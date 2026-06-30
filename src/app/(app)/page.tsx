@@ -4,7 +4,7 @@ import { ProductExplorer } from "@/features/products/components/product-explorer
 import { PromoBanners } from "@/components/global/promo-banners"
 import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
 import Link from "next/link"
-import { ShoppingCart } from "lucide-react"
+import { ShoppingCart, Award, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export const revalidate = 0
@@ -81,6 +81,30 @@ export default async function Home() {
           </div>
         ) : (
           <>
+            {/* Rewards Banner */}
+            <div className="mb-6 pt-4">
+              <Link href="/rewards" className="block w-full rounded-2xl bg-gradient-to-l from-brand-orange to-yellow-500 p-4 sm:p-5 text-white shadow-lg relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -mr-10 -mt-10 group-hover:scale-110 transition-transform duration-700"></div>
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <Award className="w-6 h-6 sm:w-8 sm:h-8 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-lg sm:text-xl flex items-center gap-2">
+                        مكافآت جملتي
+                        <span className="text-[10px] sm:text-xs bg-white text-brand-orange px-2 py-0.5 rounded-full font-bold">جديد</span>
+                      </h3>
+                      <p className="text-white/90 text-xs sm:text-sm mt-0.5">اجمع النقاط واستبدلها بخصومات ورصيد مجاني!</p>
+                    </div>
+                  </div>
+                  <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm hidden sm:block group-hover:-translate-x-1 transition-transform">
+                    <ArrowLeft className="w-5 h-5" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
             <ProductExplorer products={products} user={user} cartItems={cartItems} dbCategories={dbCategories} />
             
             {cartItems.length > 0 && (

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { User, KeyRound, Trash2, ArrowRight, Loader2, CheckCircle2, AlertCircle, MapPin } from "lucide-react"
+import { User, KeyRound, Trash2, ArrowRight, Loader2, CheckCircle2, AlertCircle, MapPin, Award, Wallet } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import { deleteUserAccount } from "@/app/actions/auth-actions"
 import { getBuyerActiveOrders, deletePendingOrder, requestOrderDeletion } from "@/app/actions/buyer-orders-actions"
@@ -42,6 +42,8 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
   const [isSendingReset, setIsSendingReset] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userTier, setUserTier] = useState<string | null>(null)
+  const [userPoints, setUserPoints] = useState<number>(0)
 
   // حيلة بسيطة لمنع المتصفح من حشر كلمة المرور (نجعل الحقل للقراءة فقط حتى ينقر عليه المستخدم)
   const [isOldPwdReadOnly, setIsOldPwdReadOnly] = useState(true)
@@ -72,15 +74,20 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
       supabase.auth.getUser().then(async ({ data: { user } }) => {
         if (user) {
           setUserEmail(user.email || null)
-          const { data } = await supabase.from('profiles').select('address').eq('id', user.id).single()
-          if (data && data.address) {
-            if (data.address.includes("https://www.google.com/maps")) {
-              const parts = data.address.split("https://")
-              setAddressText(parts[0].replace(' - ', '').trim())
-              setGpsLink("https://" + parts[1])
-            } else {
-              setAddressText(data.address)
-              setGpsLink("")
+          const { data } = await supabase.from('profiles').select('address, tier, points').eq('id', user.id).single()
+          if (data) {
+            if (data.tier) setUserTier(data.tier)
+            if (data.points) setUserPoints(data.points)
+            
+            if (data.address) {
+              if (data.address.includes("https://www.google.com/maps")) {
+                const parts = data.address.split("https://")
+                setAddressText(parts[0].replace(' - ', '').trim())
+                setGpsLink("https://" + parts[1])
+              } else {
+                setAddressText(data.address)
+                setGpsLink("")
+              }
             }
           }
         }
@@ -356,12 +363,28 @@ export function UserProfileModal({ isOpen, setIsOpen, userRole, fullName }: User
           >
             <ArrowRight className="w-5 h-5 text-muted-foreground" />
           </button>
-          <DialogTitle className="text-xl font-black text-brand-blue m-0">
-            الصفحة الشخصية
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            إدارة إعدادات حسابك الشخصي
-          </DialogDescription>
+          <div className="flex-1">
+            <DialogTitle className="text-xl font-black text-brand-blue m-0">
+              الصفحة الشخصية
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              إدارة إعدادات حسابك الشخصي
+            </DialogDescription>
+          </div>
+          {userTier && (
+            <div className="flex items-center gap-2">
+              <a href="/wallet" className="flex items-center justify-center bg-green-500/10 p-2 rounded-xl border border-green-500/20 hover:bg-green-500/20 transition-colors" title="المحفظة">
+                <Wallet className="w-5 h-5 text-green-600" />
+              </a>
+              <a href="/rewards" className="flex flex-col items-center justify-center bg-brand-orange/10 px-3 py-1.5 rounded-xl border border-brand-orange/20 hover:bg-brand-orange/20 transition-colors">
+                <span className="text-[10px] font-bold text-brand-orange uppercase tracking-wider">{userTier}</span>
+                <span className="text-sm font-black text-brand-orange flex items-center gap-1">
+                  {userPoints?.toLocaleString() || 0}
+                  <Award className="w-3 h-3" />
+                </span>
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="p-6 space-y-8 max-h-[80vh] overflow-y-auto">
