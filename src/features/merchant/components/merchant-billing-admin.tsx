@@ -81,7 +81,7 @@ export function MerchantBillingAdmin() {
       
     if (history) setBillings(history)
 
-    // Fetch unbilled delivered orders up to end date
+    // Fetch unbilled completed orders (delivered or completed) up to end date
     const endDateTime = new Date(endDate)
     endDateTime.setHours(23, 59, 59, 999)
 
@@ -89,7 +89,7 @@ export function MerchantBillingAdmin() {
       .from('orders')
       .select('*')
       .eq('merchant_id', selectedMerchantId)
-      .eq('status', 'delivered')
+      .in('status', ['delivered', 'completed'])
       .is('billing_id', null)
       .lte('created_at', endDateTime.toISOString())
       .order('invoice_number', { ascending: true })

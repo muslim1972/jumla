@@ -75,7 +75,7 @@ export default async function RootLayout({
             />
           </FloatingMenuProvider>
           <TopAnnouncementBar initialBanners={topBanners} />
-          <main className="flex-1 pb-12 sm:pb-16">
+          <main className="flex-1 pb-28 sm:pb-36">
             {children}
           </main>
           

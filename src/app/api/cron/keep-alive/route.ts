@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic' // Ensure it's not cached
 
@@ -11,15 +11,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Connect to Supabase
-    const supabase = await createClient()
+    // 2. Connect to Supabase using Service Role Key to bypass RLS and perform a real write
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 3. Perform a simple query to keep the database active
-    // Fetching 1 row from profiles is enough to register activity
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .limit(1)
+    // 3. Perform a WRITE operation (Insert into audit_logs) to guarantee Supabase counts it as activity
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert({
+        table_name: 'system',
+        record_id: 'cron_ping',
+        action: 'KEEP_ALIVE_PING',
+        new_data: { ping_time: new Date().toISOString() }
+      });
 
     if (error) {
       console.error('Keep-alive cron error:', error)
@@ -28,7 +33,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Database keep-alive ping successful.',
+      message: 'Database keep-alive ping successful (Write operation performed).',
       timestamp: new Date().toISOString()
     })
     
