@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     ],
   },
   turbopack: {},
+  experimental: {
+    // كاش Turbopack بين البنود لتسريع عمليات next build المتتالية
+    turbopackFileSystemCacheForBuild: true,
+  },
 };
 
 export default withSerwist(nextConfig);
