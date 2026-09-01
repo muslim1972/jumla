@@ -24,23 +24,11 @@ export default async function Home() {
           .eq('id', user.id)
           .single()
       : Promise.resolve({ data: null, error: null }),
-    // بدون ربط profiles مباشرة: للجدول علاقتان بـ profiles (merchant_id و user_id)
-    // مما يجعل الربط الملتبس يفشل في PostgREST ويرجع قائمة فارغة صامتة
+    // select('*') مثل الصفحات العاملة (المتجر ولوحة التاجر):
+    // تحديد عمود غير موجود بالاسم يُسقط الاستعلام كله ويرجع null بصمت
     supabase
       .from('products')
-      .select(`
-        id,
-        name,
-        description,
-        price,
-        image_url,
-        unit_type,
-        category_id,
-        merchant_id,
-        stock_quantity,
-        units,
-        user_id
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(500),
     user
@@ -68,18 +56,27 @@ export default async function Home() {
     return redirect("/dashboard")
   }
 
-  // PostgREST يستنتج profiles كمصفوفة بدون أنواع المخطط، بينما يُعيدها فعلياً ككائن (many-to-one)
   const rawProducts = (productsResponse.data as any) || []
+  // لا نبتلع الأخطاء بصمت بعد الآن — تظهر في سجلات Vercel للتشخيص
+  if (productsResponse.error) {
+    console.error("[الرئيسية] فشل جلب المنتجات:", productsResponse.error)
+  }
 
-  // جلب بروفايلات التجار المعنيين دفعة واحدة وربطها يدوياً (يعرض فقط منتجات تجارٍ فعليين)
+  // merchant_id هو عمود التاجر الوحيد في جدول products
+  // (تم التحقق: user_id غير موجود إطلاقاً — خطأ 42703 من قاعدة البيانات)
   const merchantIds = [...new Set(rawProducts.map((p: any) => p.merchant_id).filter(Boolean))]
+
   let products: any[] = []
   if (merchantIds.length > 0) {
-    const { data: merchants } = await supabase
+    const { data: merchants, error: merchantsError } = await supabase
       .from('profiles')
       .select('id, full_name, delivery_fee, role')
       .in('id', merchantIds)
       .eq('role', 'merchant')
+
+    if (merchantsError) {
+      console.error("[الرئيسية] فشل جلب التجار:", merchantsError)
+    }
 
     const merchantsMap = new Map((merchants || []).map((m) => [m.id, m]))
     products = rawProducts.filter((p: any) => merchantsMap.has(p.merchant_id))
