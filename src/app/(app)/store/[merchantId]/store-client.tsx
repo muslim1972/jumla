@@ -4,8 +4,9 @@ import { useState, useMemo, useRef, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, Star, Truck, Info, Percent, Search, LayoutGrid, List } from "lucide-react"
+import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
@@ -41,6 +42,8 @@ export function StoreClient({
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  // الأقسام التي تم توسيعها لعرض جميع منتجاتها
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
   // Generate stable mock rating
   const rating = useMemo(() => {
@@ -259,6 +262,11 @@ export function StoreClient({
           const catProducts = groupedProducts[cat.id]
           if (!catProducts || catProducts.length === 0) return null
 
+          // أثناء البحث نعرض كل النتائج، وإلا 8 منتجات لكل قسم مع زر "عرض المزيد"
+          const isSectionExpanded = Boolean(debouncedSearchQuery) || Boolean(expandedSections[cat.id])
+          const visibleProducts = isSectionExpanded ? catProducts : catProducts.slice(0, 8)
+          const hiddenCount = catProducts.length - visibleProducts.length
+
           return (
             <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
               <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
@@ -268,7 +276,7 @@ export function StoreClient({
                   ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4" 
                   : "flex flex-col"
               )}>
-                {catProducts.map(product => (
+                {visibleProducts.map(product => (
                   <ProductCard 
                     key={`${cat.id}-${product.id}`}
                     product={product}
@@ -278,6 +286,16 @@ export function StoreClient({
                   />
                 ))}
               </div>
+              {hiddenCount > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setExpandedSections(prev => ({ ...prev, [cat.id]: true }))}
+                  className="w-full gap-2 mt-4 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  عرض المزيد ({hiddenCount})
+                </Button>
+              )}
             </div>
           )
         })}

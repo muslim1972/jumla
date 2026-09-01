@@ -219,26 +219,27 @@ export async function getBuyerDebts(userId: string) {
 export async function payDebt(orderId: string, paymentAmount: number) {
   const supabase = await createClient()
 
-  const { data: order, error: fetchError } = await supabase
-    .from("orders")
-    .select("total_rounded, amount_paid")
-    .eq("id", orderId)
-    .single()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "يجب تسجيل الدخول أولاً" }
 
-  if (fetchError) return { error: fetchError.message }
-
-  const newPaidAmount = order.amount_paid + paymentAmount
-
-  if (newPaidAmount > order.total_rounded) {
-    return { error: "المبلغ المدفوع يتجاوز قيمة الدين المتبقي" }
+  if (!paymentAmount || paymentAmount <= 0) {
+    return { error: "مبلغ الدفعة غير صالح" }
   }
 
-  const { error: updateError } = await supabase
-    .from("orders")
-    .update({ amount_paid: newPaidAmount })
-    .eq("id", orderId)
+  // عملية ذرّية داخل قاعدة البيانات (قفل صف الطلب + التحقق من عدم تجاوز الإجمالي)
+  const { data, error: rpcError } = await supabase.rpc('pay_order_debt', {
+    p_order_id: orderId,
+    p_payment_amount: paymentAmount
+  })
 
-  if (updateError) return { error: updateError.message }
+  if (rpcError) {
+    if (rpcError.message.includes('ORDER_NOT_FOUND')) return { error: "الطلب غير موجود" }
+    if (rpcError.message.includes('NOT_AUTHORIZED')) return { error: "غير مصرح" }
+    if (rpcError.message.includes('OVERPAYMENT')) return { error: "المبلغ المدفوع يتجاوز قيمة الدين المتبقي" }
+    if (rpcError.message.includes('ALREADY_SETTLED')) return { error: "تم سداد هذا الدين بالكامل مسبقاً" }
+    if (rpcError.message.includes('ORDER_NOT_PAYABLE')) return { error: "لا يمكن السداد في الحالة الحالية للطلب" }
+    return { error: "حدث خطأ أثناء تسجيل الدفعة" }
+  }
 
-  return { success: true }
+  return { success: true, amountPaid: data?.amountPaid }
 }

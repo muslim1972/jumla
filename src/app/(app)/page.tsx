@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { ProductExplorer } from "@/features/products/components/product-explorer"
 import { PromoBanners } from "@/components/global/promo-banners"
-import { DeliveryDashboard } from "@/components/delivery/delivery-dashboard"
+import { DeliveryDashboard } from "@/features/delivery/components/delivery-dashboard"
 import Link from "next/link"
 import { ShoppingCart, Award, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,30 +12,49 @@ export const revalidate = 0
 export default async function Home() {
   const supabase = await createClient()
   
-  const [userResponse, productsResponse] = await Promise.all([
-    supabase.auth.getUser(),
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let userRole = "guest"
+
+  const [profileResponse, productsResponse, cartResponse, categoriesResponse] = await Promise.all([
+    user
+      ? supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from('products')
       .select(`
-        *,
-        profiles!inner(full_name, delivery_fee, role)
+        id,
+        name,
+        description,
+        price,
+        image_url,
+        unit_type,
+        category_id,
+        merchant_id,
+        stock_quantity,
+        units,
+        user_id,
+        profiles!inner(full_name, delivery_fee)
       `)
       .eq('profiles.role', 'merchant')
       .order('created_at', { ascending: false })
+      .limit(500),
+    user
+      ? supabase
+          .from('cart_items')
+          .select('id, product_id, quantity, unit_type')
+          .eq('user_id', user.id)
+      : Promise.resolve({ data: null, error: null }),
+    supabase.from('categories').select('id, name, icon_url')
   ])
 
-  const user = userResponse.data.user
-  let userRole = "guest"
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    if (profile) {
-      userRole = profile.role
-    }
+  const profile = profileResponse.data
+  if (profile) {
+    userRole = profile.role
   }
 
   // توجيه المستخدمين إلى لوحات التحكم الخاصة بهم ومنعهم من رؤية واجهة المشتري
@@ -49,23 +68,18 @@ export default async function Home() {
     return redirect("/dashboard")
   }
 
-  const products = productsResponse.data
+  // PostgREST يستنتج profiles كمصفوفة بدون أنواع المخطط، بينما يُعيدها فعلياً ككائن (many-to-one)
+  const products = productsResponse.data as any
 
   // Fetch cart items for the user if logged in
   let cartItems: { id: string; product_id: string; quantity: number }[] = []
-  if (user) {
-    const { data: cartData } = await supabase
-      .from('cart_items')
-      .select('id, product_id, quantity, unit_type')
-      .eq('user_id', user.id)
-    if (cartData) {
-      cartItems = cartData
-    }
+  if (cartResponse.data) {
+    cartItems = cartResponse.data
   }
 
   // Fetch categories safely in case the table doesn't exist yet
   let dbCategories: {id: string, name: string, icon_url: string | null}[] = []
-  const { data: categoriesData, error: catError } = await supabase.from('categories').select('id, name, icon_url')
+  const { data: categoriesData, error: catError } = categoriesResponse
   if (!catError && categoriesData) {
     dbCategories = categoriesData
   }

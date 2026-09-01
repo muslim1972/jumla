@@ -9,31 +9,36 @@ import Image from "next/image"
 import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
 import { AlertCircle, TrendingUp, PackageX, DollarSign, Target, Award, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { AddProductForm } from "@/components/merchant/add-product-form"
-import { MerchantProductsList } from "@/components/merchant/merchant-products-list"
+import { AddProductForm } from "@/features/merchant/components/add-product-form"
+import { MerchantProductsList } from "@/features/merchant/components/merchant-products-list"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('delivery_fee, support_phone')
-    .eq('id', user?.id)
-    .single()
+  const [profileResponse, productsResponse, ordersResponse, categoriesResponse] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('delivery_fee, support_phone')
+      .eq('id', user?.id)
+      .single(),
+    supabase
+      .from('products')
+      .select('*, categories(name)')
+      .eq('merchant_id', user?.id)
+      .order('created_at', { ascending: false }),
+    // Fetch orders for analytics
+    supabase
+      .from('orders')
+      .select('total_rounded, created_at, status')
+      .eq('merchant_id', user?.id)
+      .in('status', ['delivered', 'completed']),
+    supabase.from('categories').select('id, name'),
+  ])
 
-  const { data: products } = await supabase
-    .from('products')
-    .select('*, categories(name)')
-    .eq('merchant_id', user?.id)
-    .order('created_at', { ascending: false })
-
-  // Fetch orders for analytics
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('total_rounded, created_at, status')
-    .eq('merchant_id', user?.id)
-    .in('status', ['delivered', 'completed'])
+  const { data: profile } = profileResponse
+  const { data: products } = productsResponse
+  const { data: orders } = ordersResponse
 
   // Analytics calculation
   const now = new Date()
@@ -58,7 +63,7 @@ export default async function DashboardPage() {
 
   // Fetch categories safely in case the table doesn't exist yet
   let categories: {id: string, name: string}[] = []
-  const { data: categoriesData, error: catError } = await supabase.from('categories').select('id, name')
+  const { data: categoriesData, error: catError } = categoriesResponse
   if (!catError && categoriesData) {
     const uniqueCategories = [];
     const seenNames = new Set();

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,13 +17,17 @@ import {
   FileText,
   Loader2,
   Calendar,
-  Hash
+  Hash,
+  RotateCcw
 } from "lucide-react"
-import { searchArchivedOrders } from "@/app/(app)/cart/actions"
-import type { OrderData } from "@/features/orders/components/my-orders"
+import { searchArchivedOrders } from "@/features/orders/actions"
+import { addToCart } from "@/features/cart/actions"
+import type { OrderData, OrderItemData } from "@/features/orders/components/my-orders"
+
+// عنصر قابل لإعادة الطلب (product_id متوفر من الاستعلام order_items (*))
+type ReorderItemData = OrderItemData & { product_id: string }
 
 // مكون بطاقة الطلب المؤرشف (مُبسّطة - فقط طباعة بدون تعديل أو أرشفة)
-import dynamic from "next/dynamic"
 
 // نستورد OrderCard عبر re-export مؤقت
 // سنستخدم OrderCard من my-orders لكن مع isArchiveView=true
@@ -160,7 +165,7 @@ export function ArchiveDialog({ open, onOpenChange }: ArchiveDialogProps) {
                 نتائج البحث ({results.length})
               </p>
               {results.map(order => (
-                <ArchivedOrderCard key={order.id} order={order} />
+                <ArchivedOrderCard key={order.id} order={order} onOpenChange={onOpenChange} />
               ))}
             </div>
           ) : null}
@@ -170,9 +175,47 @@ export function ArchiveDialog({ open, onOpenChange }: ArchiveDialogProps) {
   )
 }
 
-// بطاقة الطلب المؤرشف - للعرض والطباعة فقط
-function ArchivedOrderCard({ order }: { order: OrderData }) {
+// بطاقة الطلب المؤرشف - للعرض والطباعة وإعادة الطلب
+function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenChange: (open: boolean) => void }) {
+  const router = useRouter()
   const [expanded, setExpanded] = useState(false)
+  const [isReordering, setIsReordering] = useState(false)
+
+  // الأصناف التي ما زالت تشير إلى منتجات قابلة لإعادة الطلب
+  const reorderableItems = (order.items || []).filter(
+    (item): item is ReorderItemData => Boolean((item as { product_id?: string }).product_id)
+  )
+
+  // إعادة الطلب: إضافة الأصناف للسلة بشكل متسلسل لتجنب تعارض المخزون
+  const handleReorder = async () => {
+    setIsReordering(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const item of reorderableItems) {
+      try {
+        const result = await addToCart(item.product_id, item.quantity, item.unit_type)
+        if (result?.error) {
+          failCount++
+        } else {
+          successCount++
+        }
+      } catch {
+        failCount++
+      }
+    }
+
+    setIsReordering(false)
+
+    let summary = `تمت إضافة ${successCount} أصناف إلى السلة`
+    if (failCount > 0) {
+      summary += `\nتعذر إضافة ${failCount} أصناف (قد تكون محذوفة أو غير متوفرة)`
+    }
+    alert(summary)
+
+    onOpenChange(false)
+    router.push("/cart")
+  }
 
   const dateStr = new Date(order.created_at).toLocaleDateString("ar-IQ", {
     year: "numeric",
@@ -311,6 +354,19 @@ function ArchivedOrderCard({ order }: { order: OrderData }) {
                 <span className="font-black text-red-600 tabular-nums">{(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span>
               </div>
             </div>
+          )}
+
+          {/* زر إعادة الطلب - يظهر فقط إذا كانت الأصناف تشير لمنتجات متوفرة */}
+          {reorderableItems.length > 0 && (
+            <Button
+              variant="outline"
+              className="w-full gap-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/5"
+              disabled={isReordering}
+              onClick={(e) => { e.stopPropagation(); handleReorder() }}
+            >
+              {isReordering ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+              إعادة طلب
+            </Button>
           )}
 
           {/* زر الطباعة فقط */}

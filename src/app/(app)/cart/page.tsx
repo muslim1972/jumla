@@ -12,12 +12,41 @@ export default async function CartPage() {
     redirect("/login?message=" + encodeURIComponent("يجب تسجيل الدخول للوصول إلى السلة"))
   }
 
-  // Fetch buyer profile for checkout info & role check
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('store_name, address, phone, role')
-    .eq('id', user.id)
-    .single()
+  const [profileResponse, cartResponse, notificationsResponse, trustedResponse] = await Promise.all([
+    // Fetch buyer profile for checkout info & role check
+    supabase
+      .from('profiles')
+      .select('store_name, address, phone, role')
+      .eq('id', user.id)
+      .single(),
+    // Fetch cart items
+    supabase
+      .from('cart_items')
+      .select(`
+        *,
+        products (
+          *,
+          profiles (delivery_fee, full_name, support_phone)
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    // Fetch unread notifications count
+    supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false),
+    // Use service role to bypass RLS for trusted_buyers since buyer might not have SELECT permission
+    import("@/utils/supabase/admin").then(({ supabaseAdmin }) =>
+      supabaseAdmin
+        .from('trusted_buyers')
+        .select('merchant_id')
+        .eq('buyer_id', user.id)
+    ),
+  ])
+
+  const { data: profile } = profileResponse
 
   const userRole = profile?.role || "guest"
   
@@ -27,38 +56,16 @@ export default async function CartPage() {
   if (userRole === "merchant") return redirect("/dashboard")
   if (userRole === "delivery") return redirect("/")
 
-  // Fetch cart items
-  const { data: cartItems, error } = await supabase
-    .from('cart_items')
-    .select(`
-      *,
-      products (
-        *,
-        profiles (delivery_fee, full_name, support_phone)
-      )
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const { data: cartItems, error } = cartResponse
 
   if (error) {
     console.error("Error fetching cart items:", error)
   }
 
-  // Fetch unread notifications count
-  const { count: unreadCount } = await supabase
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-
-  // Use service role to bypass RLS for trusted_buyers since buyer might not have SELECT permission
-  const { supabaseAdmin } = await import("@/utils/supabase/admin")
+  const { count: unreadCount } = notificationsResponse
 
   // Fetch trusted merchants for this buyer
-  const { data: trustedData } = await supabaseAdmin
-    .from('trusted_buyers')
-    .select('merchant_id')
-    .eq('buyer_id', user.id)
+  const { data: trustedData } = trustedResponse
 
   const trustedMerchantIds = trustedData?.map(t => t.merchant_id) || []
 

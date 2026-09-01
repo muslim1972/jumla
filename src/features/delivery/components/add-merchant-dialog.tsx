@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Loader2, Store } from "lucide-react"
-import { getAllMerchants, assignMerchantToDeliveryWorker } from "@/app/(app)/delivery/actions"
+import { getAllMerchants, assignMerchantToDeliveryWorker } from "@/features/delivery/actions"
 
 export function AddMerchantDialog({ 
   onMerchantAdded, 

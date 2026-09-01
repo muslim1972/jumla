@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { sendBillingNotification } from "@/app/(app)/admin/actions"
+import { sendBillingNotification } from "@/features/admin/actions"
 import { 
   FileText, 
   CheckCircle, 

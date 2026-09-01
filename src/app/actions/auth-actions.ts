@@ -4,6 +4,25 @@ import { createClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/utils/supabase/server"
 
 export async function deleteUserAccount(userId: string) {
+  // حماية صارمة: هذا الإجراء يقوم بحذف حساب كامل بمفتاح service role
+  // لذلك يجب التحقق من دور الأدمن من قاعدة البيانات (المصدر الموثوق) قبل أي شيء
+  const supabase = await createServerClient()
+  const { data: { user: actor } } = await supabase.auth.getUser()
+
+  if (!actor) {
+    return { error: "يجب تسجيل الدخول" }
+  }
+
+  const { data: actorProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", actor.id)
+    .single()
+
+  if (actorProfile?.role !== "admin") {
+    return { error: "غير مصرح: هذه العملية متاحة للأدمن فقط" }
+  }
+
   // We MUST use the service role key to delete a user
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -14,7 +33,6 @@ export async function deleteUserAccount(userId: string) {
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-  const supabase = await createServerClient()
 
   try {
     console.log("Attempting to delete user with ID:", userId)

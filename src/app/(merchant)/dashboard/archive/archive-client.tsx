@@ -4,8 +4,14 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronDown, ChevronUp, Package, MapPin, Phone, Printer, CheckCircle, Search, Calendar as CalendarIcon } from "lucide-react"
+import { ChevronDown, ChevronUp, Package, MapPin, Phone, Printer, CheckCircle, Search, Calendar as CalendarIcon, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// تهريب قيمة واحدة بصيغة CSV (التعامل مع علامات التنصيص والفواصل والأسطر الجديدة)
+const escapeCsvField = (value: unknown): string => {
+  const str = value === null || value === undefined ? "" : String(value)
+  return /[",\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
+}
 
 export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: any[], merchantName: string }) {
   const [searchTerm, setSearchTerm] = useState("")
@@ -90,6 +96,34 @@ export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: 
     return matchesSearch && matchesDate;
   });
 
+  // تصدير الطلبات المعروضة إلى ملف CSV يدعم العربية (مع BOM للتوافق مع Excel)
+  const handleExportCsv = () => {
+    const headers = ["رقم الفاتورة", "التاريخ", "المشتري", "عدد الأصناف", "المجموع", "الحالة"]
+    const rows = filteredOrders.map(order => [
+      order.invoice_number ?? "",
+      new Date(order.created_at).toLocaleString("ar-IQ"),
+      order.store_name,
+      order.items?.length ?? 0,
+      order.total_rounded,
+      "مكتمل",
+    ])
+    const csvContent = "\uFEFF" + [headers, ...rows]
+      .map(row => row.map(escapeCsvField).join(","))
+      .join("\r\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    link.href = url
+    link.download = `archive-jumla-${today}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -113,8 +147,14 @@ export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: 
         </div>
       </div>
 
-      <div className="text-sm text-muted-foreground">
-        تم العثور على {filteredOrders.length} طلب
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm text-muted-foreground">
+          تم العثور على {filteredOrders.length} طلب
+        </div>
+        <Button onClick={handleExportCsv} variant="outline" className="gap-2 shrink-0">
+          <Download className="w-4 h-4" />
+          تصدير CSV
+        </Button>
       </div>
 
       <div className="space-y-4">

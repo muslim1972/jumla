@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, Loader2, Check, Plus, Minus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { addToCart, updateQuantity, removeFromCart } from "@/app/(app)/cart/actions"
+import { addToCart, updateQuantity, removeFromCart } from "@/features/cart/actions"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 

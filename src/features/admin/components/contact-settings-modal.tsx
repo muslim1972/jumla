@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Loader2, Phone, MessageCircle, Send, Globe } from "lucide-react"
-import { updateContactSettings } from "./actions"
+import { updateContactSettings } from "@/features/admin/actions"
 import { createClient } from "@/utils/supabase/client"
 
 interface ContactSettingsModalProps {

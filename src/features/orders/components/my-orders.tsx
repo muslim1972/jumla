@@ -26,7 +26,7 @@ import {
   Printer,
   Archive
 } from "lucide-react"
-import { editOrder, archiveOrder } from "@/app/(app)/cart/actions"
+import { editOrder, archiveOrder } from "@/features/orders/actions"
 
 export interface OrderData {
   id: string

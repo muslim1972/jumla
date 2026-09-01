@@ -14,37 +14,41 @@ export default async function MerchantArchivePage() {
     redirect("/login")
   }
 
-  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-  const merchantName = profile?.full_name || user.user_metadata?.full_name || "تاجر"
-
-  // Fetch completed orders for this merchant
-  const { data: orders } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      store_name,
-      address,
-      phone,
-      total_rounded,
-      subtotal,
-      delivery_fee,
-      invoice_number,
-      delivered_at,
-      created_at,
-      status,
-      delivery_worker_id,
-      delivery_worker_name,
-      items:order_items(
+  const [profileResponse, ordersResponse] = await Promise.all([
+    supabase.from('profiles').select('full_name').eq('id', user.id).single(),
+    // Fetch completed orders for this merchant
+    supabase
+      .from("orders")
+      .select(`
         id,
-        product_name,
-        product_price,
-        quantity,
-        unit_type
-      )
-    `)
-    .eq("merchant_id", user.id)
-    .eq("status", "completed")
-    .order("created_at", { ascending: false })
+        store_name,
+        address,
+        phone,
+        total_rounded,
+        subtotal,
+        delivery_fee,
+        invoice_number,
+        delivered_at,
+        created_at,
+        status,
+        delivery_worker_id,
+        delivery_worker_name,
+        items:order_items(
+          id,
+          product_name,
+          product_price,
+          quantity,
+          unit_type
+        )
+      `)
+      .eq("merchant_id", user.id)
+      .eq("status", "completed")
+      .order("created_at", { ascending: false }),
+  ])
+
+  const { data: profile } = profileResponse
+  const { data: orders } = ordersResponse
+  const merchantName = profile?.full_name || user.user_metadata?.full_name || "تاجر"
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">

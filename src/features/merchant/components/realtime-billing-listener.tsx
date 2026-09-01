@@ -12,13 +12,14 @@ export function RealtimeBillingListener({ merchantId }: { merchantId: string }) 
     if (!merchantId) return
 
     const channel = supabase
-      .channel('merchant_billings_changes')
+      .channel(`merchant_billings_changes_${merchantId}`)
       .on(
         'postgres_changes',
         {
           event: '*', // Listen to INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'merchant_billings',
+          filter: `merchant_id=eq.${merchantId}`,
         },
         () => {
           // Whenever the billing data changes (e.g. admin marks it as paid),

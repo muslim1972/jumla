@@ -7,9 +7,8 @@ import {
   Users, 
   Plus, 
   Trash2, 
-  ShieldAlert, 
-  Sparkles, 
-  TrendingUp, 
+  ShieldAlert,
+  TrendingUp,
   Store, 
   Package, 
   Image as ImageIcon,
@@ -27,8 +26,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
-import { ContactSettingsModal } from "./contact-settings-modal"
-import { MerchantBillingAdmin } from "@/features/merchant/components/merchant-billing-admin"
+import { ContactSettingsModal } from "@/features/admin/components/contact-settings-modal"
+import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
 
 interface TopBanner {
@@ -79,7 +78,6 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isDemoMode, setIsDemoMode] = useState(false)
   const [showContactSettings, setShowContactSettings] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
   
@@ -133,15 +131,7 @@ export default function AdminPage() {
           .single()
         
         setUserProfile(profile)
-        if (profile?.role === "admin") {
-          setIsAdmin(true)
-        } else {
-          setIsAdmin(true)
-          setIsDemoMode(true)
-        }
-      } else {
-        setIsAdmin(true)
-        setIsDemoMode(true)
+        setIsAdmin(profile?.role === "admin")
       }
     }
     checkAuth()
@@ -153,44 +143,28 @@ export default function AdminPage() {
 
     async function loadData() {
       try {
-        // Fetch profiles
-        const { data: profileList } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false })
+        // Fetch all datasets concurrently (independent queries)
+        const [
+          { data: profileList },
+          { count },
+          { data: bannerList },
+          { data: topBannerList },
+          { data: adRequestList },
+          { data: billingList }
+        ] = await Promise.all([
+          supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
+          supabase.from("products").select("*", { count: "exact", head: true }).limit(500),
+          supabase.from("banners").select("*").order("created_at", { ascending: false }).limit(500),
+          supabase.from("top_banners").select("*").order("created_at", { ascending: false }).limit(500),
+          supabase.from("ad_requests").select("*").order("created_at", { ascending: false }).limit(500),
+          supabase.from("merchant_billings").select("amount_due, status").limit(500)
+        ])
+
         if (profileList) setProfiles(profileList)
-
-        // Fetch products count
-        const { count } = await supabase
-          .from("products")
-          .select("*", { count: "exact", head: true })
         if (count) setProductsCount(count)
-
-        // Fetch banners
-        const { data: bannerList } = await supabase
-          .from("banners")
-          .select("*")
-          .order("created_at", { ascending: false })
         if (bannerList) setBanners(bannerList)
-
-        // Fetch top banners (paid)
-        const { data: topBannerList } = await supabase
-          .from("top_banners")
-          .select("*")
-          .order("created_at", { ascending: false })
         if (topBannerList) setTopBanners(topBannerList)
-
-        // Fetch ad requests from users
-        const { data: adRequestList } = await supabase
-          .from("ad_requests")
-          .select("*")
-          .order("created_at", { ascending: false })
         if (adRequestList) setAdRequests(adRequestList)
-
-        // Fetch merchant billings to calculate revenue
-        const { data: billingList } = await supabase
-          .from("merchant_billings")
-          .select("amount_due, status")
         
         if (billingList) {
           let paid = 0
@@ -224,26 +198,22 @@ export default function AdminPage() {
     // Optimistic UI update
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role: newRole } : p))
     
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId)
-      if (error) alert("فشل تحديث الرتبة في قاعدة البيانات: " + error.message)
-    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("id", userId)
+    if (error) alert("فشل تحديث الرتبة في قاعدة البيانات: " + error.message)
   }
 
   const handleUpdateDeliveryFee = async (userId: string, fee: number) => {
     // Optimistic UI update
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, delivery_fee: fee } : p))
     
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ delivery_fee: fee })
-        .eq("id", userId)
-      if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
-    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ delivery_fee: fee })
+      .eq("id", userId)
+    if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
   }
 
   // Manage Top Paid Banners
@@ -264,19 +234,17 @@ export default function AdminPage() {
     // Optimistic update
     setTopBanners(prev => [newBanner, ...prev])
 
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("top_banners")
-        .insert({
-          text: newTopText,
-          link_url: newTopLink,
-          start_date: new Date(newTopStartDate).toISOString(),
-          end_date: new Date(newTopEndDate).toISOString(),
-          is_active: newTopIsActive
-        })
-      if (error) {
-        alert("فشل إضافة الإعلان في قاعدة البيانات (تأكد من إنشاء جدول top_banners): " + error.message)
-      }
+    const { error } = await supabase
+      .from("top_banners")
+      .insert({
+        text: newTopText,
+        link_url: newTopLink,
+        start_date: new Date(newTopStartDate).toISOString(),
+        end_date: new Date(newTopEndDate).toISOString(),
+        is_active: newTopIsActive
+      })
+    if (error) {
+      alert("فشل إضافة الإعلان في قاعدة البيانات (تأكد من إنشاء جدول top_banners): " + error.message)
     }
 
     // Reset Form
@@ -287,37 +255,31 @@ export default function AdminPage() {
   const handleDeleteTopBanner = async (id: string) => {
     setTopBanners(prev => prev.filter(b => b.id !== id))
 
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("top_banners")
-        .delete()
-        .eq("id", id)
-      if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
-    }
+    const { error } = await supabase
+      .from("top_banners")
+      .delete()
+      .eq("id", id)
+    if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
   }
 
   const handleToggleTopBannerActive = async (id: string, currentActive: boolean) => {
     setTopBanners(prev => prev.map(b => b.id === id ? { ...b, is_active: !currentActive } : b))
 
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("top_banners")
-        .update({ is_active: !currentActive })
-        .eq("id", id)
-      if (error) alert("فشل تحديث حالة الإعلان: " + error.message)
-    }
+    const { error } = await supabase
+      .from("top_banners")
+      .update({ is_active: !currentActive })
+      .eq("id", id)
+    if (error) alert("فشل تحديث حالة الإعلان: " + error.message)
   }
 
   const handleDeleteAdRequest = async (id: string) => {
     setAdRequests(prev => prev.filter(r => r.id !== id))
 
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("ad_requests")
-        .delete()
-        .eq("id", id)
-      if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
-    }
+    const { error } = await supabase
+      .from("ad_requests")
+      .delete()
+      .eq("id", id)
+    if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
   }
 
   // Manage Banners
@@ -337,18 +299,16 @@ export default function AdminPage() {
     setBanners(prev => [newBanner, ...prev])
     
     // Save to DB
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("banners")
-        .insert({
-          title: newAdTitle,
-          description: newAdDesc,
-          bg_gradient: newAdGradient,
-          link_url: newAdLink
-        })
-      if (error) {
-        alert("فشل إضافة الإعلان في قاعدة البيانات (تأكد من إنشاء جدول banners): " + error.message)
-      }
+    const { error } = await supabase
+      .from("banners")
+      .insert({
+        title: newAdTitle,
+        description: newAdDesc,
+        bg_gradient: newAdGradient,
+        link_url: newAdLink
+      })
+    if (error) {
+      alert("فشل إضافة الإعلان في قاعدة البيانات (تأكد من إنشاء جدول banners): " + error.message)
     }
 
     // Reset Form
@@ -360,13 +320,11 @@ export default function AdminPage() {
   const handleDeleteBanner = async (id: string) => {
     setBanners(prev => prev.filter(b => b.id !== id))
     
-    if (!isDemoMode) {
-      const { error } = await supabase
-        .from("banners")
-        .delete()
-        .eq("id", id)
-      if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
-    }
+    const { error } = await supabase
+      .from("banners")
+      .delete()
+      .eq("id", id)
+    if (error) alert("فشل الحذف من قاعدة البيانات: " + error.message)
   }
 
   if (!isAdmin) {
@@ -383,18 +341,6 @@ export default function AdminPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
-      {/* Demo Warning Banner */}
-      {isDemoMode && (
-        <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center justify-between text-amber-600 dark:text-amber-500 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 shrink-0 text-amber-500 animate-bounce" />
-            <p className="text-xs sm:text-sm font-bold text-center sm:text-right">
-              <strong>وضع التجربة والتقييم نشط!</strong> حسابك الحالي ليس مسؤولاً (Admin) في قاعدة البيانات. تم تفعيل التحكم المحلي المؤقت لتجربة كافة الصلاحيات بحرية.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

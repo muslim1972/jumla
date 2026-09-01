@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import type { RealtimeChannel } from "@supabase/supabase-js"
 import { createClient } from "@/utils/supabase/client"
-import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory, getDeliveryPendingCount } from "@/app/(app)/delivery/actions"
+import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory, getDeliveryPendingCount } from "@/features/delivery/actions"
 import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2, Clock, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -201,7 +202,7 @@ function CurrentDeliveries() {
   )
 }
 
-import { getDeliverySettlementOrders } from "@/app/(app)/delivery/actions"
+import { getDeliverySettlementOrders } from "@/features/delivery/actions"
 
 function SettlementView() {
   const [orders, setOrders] = useState<any[]>([])
@@ -222,19 +223,38 @@ function SettlementView() {
 
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
-      .channel('delivery_settlement_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          loadSettlement()
-        }
-      )
-      .subscribe()
+    let channel: RealtimeChannel | null = null
+    let cancelled = false
+
+    const subscribe = async () => {
+      // جلب معرف عامل التوصيل قبل الاشتراك لتضييق نطاق التحديثات الفورية بطلباته فقط
+      const { data: userResponse } = await supabase.auth.getUser()
+      if (cancelled) return
+      const workerId = userResponse?.user?.id
+      channel = supabase
+        .channel('delivery_settlement_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            ...(workerId ? { filter: `delivery_worker_id=eq.${workerId}` } : {})
+          },
+          () => {
+            loadSettlement()
+          }
+        )
+        .subscribe()
+    }
+
+    subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      cancelled = true
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
   }, [loadSettlement])
 

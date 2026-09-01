@@ -26,19 +26,23 @@ export default async function MerchantLayout({
     redirect("/")
   }
 
-  // جلب عدد الطلبات قيد الانتظار الأولية (والتي تشمل قيد الانتظار والمسلمة بانتظار استلام المبلغ)
-  const { count: initialPendingCount } = await supabase
-    .from('orders')
-    .select('*', { count: 'exact', head: true })
-    .eq('merchant_id', user.id)
-    .in('status', ['pending', 'delivered'])
+  const [pendingOrdersResponse, unpaidBillsResponse] = await Promise.all([
+    // جلب عدد الطلبات قيد الانتظار الأولية (والتي تشمل قيد الانتظار والمسلمة بانتظار استلام المبلغ)
+    supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('merchant_id', user.id)
+      .in('status', ['pending', 'delivered']),
+    // جلب عدد فواتير التطبيق غير المسددة
+    supabase
+      .from('merchant_billings')
+      .select('*', { count: 'exact', head: true })
+      .eq('merchant_id', user.id)
+      .neq('status', 'paid'),
+  ])
 
-  // جلب عدد فواتير التطبيق غير المسددة
-  const { count: initialUnpaidBillsCount } = await supabase
-    .from('merchant_billings')
-    .select('*', { count: 'exact', head: true })
-    .eq('merchant_id', user.id)
-    .neq('status', 'paid')
+  const { count: initialPendingCount } = pendingOrdersResponse
+  const { count: initialUnpaidBillsCount } = unpaidBillsResponse
 
   return (
     <div className="flex flex-col flex-1 w-full">

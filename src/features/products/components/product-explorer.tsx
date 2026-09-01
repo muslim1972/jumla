@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { CATEGORIES } from "@/features/products/lib/taxonomy"
 
 interface Product {
   id: string
@@ -37,23 +38,6 @@ interface Product {
   category_id?: string | null
   stock_quantity?: number
 }
-
-interface Category {
-  id: string
-  name: string
-  emoji: string
-  keywords: string[]
-}
-
-const CATEGORIES: Category[] = [
-  { id: "all", name: "الكل", emoji: "🛍️", keywords: [] },
-  { id: "smoking", name: "مستلزمات التدخين", emoji: "🚬", keywords: ["سجائر", "معسل", "فحم", "فيب", "سحبة", "تبغ", "تدخين", "دخان", "cigarette", "tobacco"] },
-  { id: "grocery", name: "الغذائية", emoji: "🥫", keywords: ["زيت", "سكر", "رز", "طحين", "معجون", "بهارات", "ملح", "معلبات", "جبن", "قشطة", "زبدة", "صلصة", "شاي", "قهوة", "حليب", "عدس", "حمص", "فاصوليا", "سمن", "خضار", "فواكه", "عسل", "معكرونة", "اندومي"] },
-  { id: "sweets", name: "حلويات", emoji: "🍬", keywords: ["شيكولاتة", "كاكاو", "كيك", "بسكت", "جبس", "مصاص", "علك", "نوتيلا", "حلاوة", "كراميل", "سكاكر", "حلويات", "حلوى", "نستله", "كرزات", "مكسرات"] },
-  { id: "plastics", name: "أكياس بلاستيك", emoji: "📦", keywords: ["أكياس", "كيس", "بلاستك", "سفري", "صحون بلاستك", "سفريات", "نايلون", "علاكة", "علاكات", "سفره", "كاسة", "علبة", "بلاستيك"] },
-  { id: "dairy", name: "ألبان وأجبان", emoji: "🥛", keywords: ["حليب", "لبن", "جبن", "قشطة", "زبدة", "قيمر", "ألبان", "أجبان", "زبادي", "روب", "كريم"] },
-  { id: "cleaning", name: "منظفات", emoji: "🧼", keywords: ["صابون", "زاهي", "تايت", "شامبو", "معقم", "ديتول", "كلور", "غسيل", "ليفة", "منظف", "معطر", "قاصر", "كلوركس", "مساحة", "قماش", "فلاش"] },
-]
 
 export function ProductExplorer({ 
   products, 

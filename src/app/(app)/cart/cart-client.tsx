@@ -7,16 +7,31 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { removeFromCart, updateQuantity, createOrder, getMyOrders, markAllNotificationsAsRead } from "./actions"
+import { removeFromCart, updateQuantity } from "@/features/cart/actions"
+import { createOrder, getMyOrders } from "@/features/orders/actions"
+import { markAllNotificationsAsRead } from "@/features/notifications/actions"
 import { useState, useCallback, useMemo, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
 import { generateVerificationCode } from "@/lib/generate-code"
-import { CheckoutDialog } from "@/features/orders/components/checkout-dialog"
-import { InvoicePreview, type InvoiceItem } from "@/features/orders/components/invoice-preview"
+import type { InvoiceItem } from "@/features/orders/components/invoice-preview"
 import { MyOrders, type OrderData } from "@/features/orders/components/my-orders"
-import { ArchiveDialog } from "@/features/orders/components/archive-dialog"
 import { Archive } from "lucide-react"
+
+// الحوارات الثقيلة تُحمَّل ديناميكياً عند الحاجة فقط (تخفيف حزمة صفحة السلة)
+const CheckoutDialog = dynamic(
+  () => import("@/features/orders/components/checkout-dialog").then((mod) => mod.CheckoutDialog),
+  { ssr: false }
+)
+const InvoicePreview = dynamic(
+  () => import("@/features/orders/components/invoice-preview").then((mod) => mod.InvoicePreview),
+  { ssr: false }
+)
+const ArchiveDialog = dynamic(
+  () => import("@/features/orders/components/archive-dialog").then((mod) => mod.ArchiveDialog),
+  { ssr: false }
+)
 
 // نوع عنصر السلة
 interface CartItemType {

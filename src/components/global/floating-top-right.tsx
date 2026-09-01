@@ -1,11 +1,17 @@
 "use client"
 
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { UserProfileModal } from "@/features/user/components/user-profile-modal"
 import { FloatingContactButton } from "@/components/global/floating-contact-button"
 import { FloatingAppMenu } from "@/components/global/floating-app-menu"
+
+// تحميل المودال الثقيل ديناميكياً (يُعرض عبر Portal — بدون إزاحة في التخطيط)
+const UserProfileModal = dynamic(
+  () => import("@/features/user/components/user-profile-modal").then((mod) => mod.UserProfileModal),
+  { ssr: false }
+)
 
 export function FloatingTopRight({
   userRole,

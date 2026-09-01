@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Sparkles, Megaphone, CheckCircle2, Trash2, Clock, Phone } from "lucide-react"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -167,11 +168,13 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
                   {item.isDefault ? (
                     <div className="flex gap-2 justify-center my-1 pointer-events-none">
                       {item.images.map((imgName: string, imgIdx: number) => (
-                        <img 
+                        <Image
                           key={imgIdx}
-                          src={`/categories/${imgName}`} 
-                          alt="category" 
-                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-border bg-card shadow-sm object-cover animate-bounce" 
+                          src={`/categories/${imgName}`}
+                          alt="category"
+                          width={32}
+                          height={32}
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-border bg-card shadow-sm object-cover animate-bounce"
                           style={{ animationDelay: `${imgIdx * 150}ms`, animationDuration: '2s' }}
                         />
                       ))}

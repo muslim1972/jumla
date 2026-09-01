@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LayoutGrid, List } from "lucide-react"
 import Image from "next/image"
-import { EditProductModal } from "@/components/merchant/edit-product-modal"
+import { EditProductModal } from "@/features/merchant/components/edit-product-modal"
 import { cn } from "@/lib/utils"
 
 export function MerchantProductsList({ products, categories }: { products: any[], categories: any[] }) {

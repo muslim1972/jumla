@@ -79,54 +79,19 @@ export async function chargeWallet(amount: number, cardDetails: any) {
     return { success: false, error: "رمز التحقق (CVV) غير صحيح" }
   }
 
-  // Ensure wallet exists
-  let { data: wallet } = await supabase
-    .from('wallets')
-    .select('id, balance')
-    .eq('user_id', user.id)
-    .single()
+  // Ensure wallet exists + atomic top-up (balance update + transaction record in one DB transaction)
+  const { data, error: rpcError } = await supabase.rpc('charge_wallet', {
+    p_amount: amount,
+    p_description: `شحن رصيد بواسطة ماستر كارد تنتهي بـ ${cardNumber.slice(-4)}`
+  })
 
-  if (!wallet) {
-    const { data: newWallet } = await supabase
-      .from('wallets')
-      .insert([{ user_id: user.id, balance: 0 }])
-      .select('id, balance')
-      .single()
-    wallet = newWallet
-  }
-
-  if (!wallet) {
-     return { success: false, error: "لم نتمكن من العثور على محفظتك" }
-  }
-
-  // Process top-up (simulated transaction)
-  // In a real app, this would be an RPC function to avoid race conditions.
-  // For simulation, we update the balance directly and insert a transaction.
-  
-  const newBalance = parseFloat(wallet.balance) + amount;
-
-  const { error: updateError } = await supabase
-    .from('wallets')
-    .update({ balance: newBalance })
-    .eq('id', wallet.id)
-
-  if (updateError) {
+  if (rpcError) {
+    if (rpcError.message.includes('MIN_AMOUNT')) {
+      return { success: false, error: "الحد الأدنى للشحن هو 25,000 دينار" }
+    }
     return { success: false, error: "حدث خطأ أثناء إضافة الرصيد إلى المحفظة" }
   }
 
-  // Record the transaction
-  const referenceId = `MC-${Math.random().toString(36).substring(2, 10).toUpperCase()}`
-  await supabase
-    .from('wallet_transactions')
-    .insert([{
-      wallet_id: wallet.id,
-      amount: amount,
-      type: 'deposit_mastercard',
-      status: 'completed',
-      reference_id: referenceId,
-      description: `شحن رصيد بواسطة ماستر كارد تنتهي بـ ${cardNumber.slice(-4)}`
-    }])
-
   revalidatePath('/wallet')
-  return { success: true, message: "تم شحن المحفظة بنجاح!" }
+  return { success: true, message: "تم شحن المحفظة بنجاح!", newBalance: data?.newBalance }
 }

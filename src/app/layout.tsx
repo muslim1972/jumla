@@ -19,7 +19,11 @@ import { PromoBanners } from "@/components/global/promo-banners";
 import { FloatingTopRight } from "@/components/global/floating-top-right";
 import { FloatingAppMenu } from "@/components/global/floating-app-menu"
 import { FloatingMenuProvider } from "@/components/global/floating-menu-provider";
-import { createClient } from "@/utils/supabase/server";
+import {
+  getCurrentProfile,
+  getCartCount,
+  getAppSettings,
+} from "@/lib/app-context";
 import { ScrollToTop } from "@/components/global/scroll-to-top";
 
 export default async function RootLayout({
@@ -27,24 +31,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient()
-  
-  let role = null
-  let fullName = null
-  let cartCount = 0
+  // استعلامات مغلّفة بـ React.cache — تُنفَّذ مرة واحدة لكل طلب وتُعاد استخدامها في (app)/layout
+  // جلب المستخدم يجري داخلياً عبر getCurrentUser المخزّنة
+  const [{ role, fullName }, cartCount, settings] = await Promise.all([
+    getCurrentProfile(),
+    getCartCount(),
+    getAppSettings(),
+  ]);
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (user) {
-    const [profileResponse, cartCountResponse] = await Promise.all([
-      supabase.from('profiles').select('role, full_name').eq('id', user.id).single(),
-      supabase.from('cart_items').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
-    ])
-    role = profileResponse.data?.role || null
-    fullName = profileResponse.data?.full_name || null
-    cartCount = cartCountResponse.count || 0
-  }
-
-  const { data: settings } = await supabase.from('app_settings').select('*').eq('id', 1).maybeSingle()
   const topBanners: any[] = []
 
   return (

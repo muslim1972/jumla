@@ -124,6 +124,7 @@ export function ProductCard({
             src={product.image_url}
             alt={product.name}
             fill
+            sizes="48px"
             className="object-contain group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
