@@ -107,7 +107,8 @@ export function ArchiveClient({ initialOrders, merchantName }: { initialOrders: 
       order.total_rounded,
       "مكتمل",
     ])
-    const csvContent = "\uFEFF" + [headers, ...rows]
+    // "sep=," يجبر Excel على استخدام الفاصلة فاصلاً للأعمدة مهما كان الإعداد الإقليمي للجهاز
+    const csvContent = "\uFEFF" + "sep=,\r\n" + [headers, ...rows]
       .map(row => row.map(escapeCsvField).join(","))
       .join("\r\n")
 

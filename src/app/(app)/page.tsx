@@ -24,6 +24,8 @@ export default async function Home() {
           .eq('id', user.id)
           .single()
       : Promise.resolve({ data: null, error: null }),
+    // بدون ربط profiles مباشرة: للجدول علاقتان بـ profiles (merchant_id و user_id)
+    // مما يجعل الربط الملتبس يفشل في PostgREST ويرجع قائمة فارغة صامتة
     supabase
       .from('products')
       .select(`
@@ -37,10 +39,8 @@ export default async function Home() {
         merchant_id,
         stock_quantity,
         units,
-        user_id,
-        profiles!inner(full_name, delivery_fee)
+        user_id
       `)
-      .eq('profiles.role', 'merchant')
       .order('created_at', { ascending: false })
       .limit(500),
     user
@@ -69,7 +69,22 @@ export default async function Home() {
   }
 
   // PostgREST يستنتج profiles كمصفوفة بدون أنواع المخطط، بينما يُعيدها فعلياً ككائن (many-to-one)
-  const products = productsResponse.data as any
+  const rawProducts = (productsResponse.data as any) || []
+
+  // جلب بروفايلات التجار المعنيين دفعة واحدة وربطها يدوياً (يعرض فقط منتجات تجارٍ فعليين)
+  const merchantIds = [...new Set(rawProducts.map((p: any) => p.merchant_id).filter(Boolean))]
+  let products: any[] = []
+  if (merchantIds.length > 0) {
+    const { data: merchants } = await supabase
+      .from('profiles')
+      .select('id, full_name, delivery_fee, role')
+      .in('id', merchantIds)
+      .eq('role', 'merchant')
+
+    const merchantsMap = new Map((merchants || []).map((m) => [m.id, m]))
+    products = rawProducts.filter((p: any) => merchantsMap.has(p.merchant_id))
+      .map((p: any) => ({ ...p, profiles: merchantsMap.get(p.merchant_id) }))
+  }
 
   // Fetch cart items for the user if logged in
   let cartItems: { id: string; product_id: string; quantity: number }[] = []
