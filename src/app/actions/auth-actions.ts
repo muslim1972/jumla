@@ -37,23 +37,25 @@ export async function deleteUserAccount(userId: string) {
   try {
     console.log("Attempting to delete user with ID:", userId)
 
+    // مهم: كل عمليات التنظيف هنا تمر عبر supabaseAdmin (service role)
+    // لأن RLS مفعّل الآن على كل الجداول — جلسة الأدمن لا تملك صلاحية حذف بيانات المستخدمين الآخرين
     // 1. First, set changed_by to NULL for ALL audit logs where this user is the actor,
     //    to avoid foreign key constraint violations when we delete the profile
     console.log("Preparing audit logs for deletion...")
-    await supabase.from("audit_logs").update({ changed_by: null }).eq("changed_by", userId)
+    await supabaseAdmin.from("audit_logs").update({ changed_by: null }).eq("changed_by", userId)
 
     // 2. Now delete all remaining audit logs for this user
     console.log("Deleting audit logs for user...")
-    await supabase.from("audit_logs").delete().eq("changed_by", userId)
+    await supabaseAdmin.from("audit_logs").delete().eq("changed_by", userId)
 
     // 3. Delete notifications and cart items
     console.log("Deleting notifications and cart items...")
-    await supabase.from("notifications").delete().eq("user_id", userId)
-    await supabase.from("cart_items").delete().eq("user_id", userId)
+    await supabaseAdmin.from("notifications").delete().eq("user_id", userId)
+    await supabaseAdmin.from("cart_items").delete().eq("user_id", userId)
 
     // 4. Delete all orders related to this user (as buyer or merchant)
     console.log("Deleting orders for user...")
-    const { error: deleteOrdersError } = await supabase
+    const { error: deleteOrdersError } = await supabaseAdmin
       .from("orders")
       .delete()
       .or(`user_id.eq.${userId},merchant_id.eq.${userId}`)
@@ -65,7 +67,7 @@ export async function deleteUserAccount(userId: string) {
 
     // 5. Finally delete the profile (now audit logs won't cause issues)
     console.log("Deleting profile for user...")
-    const { error: profileError } = await supabase
+    const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .delete()
       .eq("id", userId)

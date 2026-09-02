@@ -1,0 +1,389 @@
+-- ==============================================================================
+-- سكربت التحصين الأمني الشامل — تفعيل RLS على كل الجداول المفتوحة
+-- التاريخ: 2026-09-02
+-- المشروع: hslpavldgvlpkvqgogcc (جُملتي)
+--
+-- الاستراتيجية (ترتيب آمن عن عمد):
+--   1) إنشاء/تحديث دالة get_user_role أولاً (تعتمد عليها كل السياسات)
+--   2) مسح كل السياسات القديمة المتضاربة على الجداول الـ12 (نظافة كاملة)
+--   3) إنشاء السياسات الجديدة قبل تفعيل RLS
+--   4) تفعيل RLS أخيراً — فإن فشل أي خطوة سابقة تبقى الجداول بوضعها الحالي
+--      ولا ينكسر التطبيق
+--
+-- الجداول المشمولة (كانت كلها UNRESTRICTED):
+--   profiles, products, cart_items, orders, order_items, notifications,
+--   app_settings, banners, top_banners, ad_requests, merchant_billings, audit_logs
+-- بالإضافة: rewards_history (RLS مفعّل سابقاً لكن بلا سياسة قراءة — كانت صفحة المكافآت ستُفرغ)
+--
+-- ملاحظات أمنية:
+--   - الجداول المحمية مسبقاً لا نلمسها: categories, wallets, wallet_transactions,
+--     trusted_buyers (سياساتها سليمة)
+--   - كل الكتابات النظامية تمر عبر دوال SECURITY DEFINER (audit_trigger_func,
+--     handle_new_user, decrement_stock, get_next_invoice_number, charge_wallet...)
+--     فهي تتجاوز RLS بطبيعتها ولن تتأثر
+--   - عمليات الأدمن على حذف الحسابات أصبحت تمر عبر service role (تعديل كودي مرافق)
+-- ==============================================================================
+
+-- ==============================================================================
+-- 0) دالة قراءة الدور — SECURITY DEFINER لتفادي recursion في سياسات profiles
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.get_user_role(user_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.profiles WHERE id = user_id
+$$;
+
+-- ==============================================================================
+-- 1) مسح شامل للسياسات القديمة على الجداول الـ12 (إزالة أي تعارض أو بقايا
+--    سكربتات سابقة مثل "Support can view orders" وغيرها)
+-- ==============================================================================
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN (
+        'profiles','products','cart_items','orders','order_items',
+        'notifications','app_settings','banners','top_banners',
+        'ad_requests','merchant_billings','audit_logs'
+      )
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+  END LOOP;
+END $$;
+
+-- ==============================================================================
+-- 2) profiles — البروفايلات
+--    القراءة: التجار للعموم (الرئيسية والمتجر)، الشخص لنفسه، الإدارة والتوصيل للكل
+--    التحديث: الشخص لنفسه + أدمن/سابورت
+--    الإدخال: عبر trigger نظامي (handle_new_user) — لا يحتاج سياسة
+--    الحذف: عبر service role فقط (حذف الحساب) — لا يحتاج سياسة
+-- ==============================================================================
+CREATE POLICY "profiles_select" ON public.profiles
+  FOR SELECT TO anon, authenticated
+  USING (
+    role = 'merchant'
+    OR id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
+  );
+
+CREATE POLICY "profiles_update" ON public.profiles
+  FOR UPDATE TO authenticated
+  USING (
+    id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  )
+  WITH CHECK (
+    id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+-- ==============================================================================
+-- 3) products — المنتجات
+--    القراءة: للعموم (الرئيسية/المتجر/السلة)
+--    الإدارة: التاجر لمنتجاته فقط + أدمن/سابورت
+--    (خصم المخزون يتم عبر دالة decrement_stock النظامية ولا يتأثر)
+-- ==============================================================================
+CREATE POLICY "products_select" ON public.products
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "products_insert" ON public.products
+  FOR INSERT TO authenticated
+  WITH CHECK (merchant_id = auth.uid());
+
+CREATE POLICY "products_update" ON public.products
+  FOR UPDATE TO authenticated
+  USING (
+    merchant_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  )
+  WITH CHECK (
+    merchant_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+CREATE POLICY "products_delete" ON public.products
+  FOR DELETE TO authenticated
+  USING (
+    merchant_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+-- ==============================================================================
+-- 4) cart_items — عناصر السلة
+--    CRUD ذاتي للمشتري + التاجر يمكنه حذف عناصر سلة منتجاته
+--    (عند حذف منتج يُنظّف التاجر عناصر السلة المرتبطة به)
+-- ==============================================================================
+CREATE POLICY "cart_items_select" ON public.cart_items
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "cart_items_insert" ON public.cart_items
+  FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "cart_items_update" ON public.cart_items
+  FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "cart_items_delete" ON public.cart_items
+  FOR DELETE TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.products p
+      WHERE p.id = cart_items.product_id
+        AND p.merchant_id = auth.uid()
+    )
+  );
+
+-- ==============================================================================
+-- 5) orders — الطلبات
+--    القراءة: المشتري، التاجر، عامل التوصيل المعيّن، أي delivery، أدمن/سابورت
+--    الإنشاء: المشتري لنفسه (+ أدمن)
+--    التحديث: المشتري (تعديل/أرشفة)، التاجر (قبول/رفض)، التوصيل (تسليم)، أدمن/سابورت
+--    الحذف: المشتري لنفسه + أدمن/سابورت
+--    ملاحظة: حذف الطلب يحذف عناصره تلقائياً (ON DELETE CASCADE — يتجاوز RLS)
+-- ==============================================================================
+CREATE POLICY "orders_select" ON public.orders
+  FOR SELECT TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR merchant_id = auth.uid()
+    OR delivery_worker_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
+  );
+
+CREATE POLICY "orders_insert" ON public.orders
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    user_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+CREATE POLICY "orders_update" ON public.orders
+  FOR UPDATE TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR merchant_id = auth.uid()
+    OR delivery_worker_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR merchant_id = auth.uid()
+    OR delivery_worker_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
+  );
+
+CREATE POLICY "orders_delete" ON public.orders
+  FOR DELETE TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+-- ==============================================================================
+-- 6) order_items — عناصر الطلب (يرتبط بالطلب الأب عبر order_id)
+-- ==============================================================================
+CREATE POLICY "order_items_select" ON public.order_items
+  FOR SELECT TO authenticated
+  USING (
+    COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
+    OR EXISTS (
+      SELECT 1 FROM public.orders o
+      WHERE o.id = order_items.order_id
+        AND (
+          o.user_id = auth.uid()
+          OR o.merchant_id = auth.uid()
+          OR o.delivery_worker_id = auth.uid()
+        )
+    )
+  );
+
+CREATE POLICY "order_items_insert" ON public.order_items
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+    OR EXISTS (
+      SELECT 1 FROM public.orders o
+      WHERE o.id = order_items.order_id
+        AND o.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "order_items_delete" ON public.order_items
+  FOR DELETE TO authenticated
+  USING (
+    COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+    OR EXISTS (
+      SELECT 1 FROM public.orders o
+      WHERE o.id = order_items.order_id
+        AND (o.user_id = auth.uid() OR o.merchant_id = auth.uid())
+    )
+  );
+
+-- ==============================================================================
+-- 7) notifications — الإشعارات
+--    القراءة/التحديث (تعليم كمقروء): صاحب الإشعار فقط
+--    الإدخال: أي مستخدم مسجل — لأن النظام يُدرج إشعاراً للطرف الآخر
+--    (المشتري يُدرج إشعاراً للتاجر عند الطلب/التعديل)
+-- ==============================================================================
+CREATE POLICY "notifications_select" ON public.notifications
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+CREATE POLICY "notifications_update" ON public.notifications
+  FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "notifications_insert" ON public.notifications
+  FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+-- ==============================================================================
+-- 8) app_settings — إعدادات التطبيق (صف واحد)
+--    القراءة: للعموم (رقم الدعم يظهر في الطلبات)
+--    الكتابة: أدمن فقط
+-- ==============================================================================
+CREATE POLICY "app_settings_select" ON public.app_settings
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "app_settings_insert" ON public.app_settings
+  FOR INSERT TO authenticated
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') = 'admin');
+
+CREATE POLICY "app_settings_update" ON public.app_settings
+  FOR UPDATE TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') = 'admin')
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') = 'admin');
+
+-- ==============================================================================
+-- 9) banners + top_banners — الإعلانات
+--    القراءة: للعموم | الكتابة: أدمن فقط
+-- ==============================================================================
+CREATE POLICY "banners_select" ON public.banners
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "banners_admin_all" ON public.banners
+  FOR ALL TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') = 'admin')
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') = 'admin');
+
+CREATE POLICY "top_banners_select" ON public.top_banners
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "top_banners_admin_all" ON public.top_banners
+  FOR ALL TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') = 'admin')
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') = 'admin');
+
+-- ==============================================================================
+-- 10) ad_requests — طلبات الإعلان
+--     الإدخال: للعموم (نموذج الزوار دون تسجيل)
+--     الإدارة: أدمن/سابورت (عرض وحذف)
+-- ==============================================================================
+CREATE POLICY "ad_requests_insert" ON public.ad_requests
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "ad_requests_admin_all" ON public.ad_requests
+  FOR ALL TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'))
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
+
+-- ==============================================================================
+-- 11) merchant_billings — فواتير العمولة
+--     القراءة: التاجر لفواتيره + أدمن/سابورت للكل
+--     الإدارة (إصدار/تسديد): أدمن/سابورت
+-- ==============================================================================
+CREATE POLICY "merchant_billings_select" ON public.merchant_billings
+  FOR SELECT TO authenticated
+  USING (
+    merchant_id = auth.uid()
+    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+  );
+
+CREATE POLICY "merchant_billings_insert" ON public.merchant_billings
+  FOR INSERT TO authenticated
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
+
+CREATE POLICY "merchant_billings_update" ON public.merchant_billings
+  FOR UPDATE TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'))
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
+
+CREATE POLICY "merchant_billings_delete" ON public.merchant_billings
+  FOR DELETE TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
+
+-- ==============================================================================
+-- 12) audit_logs — سجل التدقيق
+--     القراءة: أدمن/سابورت
+--     الإدخال: يحدث عبر trigger نظامي (SECURITY DEFINER) — السياسة أدناه
+--     شبكة أمان إضافية فقط، والحذف/التحديث عبر service role فقط
+-- ==============================================================================
+CREATE POLICY "audit_logs_select" ON public.audit_logs
+  FOR SELECT TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
+
+CREATE POLICY "audit_logs_insert" ON public.audit_logs
+  FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+-- ==============================================================================
+-- 13) rewards_history — سجل المكافآت (RLS مفعّل سابقاً لكن بلا سياسة قراءة!
+--     كانت صفحة المكافآت ستُفرغ) — إضافة قراءة ذاتية
+-- ==============================================================================
+DROP POLICY IF EXISTS "rewards_history_select_self" ON public.rewards_history;
+CREATE POLICY "rewards_history_select_self" ON public.rewards_history
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+-- ==============================================================================
+-- 14) التفعيل النهائي — آخر خطوة عمداً
+--     (فإن فشل أي سياسة أعلاه يتوقف السكربت قبل هنا وتبقى الجداول بوضعها)
+-- ==============================================================================
+ALTER TABLE public.profiles         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cart_items       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.app_settings     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.banners          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.top_banners      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ad_requests      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.merchant_billings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs       ENABLE ROW LEVEL SECURITY;
+
+-- ==============================================================================
+-- 15) تحقق نهائي — يجب أن ترى كل الجداول rls_enabled = true مع عدد سياساتها
+-- ==============================================================================
+SELECT
+  c.relname AS table_name,
+  c.relrowsecurity AS rls_enabled,
+  COUNT(pol.polname) AS policies_count
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_policy pol ON pol.polrelid = c.oid
+WHERE n.nspname = 'public'
+  AND c.relname IN (
+    'profiles','products','cart_items','orders','order_items',
+    'notifications','app_settings','banners','top_banners',
+    'ad_requests','merchant_billings','audit_logs','rewards_history'
+  )
+GROUP BY c.relname, c.relrowsecurity
+ORDER BY c.relname;

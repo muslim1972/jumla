@@ -12,8 +12,13 @@ export async function GET(request: Request) {
     }
 
     // 2. Connect to Supabase using Service Role Key to bypass RLS and perform a real write
+    // أمان: لا نرجع للمفتاح العام anon إطلاقاً — الكتابة تحتاج service role
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY غير مضبوط — لا يمكن تشغيل keep-alive بأمان')
+      return NextResponse.json({ error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY missing' }, { status: 500 })
+    }
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // 3. Perform a WRITE operation (Insert into audit_logs) to guarantee Supabase counts it as activity
