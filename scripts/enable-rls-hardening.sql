@@ -1,27 +1,30 @@
 -- ==============================================================================
 -- سكربت التحصين الأمني الشامل — تفعيل RLS على كل الجداول المفتوحة
--- التاريخ: 2026-09-02
+-- التاريخ: 2026-09-02 — نسخة مُراجَعة ضد الصورة الحية للقاعدة
+-- (سُحبت الجداول والأعمدة والسياسات والقيود فعلياً عبر inspect-live-schema*.sql)
 -- المشروع: hslpavldgvlpkvqgogcc (جُملتي)
 --
 -- الاستراتيجية (ترتيب آمن عن عمد):
 --   1) إنشاء/تحديث دالة get_user_role أولاً (تعتمد عليها كل السياسات)
---   2) مسح كل السياسات القديمة المتضاربة على الجداول الـ12 (نظافة كاملة)
+--   2) مسح كل السياسات القديمة المتضاربة على الجداول الـ13 (نظافة كاملة)
 --   3) إنشاء السياسات الجديدة قبل تفعيل RLS
 --   4) تفعيل RLS أخيراً — فإن فشل أي خطوة سابقة تبقى الجداول بوضعها الحالي
 --      ولا ينكسر التطبيق
 --
--- الجداول المشمولة (كانت كلها UNRESTRICTED):
+-- الجداول المشمولة (كلها UNRESTRICTED أو بسياسات مفتوحة مؤكدة بالسحب الفعلي):
 --   profiles, products, cart_items, orders, order_items, notifications,
 --   app_settings, banners, top_banners, ad_requests, merchant_billings, audit_logs
--- بالإضافة: rewards_history (RLS مفعّل سابقاً لكن بلا سياسة قراءة — كانت صفحة المكافآت ستُفرغ)
+--   + rewards_history (RLS مفعّل سابقاً لكن سياسة allow_all مفتوحة على الكل!)
 --
--- ملاحظات أمنية:
---   - الجداول المحمية مسبقاً لا نلمسها: categories, wallets, wallet_transactions,
---     trusted_buyers (سياساتها سليمة)
---   - كل الكتابات النظامية تمر عبر دوال SECURITY DEFINER (audit_trigger_func,
---     handle_new_user, decrement_stock, get_next_invoice_number, charge_wallet...)
---     فهي تتجاوز RLS بطبيعتها ولن تتأثر
---   - عمليات الأدمن على حذف الحسابات أصبحت تمر عبر service role (تعديل كودي مرافق)
+-- جداول لا نلمسها (مؤكدة بالسحب الفعلي):
+--   - categories: RLS مفعّل بسياسات قراءة عامة وكتابة أدمن — سليمة وتعمل بعد التحصين
+--   - wallets, wallet_transactions: RLS مفعّل بسياسات ذاتية — سليمة
+--   - trusted_buyers: RLS مفعّل بلا سياسات عمداً — الكود يصلها حصرياً عبر
+--     service role (cart/page.tsx و features/credit/actions.ts)
+--
+-- كتابات نظامية تمر عبر دوال SECURITY DEFINER فتتجاوز RLS تلقائياً:
+--   audit_trigger_func, handle_new_user, decrement_stock,
+--   get_next_invoice_number, charge_wallet, add_reward_points
 -- ==============================================================================
 
 -- ==============================================================================
@@ -38,8 +41,10 @@ AS $$
 $$;
 
 -- ==============================================================================
--- 1) مسح شامل للسياسات القديمة على الجداول الـ12 (إزالة أي تعارض أو بقايا
---    سكربتات سابقة مثل "Support can view orders" وغيرها)
+-- 1) مسح شامل للسياسات القديمة على الجداول الـ13
+--    (مؤكد بالسحب الفعلي: orders فيها 3 سياسات قديمة بنمط EXISTS على profiles
+--     ستنكسر بعد تفعيل RLS على profiles إن بقيت — و rewards_history فيها
+--     allow_all المفتوحة على الكل — كلها تُمسح هنا)
 -- ==============================================================================
 DO $$
 DECLARE r record;
@@ -51,7 +56,7 @@ BEGIN
       AND tablename IN (
         'profiles','products','cart_items','orders','order_items',
         'notifications','app_settings','banners','top_banners',
-        'ad_requests','merchant_billings','audit_logs'
+        'ad_requests','merchant_billings','audit_logs','rewards_history'
       )
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
@@ -61,9 +66,9 @@ END $$;
 -- ==============================================================================
 -- 2) profiles — البروفايلات
 --    القراءة: التجار للعموم (الرئيسية والمتجر)، الشخص لنفسه، الإدارة والتوصيل للكل
---    التحديث: الشخص لنفسه + أدمن/سابورت
 --    الإدخال: عبر trigger نظامي (handle_new_user) — لا يحتاج سياسة
 --    الحذف: عبر service role فقط (حذف الحساب) — لا يحتاج سياسة
+--    التحديث: مقسوم سياساتين (انظر أدناه)
 -- ==============================================================================
 CREATE POLICY "profiles_select" ON public.profiles
   FOR SELECT TO anon, authenticated
@@ -73,16 +78,23 @@ CREATE POLICY "profiles_select" ON public.profiles
     OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support','delivery')
   );
 
-CREATE POLICY "profiles_update" ON public.profiles
+-- تحديث النفس: مع تثبيت عمود role — يمنع أي مستخدم من ترقية نفسه إلى admin
+-- (القاعدة الحية بها أكواد تحديث ذاتي للاسم/العنوان/الهاتف/أجور التوصيل — كلها
+--  لا تمس role فتُقبل؛ أما محاولة تغيير role فترفض هنا)
+CREATE POLICY "profiles_update_self" ON public.profiles
   FOR UPDATE TO authenticated
-  USING (
-    id = auth.uid()
-    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
-  )
+  USING (id = auth.uid())
   WITH CHECK (
     id = auth.uid()
-    OR COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support')
+    AND public.get_user_role(id) IS NOT DISTINCT FROM role
   );
+
+-- تحديث الآخرين: أدمن/سابورت بحرية كاملة (لوحة الأدمن تغيّر role فعلاً
+-- والسابورت يعدّل store_name/phone/address فقط — كلاهما مغطى هنا)
+CREATE POLICY "profiles_update_admin" ON public.profiles
+  FOR UPDATE TO authenticated
+  USING (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'))
+  WITH CHECK (COALESCE(public.get_user_role(auth.uid()), '') IN ('admin','support'));
 
 -- ==============================================================================
 -- 3) products — المنتجات
@@ -118,7 +130,7 @@ CREATE POLICY "products_delete" ON public.products
 
 -- ==============================================================================
 -- 4) cart_items — عناصر السلة
---    CRUD ذاتي للمشتري + التاجر يمكنه حذف عناصر سلة منتجاته
+--    CRUD ذاتي للمشتري + التاجر يمكنه حذف عناصر السلة لمنتجاته
 --    (عند حذف منتج يُنظّف التاجر عناصر السلة المرتبطة به)
 -- ==============================================================================
 CREATE POLICY "cart_items_select" ON public.cart_items
@@ -148,7 +160,7 @@ CREATE POLICY "cart_items_delete" ON public.cart_items
 -- ==============================================================================
 -- 5) orders — الطلبات
 --    القراءة: المشتري، التاجر، عامل التوصيل المعيّن، أي delivery، أدمن/سابورت
---    الإنشاء: المشتري لنفسه (+ أدمن)
+--    الإنشاء: المشتري لنفسه (+ أدمن/سابورت)
 --    التحديث: المشتري (تعديل/أرشفة)، التاجر (قبول/رفض)، التوصيل (تسليم)، أدمن/سابورت
 --    الحذف: المشتري لنفسه + أدمن/سابورت
 --    ملاحظة: حذف الطلب يحذف عناصره تلقائياً (ON DELETE CASCADE — يتجاوز RLS)
@@ -192,7 +204,7 @@ CREATE POLICY "orders_delete" ON public.orders
   );
 
 -- ==============================================================================
--- 6) order_items — عناصر الطلب (يرتبط بالطلب الأب عبر order_id)
+-- 6) order_items — عناصر الطلب (ترتبط بالطلب الأب عبر order_id — لا merchant_id هنا)
 -- ==============================================================================
 CREATE POLICY "order_items_select" ON public.order_items
   FOR SELECT TO authenticated
@@ -251,9 +263,9 @@ CREATE POLICY "notifications_insert" ON public.notifications
   WITH CHECK (true);
 
 -- ==============================================================================
--- 8) app_settings — إعدادات التطبيق (صف واحد)
+-- 8) app_settings — إعدادات التطبيق
 --    القراءة: للعموم (رقم الدعم يظهر في الطلبات)
---    الكتابة: أدمن فقط
+--    الكتابة: أدمن فقط (upsert)
 -- ==============================================================================
 CREATE POLICY "app_settings_select" ON public.app_settings
   FOR SELECT TO anon, authenticated
@@ -292,7 +304,7 @@ CREATE POLICY "top_banners_admin_all" ON public.top_banners
 
 -- ==============================================================================
 -- 10) ad_requests — طلبات الإعلان
---     الإدخال: للعموم (نموذج الزوار دون تسجيل)
+--     الإدخال: للعموم (نموذج الزوار دون تسجيل — مؤكد في top-announcement-bar)
 --     الإدارة: أدمن/سابورت (عرض وحذف)
 -- ==============================================================================
 CREATE POLICY "ad_requests_insert" ON public.ad_requests
@@ -332,8 +344,8 @@ CREATE POLICY "merchant_billings_delete" ON public.merchant_billings
 -- ==============================================================================
 -- 12) audit_logs — سجل التدقيق
 --     القراءة: أدمن/سابورت
---     الإدخال: يحدث عبر trigger نظامي (SECURITY DEFINER) — السياسة أدناه
---     شبكة أمان إضافية فقط، والحذف/التحديث عبر service role فقط
+--     الإدخال: يحدث فعلياً عبر trigger نظامي (SECURITY DEFINER) — سياسة الإدخال
+--     أدناه شبكة أمان فقط، والحذف/التحديث عبر service role فقط
 -- ==============================================================================
 CREATE POLICY "audit_logs_select" ON public.audit_logs
   FOR SELECT TO authenticated
@@ -344,10 +356,12 @@ CREATE POLICY "audit_logs_insert" ON public.audit_logs
   WITH CHECK (true);
 
 -- ==============================================================================
--- 13) rewards_history — سجل المكافآت (RLS مفعّل سابقاً لكن بلا سياسة قراءة!
---     كانت صفحة المكافآت ستُفرغ) — إضافة قراءة ذاتية
+-- 13) rewards_history — سجل المكافآت
+--     الحالة الحية: RLS مفعّل لكن سياسة allow_all مفتوحة على الكل (قراءة وكتابة
+--     لكل المستخدمين) — تُمسح أعلاه وتُستبدل بقراءة ذاتية فقط.
+--     الكتابة الفعلية للنقاط عبر دالة add_reward_points الذرّية (تتجاوز RLS)
+--     والقراءة في الكود ذاتية دائماً (getUserRewards)
 -- ==============================================================================
-DROP POLICY IF EXISTS "rewards_history_select_self" ON public.rewards_history;
 CREATE POLICY "rewards_history_select_self" ON public.rewards_history
   FOR SELECT TO authenticated
   USING (user_id = auth.uid());
@@ -368,6 +382,7 @@ ALTER TABLE public.top_banners      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_requests      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.merchant_billings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rewards_history  ENABLE ROW LEVEL SECURITY;
 
 -- ==============================================================================
 -- 15) تحقق نهائي — يجب أن ترى كل الجداول rls_enabled = true مع عدد سياساتها
