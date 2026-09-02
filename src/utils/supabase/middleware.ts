@@ -35,7 +35,8 @@ export async function updateSession(request: NextRequest) {
   const isAdminPath = pathname.startsWith("/admin")
   const isSupportPath = pathname.startsWith("/support")
   const isMerchantPath = pathname.startsWith("/dashboard")
-  const isProtectedPath = isAdminPath || isSupportPath || isMerchantPath
+  const isMaterialsPath = pathname.startsWith("/materials")
+  const isProtectedPath = isAdminPath || isSupportPath || isMerchantPath || isMaterialsPath
 
   // Protected routes logic: redirect to login when unauthenticated
   if (!user && isProtectedPath) {
@@ -56,7 +57,8 @@ export async function updateSession(request: NextRequest) {
     const unauthorized =
       (isMerchantPath && role !== 'merchant') ||
       (isAdminPath && role !== 'admin') ||
-      (isSupportPath && role !== 'support' && role !== 'admin')
+      (isSupportPath && role !== 'support' && role !== 'admin') ||
+      (isMaterialsPath && role !== 'materials' && role !== 'admin')
 
     if (unauthorized) {
       const url = request.nextUrl.clone()

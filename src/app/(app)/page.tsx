@@ -55,6 +55,9 @@ export default async function Home() {
   if (userRole === "merchant") {
     return redirect("/dashboard")
   }
+  if (userRole === "materials") {
+    return redirect("/materials")
+  }
 
   const rawProducts = (productsResponse.data as any) || []
   // لا نبتلع الأخطاء بصمت بعد الآن — تظهر في سجلات Vercel للتشخيص

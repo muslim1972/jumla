@@ -232,6 +232,172 @@ export async function editProductWithUnits(formData: FormData) {
   return { success: true }
 }
 
+// ربط التاجر بمادة من الكتالوج المركزي: يحدد أسعاره لكل وحدة ومخزونه فقط
+export async function linkMasterProduct(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Unauthorized" }
+
+  const master_product_id = formData.get("master_product_id") as string
+  const unitsJson = formData.get("units") as string
+  const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
+  const stock_unit = formData.get("stock_unit") as string || ""
+  const min_stock_alert = parseInt(formData.get("min_stock_alert") as string || "0", 10)
+
+  if (!master_product_id) {
+    return { success: false, error: "لم يتم تحديد المادة" }
+  }
+
+  let units: { type: string, price: number }[] = []
+  try {
+    units = JSON.parse(unitsJson)
+  } catch (e) {
+    return { success: false, error: "Invalid json data" }
+  }
+
+  if (units.length === 0) {
+    return { success: false, error: "يجب إدخال سعر وحدة واحدة على الأقل" }
+  }
+
+  // جلب المادة المركزية
+  const { data: master, error: masterError } = await supabase
+    .from('master_products')
+    .select('*')
+    .eq('id', master_product_id)
+    .single()
+
+  if (masterError || !master) {
+    return { success: false, error: "المادة غير موجودة في الكتالوج المركزي" }
+  }
+
+  // منع الربط المكرر لنفس المادة لدى نفس التاجر
+  const { count } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .eq('merchant_id', user.id)
+    .eq('master_product_id', master_product_id)
+
+  if (count && count > 0) {
+    return { success: false, error: "هذه المادة مضافة مسبقاً لمتجرك" }
+  }
+
+  const masterUnits: { type: string, multiplier_to_base: number }[] = master.units || []
+  const masterUnitTypes = masterUnits.map(u => u.type)
+
+  for (const u of units) {
+    if (!masterUnitTypes.includes(u.type)) {
+      return { success: false, error: `الوحدة «${u.type}» غير متاحة لهذه المادة` }
+    }
+    if (!u.price || u.price <= 0) {
+      return { success: false, error: `أدخل سعراً صحيحاً للوحدة «${u.type}»` }
+    }
+  }
+
+  // بناء وحدات التاجر بأخذ مضاعفات التحويل من سجل المركز
+  const enrichedUnits = units.map(u => ({
+    type: u.type,
+    price: u.price,
+    multiplier_to_base: masterUnits.find(mu => mu.type === u.type)?.multiplier_to_base ?? 1
+  }))
+
+  const conversions = master.unit_conversions || []
+  const baseStockQuantity = getBaseStockQuantity(stock_quantity, stock_unit, conversions)
+
+  const { error } = await supabase.from('products').insert({
+    merchant_id: user.id,
+    master_product_id,
+    name: master.name,
+    description: master.description,
+    image_url: master.image_url,
+    category_id: master.category_id,
+    price: enrichedUnits[0].price,
+    unit_type: enrichedUnits[0].type,
+    units: enrichedUnits,
+    stock_quantity: baseStockQuantity,
+    stock_unit: stock_unit,
+    min_stock_alert: min_stock_alert,
+    unit_conversions: conversions
+  })
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/")
+  return { success: true }
+}
+
+// تعديل أسعار ومخزون منتج مرتبط بالكتالوج المركزي فقط (بدون لمس بيانات المادة الأساسية)
+export async function editLinkedProductPricing(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Unauthorized" }
+
+  const id = formData.get("id") as string
+  const unitsJson = formData.get("units") as string
+  const stock_quantity = parseInt(formData.get("stock_quantity") as string || "0", 10)
+  const stock_unit = formData.get("stock_unit") as string || ""
+  const min_stock_alert = parseInt(formData.get("min_stock_alert") as string || "0", 10)
+
+  if (!id) return { success: false, error: "معرّف المنتج مفقود" }
+
+  let units: { type: string, price: number }[] = []
+  try {
+    units = JSON.parse(unitsJson)
+  } catch (e) {
+    return { success: false, error: "Invalid json data" }
+  }
+
+  if (units.length === 0) {
+    return { success: false, error: "يجب إدخال سعر وحدة واحدة على الأقل" }
+  }
+
+  for (const u of units) {
+    if (!u.price || u.price <= 0) {
+      return { success: false, error: `أدخل سعراً صحيحاً للوحدة «${u.type}»` }
+    }
+  }
+
+  // جلب وحدات المنتج الحالية لأخذ المضاعفات (المصدر: سجل المركز وقت الربط)
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('units, unit_conversions')
+    .eq('id', id)
+    .eq('merchant_id', user.id)
+    .single()
+
+  if (productError || !product) {
+    return { success: false, error: "المنتج غير موجود" }
+  }
+
+  const existingUnits: { type: string, multiplier_to_base: number }[] = product.units || []
+  const enrichedUnits = units.map(u => ({
+    type: u.type,
+    price: u.price,
+    multiplier_to_base: existingUnits.find(eu => eu.type === u.type)?.multiplier_to_base ?? 1
+  }))
+
+  const baseStockQuantity = getBaseStockQuantity(stock_quantity, stock_unit, product.unit_conversions || [])
+
+  const { error } = await supabase
+    .from('products')
+    .update({
+      units: enrichedUnits,
+      price: enrichedUnits[0].price,
+      unit_type: enrichedUnits[0].type,
+      stock_quantity: baseStockQuantity,
+      stock_unit: stock_unit,
+      min_stock_alert: min_stock_alert
+    })
+    .eq('id', id)
+    .eq('merchant_id', user.id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath("/dashboard")
+  revalidatePath("/")
+  return { success: true }
+}
+
 export async function deleteProductAction(id: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

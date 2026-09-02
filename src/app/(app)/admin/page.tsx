@@ -938,6 +938,7 @@ export default function AdminPage() {
                           <option value="admin">مدير نظام (Admin)</option>
                           <option value="support">موظف دعم (Support)</option>
                           <option value="delivery">مندوب توصيل (Delivery)</option>
+                          <option value="materials">إدارة المواد (Materials)</option>
                         </select>
                       </td>
                       <td className="p-3 text-center flex items-center justify-center gap-2">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition } from "react"
-import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun, Wallet } from "lucide-react"
+import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun, Wallet, PackagePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTheme } from "next-themes"
@@ -143,6 +143,22 @@ export function FloatingAppMenu({
             </span>
             <div className="bg-brand-orange/20 p-1 rounded-full text-brand-orange shrink-0">
               <UserCheck className="w-4 h-4" />
+            </div>
+          </Link>
+        )}
+
+        {userRole === 'materials' && (
+          <Link
+            href="/materials"
+            onClick={() => setOpenMenu(null)}
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-muted transition-colors group"
+            title="إدارة المواد"
+          >
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black">إدارة المواد</span>
+            </span>
+            <div className="bg-brand-blue/20 p-1 rounded-full text-brand-blue shrink-0">
+              <PackagePlus className="w-4 h-4" />
             </div>
           </Link>
         )}

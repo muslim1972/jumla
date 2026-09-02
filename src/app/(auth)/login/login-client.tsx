@@ -15,7 +15,8 @@ const roleLabels: Record<string, { label: string, color: string }> = {
   "merchant": { label: "حساب تاجر", color: "bg-emerald-100 text-emerald-700" },
   "delivery": { label: "حساب مندوب", color: "bg-amber-100 text-amber-700" },
   "support": { label: "موظف دعم", color: "bg-purple-100 text-purple-700" },
-  "admin": { label: "مدير النظام", color: "bg-red-100 text-red-700" }
+  "admin": { label: "مدير النظام", color: "bg-red-100 text-red-700" },
+  "materials": { label: "إدارة المواد", color: "bg-cyan-100 text-cyan-700" }
 }
 
 export function LoginClient({ message }: { message?: string }) {

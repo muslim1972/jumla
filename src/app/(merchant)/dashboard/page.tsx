@@ -9,14 +9,14 @@ import Image from "next/image"
 import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
 import { AlertCircle, TrendingUp, PackageX, DollarSign, Target, Award, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { AddProductForm } from "@/features/merchant/components/add-product-form"
+import { MasterCatalogLinker } from "@/features/merchant/components/master-catalog-linker"
 import { MerchantProductsList } from "@/features/merchant/components/merchant-products-list"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [profileResponse, productsResponse, ordersResponse, categoriesResponse] = await Promise.all([
+  const [profileResponse, productsResponse, ordersResponse, categoriesResponse, masterResponse] = await Promise.all([
     supabase
       .from('profiles')
       .select('delivery_fee, support_phone')
@@ -34,11 +34,23 @@ export default async function DashboardPage() {
       .eq('merchant_id', user?.id)
       .in('status', ['delivered', 'completed']),
     supabase.from('categories').select('id, name'),
+    // الكتالوج المركزي للمواد
+    supabase
+      .from('master_products')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
   const { data: profile } = profileResponse
   const { data: products } = productsResponse
   const { data: orders } = ordersResponse
+  const { data: masterProducts } = masterResponse
+
+  // المواد المرتبطة مسبقاً بمتجر التاجر
+  const linkedIds = (products || [])
+    .map((p: any) => p.master_product_id)
+    .filter(Boolean)
 
   // Analytics calculation
   const now = new Date()
@@ -96,7 +108,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <AddProductForm disabled={!isProfileComplete} categories={categories} />
+          <MasterCatalogLinker masterProducts={masterProducts || []} linkedIds={linkedIds} disabled={!isProfileComplete} />
         </div>
 
         {/* Dashboard Content */}

@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { editProductWithUnits, deleteProductAction } from "@/app/(merchant)/dashboard/actions"
-import { Plus, X, Loader2, Edit, Trash2, CheckCircle2, Circle, AlertCircle } from "lucide-react"
+import { editProductWithUnits, editLinkedProductPricing, deleteProductAction } from "@/app/(merchant)/dashboard/actions"
+import { Plus, X, Loader2, Edit, Trash2, CheckCircle2, Circle, AlertCircle, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Unit = { type: string, price: number }
@@ -24,6 +24,170 @@ type Conversion = {
 const UNIT_OPTIONS = [
   "كارتون", "تكة", "باكيت", "درزن", "نصف درزن", "مفرد", "كيلو", "كيس", "علبة"
 ]
+
+// نموذج تعديل المنتج المرتبط بالكتالوج المركزي: أسعار ومخزون فقط
+function LinkedPricingForm({ product, onClose }: { product: any, onClose: () => void }) {
+  const stockMultiplier0 = product.units?.find((u: any) => u.type === (product.stock_unit || "كارتون"))?.multiplier_to_base || 1
+  const initialQty = product.stock_quantity !== undefined && product.stock_quantity !== 0
+    ? Math.floor(product.stock_quantity / stockMultiplier0)
+    : "0"
+
+  const [units, setUnits] = useState<Unit[]>(product.units || [])
+  const [stockQuantity, setStockQuantity] = useState(String(initialQty))
+  const [stockUnit, setStockUnit] = useState(product.stock_unit || "كارتون")
+  const [minStockAlert, setMinStockAlert] = useState(String(product.min_stock_alert || "0"))
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
+
+  const handlePriceChange = (type: string, value: string) => {
+    setUnits(units.map(u => u.type === type ? { ...u, price: parseFloat(value) || 0 } : u))
+  }
+
+  const handleRemoveUnit = (type: string) => {
+    if (units.length <= 1) {
+      setError("يجب إبقاء وحدة واحدة على الأقل مع سعرها")
+      return
+    }
+    if (type === stockUnit && units.length > 1) {
+      setStockUnit(units.find(u => u.type !== type)?.type || "كارتون")
+    }
+    setUnits(units.filter(u => u.type !== type))
+    setError("")
+  }
+
+  const handleSubmit = async () => {
+    if (units.length === 0) {
+      setError("يجب إبقاء وحدة واحدة على الأقل مع سعرها")
+      return
+    }
+    for (const u of units) {
+      if (!u.price || u.price <= 0) {
+        setError(`أدخل سعراً صحيحاً للوحدة «${u.type}»`)
+        return
+      }
+    }
+
+    setIsSubmitting(true)
+    setError("")
+
+    const formData = new FormData()
+    formData.append("id", product.id)
+    formData.append("units", JSON.stringify(units))
+    formData.append("stock_quantity", stockQuantity || "0")
+    formData.append("stock_unit", stockUnit || "")
+    formData.append("min_stock_alert", minStockAlert || "0")
+
+    const result = await editLinkedProductPricing(formData)
+    setIsSubmitting(false)
+
+    if (!result?.success) {
+      setError(result?.error || "حدث خطأ أثناء التعديل")
+    } else {
+      onClose()
+    }
+  }
+
+  return (
+    <div className="space-y-4 pt-4">
+      {/* بيانات المادة الأساسية — للقراءة فقط */}
+      <div className="flex gap-3 p-3 bg-muted/30 border border-dashed rounded-lg">
+        {product.image_url && (
+          <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-md object-contain border bg-background shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm truncate">{product.name}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{product.description || "لا يوجد وصف"}</p>
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1.5">
+            <Lock className="w-3 h-3 shrink-0" />
+            بيانات المادة تُدار مركزياً وتُحدَّث تلقائياً من إدارة التطبيق
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Label>أسعارك لكل وحدة</Label>
+        <div className="flex flex-col gap-2 p-3 bg-muted/30 border rounded-lg">
+          {units.map((unit, index) => (
+            <div key={index} className="flex items-center gap-2 bg-background p-2 rounded-md border">
+              <span className="bg-secondary/50 text-secondary-foreground px-2 py-1 rounded text-xs font-bold min-w-[70px] text-center border shrink-0">
+                {unit.type}
+              </span>
+              <Input
+                type="number"
+                min="0"
+                value={unit.price || ""}
+                onChange={(e) => handlePriceChange(unit.type, e.target.value)}
+                dir="ltr"
+                className="h-9 text-right flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                onClick={() => handleRemoveUnit(unit.type)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            الوحدات وعلاقات التحويل محددة من إدارة التطبيق — أنت تحدد أسعارك ومخزونك فقط.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <div className="space-y-1.5 flex-1">
+          <Label className="text-xs">الكمية المتوفرة في المخزن</Label>
+          <Input
+            type="number"
+            min="0"
+            value={stockQuantity}
+            onChange={(e) => setStockQuantity(e.target.value.replace(/^0+(?=\d)/, ''))}
+            dir="ltr"
+            className="h-9 text-right"
+          />
+        </div>
+        <div className="space-y-1.5 w-[110px]">
+          <Label className="text-xs">وحدة المخزون</Label>
+          <Select value={stockUnit} onValueChange={(val) => setStockUnit(val || "كارتون")}>
+            <SelectTrigger dir="rtl" className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent dir="rtl">
+              {units.map(u => (
+                <SelectItem key={u.type} value={u.type}>{u.type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">أقل كمية لإصدار تنبيه نفاد المخزون (اختياري)</Label>
+        <Input
+          type="number"
+          min="0"
+          value={minStockAlert}
+          onChange={(e) => setMinStockAlert(e.target.value)}
+          dir="ltr"
+          className="h-9 text-right sm:w-[200px]"
+        />
+      </div>
+
+      {error && (
+        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+        </div>
+      )}
+
+      <Button type="button" onClick={handleSubmit} className="w-full bg-brand-orange hover:bg-brand-orange/90" disabled={isSubmitting}>
+        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "حفظ التعديلات"}
+      </Button>
+    </div>
+  )
+}
 
 export function EditProductModal({ product, categories = [] }: { product: any, categories?: {id: string, name: string}[] }) {
   const [open, setOpen] = useState(false)
@@ -219,8 +383,13 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
     }
   }
 
+  const isLinked = !!product.master_product_id
+
   const handleDelete = async () => {
-    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return
+    const message = isLinked
+      ? "هل أنت متأكد من إلغاء ربط هذه المادة بمتجرك؟ ستُحذف من متجرك ولن يراها المشترون، وسجلها في الكتالوج المركزي يبقى محفوظاً."
+      : "هل أنت متأكد من حذف هذا المنتج؟"
+    if (!confirm(message)) return
     setIsDeleting(true)
     const result = await deleteProductAction(product.id)
     if (!result?.success) {
@@ -243,7 +412,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
           disabled={isDeleting}
           className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4"
         >
-          {isDeleting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> حذف</>}
+          {isDeleting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> {isLinked ? "إلغاء الربط" : "حذف"}</>}
         </Button>
       </div>
 
@@ -252,6 +421,9 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
           <DialogTitle className="text-right">تعديل المنتج</DialogTitle>
         </DialogHeader>
 
+        {product.master_product_id ? (
+          <LinkedPricingForm product={product} onClose={() => setOpen(false)} />
+        ) : (
         <form action={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label htmlFor="edit-name">اسم المادة</Label>
@@ -476,6 +648,7 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
             {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "حفظ التعديلات"}
           </Button>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   )
