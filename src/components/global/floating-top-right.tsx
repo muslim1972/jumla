@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { FloatingContactButton } from "@/components/global/floating-contact-button"
 import { FloatingAppMenu } from "@/components/global/floating-app-menu"
+import { NotificationCenter } from "@/components/global/notification-center"
 
 // تحميل المودال الثقيل ديناميكياً (يُعرض عبر Portal — بدون إزاحة في التخطيط)
 const UserProfileModal = dynamic(
@@ -52,6 +53,9 @@ export function FloatingTopRight({
             </span>
           </button>
         </div>
+
+        {/* جرس الإشعارات الموحد (يظهر في كل الحسابات) */}
+        <NotificationCenter />
 
         <FloatingContactButton settings={settings} />
         <FloatingAppMenu userRole={userRole} fullName={fullName} cartCount={cartCount} />

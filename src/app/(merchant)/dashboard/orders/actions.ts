@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { supabaseAdmin } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { sendNotificationToUser, sendNotificationToRole } from "@/utils/onesignal"
 
@@ -97,6 +98,13 @@ export async function approveOrder(orderId: string) {
       "طلب جديد جاهز للتوصيل!",
       `هناك طلب جديد برقم #${order.invoice_number} بانتظار التوصيل.`
     )
+
+    // كتابة الإشعار في جرس المشتري
+    await supabaseAdmin.from("notifications").insert({
+      user_id: order.user_id,
+      title: "تم تجهيز طلبك!",
+      message: `تم تجهيز فاتورتك رقم #${order.invoice_number} من قبل التاجر وهي بانتظار المندوب.`,
+    })
   }
 
   revalidatePath("/dashboard/orders")
@@ -137,6 +145,13 @@ export async function rejectOrder(orderId: string) {
       "نعتذر، تم رفض طلبك",
       `تم رفض فاتورتك رقم #${order.invoice_number} من قبل التاجر.`
     )
+
+    // كتابة الإشعار في جرس المشتري
+    await supabaseAdmin.from("notifications").insert({
+      user_id: order.user_id,
+      title: "نعتذر، تم رفض طلبك",
+      message: `تم رفض فاتورتك رقم #${order.invoice_number} من قبل التاجر.`,
+    })
   }
 
   revalidatePath("/dashboard/orders")

@@ -426,6 +426,13 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
 
+  // المبلغ المطلوب تحصيله وحالة ثقة المشتري (حقلا المستلم/الباقي)
+  const requiredAmount = order.amount_paid ?? order.total_rounded
+  const buyerIsTrusted = !!order.buyer_is_trusted
+  const [amountReceived, setAmountReceived] = useState<string>(String(initialOrder.amount_paid ?? initialOrder.total_rounded ?? 0))
+  const receivedNum = parseFloat(amountReceived) || 0
+  const remainingAmount = Math.max(0, requiredAmount - receivedNum)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (secretCode.length !== 7) {
@@ -433,15 +440,22 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
       return
     }
 
+    // غير مشتري الثقة: يُستلم كامل المبلغ إجبارياً (يُفرض خادمياً أيضاً)
+    const finalAmount = buyerIsTrusted ? receivedNum : requiredAmount
+    if (buyerIsTrusted && (receivedNum < 0 || receivedNum > requiredAmount)) {
+      setErrorMsg("المبلغ المستلم غير صالح — يجب أن يكون بين صفر والمبلغ المطلوب")
+      return
+    }
+
     setIsSubmitting(true)
     setErrorMsg("")
-    const result = await confirmDelivery(order.id, secretCode)
+    const result = await confirmDelivery(order.id, secretCode, finalAmount)
     setIsSubmitting(false)
 
     if (result.error) {
       setErrorMsg(result.error)
     } else {
-      setOrder({ ...order, status: "delivered", delivered_at: new Date().toISOString() })
+      setOrder({ ...order, status: "delivered", delivered_at: new Date().toISOString(), amount_received: finalAmount })
     }
   }
 
@@ -516,6 +530,18 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
         </div>
         <div className="text-left shrink-0">
           <div className="flex flex-col items-end">
+            {/* تاريخ إصدار القائمة */}
+            {order.created_at && (
+              <div className="text-[10px] font-bold text-brand-blue dark:text-foreground bg-muted/60 px-2 py-0.5 rounded-full flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3 text-brand-orange" />
+                <span>
+                  {new Date(order.created_at).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+                <span className="text-muted-foreground">
+                  - {new Date(order.created_at).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
             <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
               المبلغ المطلوب تحصيله:
             </div>
@@ -595,6 +621,46 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
                 )}
               </div>
 
+              {/* حقلا المبلغ المستلم والمبلغ الباقي — يُفعّلان لمشتريي قائمة الثقات فقط */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-brand-blue dark:text-foreground flex items-center gap-1.5 flex-wrap">
+                    المبلغ المستلم (د.ع)
+                    {buyerIsTrusted ? (
+                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">مشتري موثوق</span>
+                    ) : (
+                      <span className="text-[9px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">كامل المبلغ إجباري</span>
+                    )}
+                  </label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={requiredAmount}
+                    value={buyerIsTrusted ? amountReceived : String(requiredAmount)}
+                    onChange={(e) => setAmountReceived(e.target.value)}
+                    disabled={isSubmitting || !buyerIsTrusted}
+                    className="font-bold text-center tabular-nums h-11"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-brand-blue dark:text-foreground">المبلغ الباقي (د.ع)</label>
+                  <div className={cn(
+                    "h-11 rounded-md border flex items-center justify-center font-black tabular-nums text-base",
+                    remainingAmount > 0
+                      ? "text-red-600 bg-red-500/10 border-red-500/30"
+                      : "text-emerald-600 bg-emerald-500/10 border-emerald-500/30"
+                  )}>
+                    {remainingAmount.toLocaleString('en-US')}
+                  </div>
+                </div>
+              </div>
+              {!buyerIsTrusted && (
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  هذا المشتري ليس ضمن قائمة الثقات لدى التاجر — يجب استلام كامل المبلغ لتثبيت التسليم.
+                </p>
+              )}
+
               <Button 
                 type="submit" 
                 className="w-full h-12 text-base font-bold bg-brand-orange hover:bg-brand-orange/90 text-white"
@@ -619,6 +685,17 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               <p className={`text-xs ${isSettlementMode ? 'text-red-600 dark:text-red-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
                 {isSettlementMode ? 'تم توصيلها للعميل بانتظار استلام التاجر للمبلغ.' : 'تم إكمال الطلب بنجاح.'}
               </p>
+              {/* المبلغ المستلم من المشتري والباقي (إن وجد) */}
+              {typeof order.amount_received === 'number' && (
+                <div className="text-xs font-bold text-brand-blue dark:text-foreground">
+                  المبلغ المستلم: {order.amount_received.toLocaleString('en-US')} د.ع
+                  {(order.amount_paid ?? order.total_rounded) - order.amount_received > 0 && (
+                    <span className="text-red-600 dark:text-red-400">
+                      {' '}— الباقي: {((order.amount_paid ?? order.total_rounded) - order.amount_received).toLocaleString('en-US')} د.ع
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

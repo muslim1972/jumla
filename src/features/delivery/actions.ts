@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { supabaseAdmin } from "@/utils/supabase/admin"
 import { sendNotificationToUser } from "@/utils/onesignal"
 import { addPoints } from "@/app/(app)/rewards/actions"
 import { revalidatePath } from "next/cache"
@@ -102,6 +103,9 @@ export async function getMerchantPendingOrders(merchantId: string) {
       total_rounded,
       is_credit,
       amount_paid,
+      amount_received,
+      latitude,
+      longitude,
       status,
       created_at,
       invoice_number,
@@ -123,6 +127,20 @@ export async function getMerchantPendingOrders(merchantId: string) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  // تحديد مشتريي الثقة لدى التاجر (يُسمح لهم بالدفع الجزئي عند التسليم)
+  // trusted_buyers بلا سياسات RLS عمداً — يُصل إليها حصرياً عبر supabaseAdmin
+  if (orders && orders.length > 0) {
+    const { data: trusted } = await supabaseAdmin
+      .from("trusted_buyers")
+      .select("buyer_id")
+      .eq("merchant_id", merchantId)
+
+    const trustedSet = new Set((trusted || []).map((t: any) => t.buyer_id))
+    orders.forEach((o: any) => {
+      o.buyer_is_trusted = trustedSet.has(o.user_id)
+    })
   }
 
   // Fetch coordinates for buyers
@@ -153,7 +171,8 @@ export async function getMerchantPendingOrders(merchantId: string) {
 }
 
 // 3. تأكيد الكود السري وتسليم الطلب
-export async function confirmDelivery(orderId: string, secretCode: string) {
+// amountReceived: المبلغ المستلم فعلياً من المشتري (يُحتسب كاملاً إجبارياً لغير مشتريي الثقة)
+export async function confirmDelivery(orderId: string, secretCode: string, amountReceived?: number) {
   const supabase = await createClient()
 
   const { data: userResponse, error: authError } = await supabase.auth.getUser()
@@ -181,7 +200,7 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
   // جلب الطلب للتحقق من الكود
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, verification_code, status, merchant_id, user_id, invoice_number")
+    .select("id, verification_code, status, merchant_id, user_id, invoice_number, is_credit, amount_paid, total_rounded")
     .eq("id", orderId)
     .single()
 
@@ -197,6 +216,25 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
     return { error: "الكود السري غير صحيح، يرجى التأكد من المشتري" }
   }
 
+  // المبلغ المطلوب تحصيله من المشتري
+  const requiredAmount = order.amount_paid ?? order.total_rounded
+
+  // التحقق الخادمي من قائمة الثقات — لا نثق بقيم العميل
+  // trusted_buyers بلا سياسات RLS عمداً — يُصل إليها حصرياً عبر supabaseAdmin
+  const { data: trustedRow } = await supabaseAdmin
+    .from("trusted_buyers")
+    .select("buyer_id")
+    .eq("merchant_id", order.merchant_id)
+    .eq("buyer_id", order.user_id)
+    .maybeSingle()
+
+  const isTrusted = !!trustedRow
+
+  // مشتري الثقة يدفع جزئياً ما استلم المندوب؛ وغيره يجب أن يُستلم منه كامل المبلغ
+  const finalReceived = isTrusted && typeof amountReceived === "number" && amountReceived >= 0
+    ? Math.min(amountReceived, requiredAmount)
+    : requiredAmount
+
   // تحديث حالة الطلب
   const { error: updateError } = await supabase
     .from("orders")
@@ -204,7 +242,8 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
       status: "delivered",
       delivered_at: new Date().toISOString(),
       delivery_worker_id: userId,
-      delivery_worker_name: deliveryName
+      delivery_worker_name: deliveryName,
+      amount_received: finalReceived
     })
     .eq("id", orderId)
 
@@ -245,6 +284,21 @@ export async function confirmDelivery(orderId: string, secretCode: string) {
         `مكافأة استلام طلب رقم #${order.invoice_number}`
       )
     ])
+
+    // كتابة الإشعارات في الجرس (التاجر والمشتري)
+    const remaining = requiredAmount - finalReceived
+    await supabaseAdmin.from("notifications").insert([
+      {
+        user_id: order.merchant_id,
+        title: "تم التوصيل!",
+        message: `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري. المستلم: ${finalReceived.toLocaleString('en-US')} د.ع${remaining > 0 ? ` — الباقي: ${remaining.toLocaleString('en-US')} د.ع بانتظار التسديد.` : " — المبلغ كامل."}`,
+      },
+      {
+        user_id: order.user_id,
+        title: "تم التوصيل بنجاح!",
+        message: `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!`,
+      }
+    ])
   } catch (notifError) {
     console.error("Error sending delivery notifications or points:", notifError)
   }
@@ -279,6 +333,7 @@ export async function getDeliveryHistory(startDate?: string, endDate?: string) {
       total_rounded,
       is_credit,
       amount_paid,
+      amount_received,
       status,
       delivered_at,
       delivery_worker_name,
@@ -369,6 +424,7 @@ export async function getDeliverySettlementOrders() {
       total_rounded,
       is_credit,
       amount_paid,
+      amount_received,
       status,
       delivered_at,
       delivery_worker_name,

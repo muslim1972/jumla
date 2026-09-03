@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { supabaseAdmin } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { sendNotificationToUser } from "@/utils/onesignal"
 import { roundTo250 } from "@/lib/round-to-250"
@@ -150,7 +151,10 @@ export async function createOrder(data: {
           status: 'pending',
           support_phone: merchantProfile?.support_phone,
           is_credit: data.isCredit || false,
-          amount_paid: data.amountPaid ?? data.totalRounded
+          amount_paid: data.amountPaid ?? data.totalRounded,
+          // حفظ إحداثيات المشتري (تُلتقط عند التسجيل) لزر فتح الخريطة عند المندوب
+          latitude: (user.user_metadata as any)?.latitude ?? null,
+          longitude: (user.user_metadata as any)?.longitude ?? null
         })
         .eq('id', editingOrder.id);
 
@@ -187,7 +191,10 @@ export async function createOrder(data: {
           support_phone: merchantProfile?.support_phone,
           invoice_number: invoiceNumber,
           is_credit: data.isCredit || false,
-          amount_paid: data.amountPaid ?? data.totalRounded
+          amount_paid: data.amountPaid ?? data.totalRounded,
+          // حفظ إحداثيات المشتري (تُلتقط عند التسجيل) لزر فتح الخريطة عند المندوب
+          latitude: (user.user_metadata as any)?.latitude ?? null,
+          longitude: (user.user_metadata as any)?.longitude ?? null
         })
         .select('id')
         .single();
@@ -218,6 +225,13 @@ export async function createOrder(data: {
       "طلب جديد!",
       `وصلك طلب جديد من ${data.storeName} بقيمة ${data.totalRounded.toLocaleString('en-US')} د.ع`
     )
+
+    // كتابة الإشعار في الجرس (يظهر في لوحة التاجر فوراً)
+    await supabaseAdmin.from("notifications").insert({
+      user_id: data.merchantId,
+      title: "طلب جديد!",
+      message: `وصلك طلب جديد من ${data.storeName} بقيمة ${data.totalRounded.toLocaleString('en-US')} د.ع — رقم القائمة #${invoiceNumber}.`,
+    })
 
     // 7. حذف عناصر السلة التي تم طلبها
     const cartItemIds = data.items.map(item => item.cartItemId)

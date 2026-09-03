@@ -284,30 +284,34 @@ export function FloatingAppMenu({
         )}
       </div>
 
-      {/* Main Toggle Button */}
-      <button
-        onClick={() => setOpenMenu(isOpen ? null : 'app')}
-        className={cn(
-          "flex items-center justify-center w-9 h-9 rounded-full shadow-md transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
-          isOpen ? "bg-slate-800 text-white rotate-90" : "bg-primary text-white"
-        )}
-      >
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-300">
-          {isOpen ? (
-            <X className="w-4 h-4 animate-in zoom-in duration-300" />
-          ) : (
-            <div className="relative">
-              <ActiveIcon 
-                key={activeIconIndex} 
-                className={cn("w-5 h-5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)} 
-              />
-              {cartCount > 0 && !isOpen && activeIconIndex === 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-brand-orange text-white text-[7px] font-bold w-2 h-2 rounded-full border border-background"></span>
-              )}
-            </div>
+      {/* Main Toggle Button (غلاف خارجي حتى لا تُقص شارة العدد بـ overflow-hidden) */}
+      <div className="relative pointer-events-auto">
+        <button
+          onClick={() => setOpenMenu(isOpen ? null : 'app')}
+          className={cn(
+            "flex items-center justify-center w-9 h-9 rounded-full shadow-md transition-all duration-500 focus:outline-none hover:scale-105 active:scale-95 relative overflow-hidden",
+            isOpen ? "bg-slate-800 text-white rotate-90" : "bg-primary text-white"
           )}
-        </div>
-      </button>
+        >
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center transition-all duration-300">
+            {isOpen ? (
+              <X className="w-4 h-4 animate-in zoom-in duration-300" />
+            ) : (
+              <ActiveIcon
+                key={activeIconIndex}
+                className={cn("w-5 h-5 animate-in zoom-in spin-in-12 duration-500", ActiveIconInfo.color)}
+              />
+            )}
+          </div>
+        </button>
+
+        {/* شارة عدد عناصر السلة — خارج الزر لضمان ظهورها كاملة */}
+        {cartCount > 0 && !isOpen && (
+          <span className="absolute -top-1.5 -right-1.5 z-20 bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-background shadow-sm pointer-events-none">
+            {cartCount > 9 ? "+9" : cartCount}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
