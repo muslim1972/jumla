@@ -26,22 +26,26 @@ async function assertMaterialsRole() {
   return { supabase, user, error: null }
 }
 
-async function uploadMasterImage(supabase: any, userId: string, image: File): Promise<string | null> {
+// رفع صورة مادة الكتالوج داخل مجلد المعرّف الشخصي للمستخدم — نفس نمط رفع منتجات
+// التجار المقبول من سياسات storage (المسارات المغايرة مثل master/... تُرفض بالسياسة)
+// مع إرجاع خطأ الرفع بدل ابتلاعه حتى لا تُحفظ مادة بلا صورة بصمت
+async function uploadMasterImage(supabase: any, userId: string, image: File): Promise<{ url: string | null, error: string | null }> {
   const fileExt = image.name.split('.').pop()
-  const fileName = `${Math.random()}.${fileExt}`
-  const filePath = `master/${userId}/${fileName}`
+  const fileName = `master-${Math.random()}.${fileExt}`
+  const filePath = `${userId}/${fileName}`
 
   const { error: uploadError, data } = await supabase.storage
     .from('products')
     .upload(filePath, image)
 
-  if (!uploadError && data) {
-    const { data: { publicUrl } } = supabase.storage
-      .from('products')
-      .getPublicUrl(filePath)
-    return publicUrl
+  if (uploadError || !data) {
+    return { url: null, error: uploadError?.message || "فشل رفع الصورة" }
   }
-  return null
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('products')
+    .getPublicUrl(filePath)
+  return { url: publicUrl, error: null }
 }
 
 function translateMasterError(error: any): string {
@@ -136,7 +140,9 @@ export async function createMasterProduct(formData: FormData) {
 
   let image_url: string | null = null
   if (image && image.size > 0) {
-    image_url = await uploadMasterImage(supabase, user.id, image)
+    const upload = await uploadMasterImage(supabase, user.id, image)
+    if (upload.error) return { success: false, error: `تعذر رفع الصورة: ${upload.error}` }
+    image_url = upload.url
   }
 
   const { error } = await supabase.from('master_products').insert({
@@ -216,8 +222,9 @@ export async function editMasterProduct(formData: FormData) {
   }
 
   if (image && image.size > 0) {
-    const publicUrl = await uploadMasterImage(supabase, user.id, image)
-    if (publicUrl) updates.image_url = publicUrl
+    const upload = await uploadMasterImage(supabase, user.id, image)
+    if (upload.error) return { success: false, error: `تعذر رفع الصورة: ${upload.error}` }
+    if (upload.url) updates.image_url = upload.url
   }
 
   const { error } = await supabase

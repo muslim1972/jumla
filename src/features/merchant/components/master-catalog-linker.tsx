@@ -34,9 +34,10 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<MasterProduct | null>(null)
   const [prices, setPrices] = useState<Record<string, string>>({})
-  const [stockQuantity, setStockQuantity] = useState("0")
+  // الحقول الرقمية تبدأ فارغة مع placeholder بدل صفر يعيق الكتابة — والفراغ يُعامل صفراً عند الإرسال
+  const [stockQuantity, setStockQuantity] = useState("")
   const [stockUnit, setStockUnit] = useState("")
-  const [minStockAlert, setMinStockAlert] = useState("0")
+  const [minStockAlert, setMinStockAlert] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -250,6 +251,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
                             <Input
                               type="number"
                               min="0"
+                              placeholder="0"
                               value={stockQuantity}
                               onChange={(e) => setStockQuantity(e.target.value.replace(/^0+(?=\d)/, ''))}
                               dir="ltr"
@@ -276,6 +278,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
                           <Input
                             type="number"
                             min="0"
+                            placeholder="0"
                             value={minStockAlert}
                             onChange={(e) => setMinStockAlert(e.target.value)}
                             dir="ltr"
