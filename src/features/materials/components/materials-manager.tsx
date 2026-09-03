@@ -201,7 +201,10 @@ function MasterProductForm({
       return
     }
 
-    if (units.length === 0) {
+    // القائمة المنسدلة تعرض اختياراً جاهزاً دائماً — إن نسي المستخدم ضغط «إضافة وحدة»
+    // نعتبر الوحدة المختارة هي وحدة البيع بدل رفض الحفظ برسالة مربكة
+    const effectiveUnits = units.length === 0 && currentUnitType ? [{ type: currentUnitType }] : units
+    if (effectiveUnits.length === 0) {
       setFormError("يجب إضافة وحدة واحدة على الأقل")
       return
     }
@@ -238,7 +241,7 @@ function MasterProductForm({
     setIsSubmitting(true)
     setFormError("")
 
-    formData.append("units", JSON.stringify(units))
+    formData.append("units", JSON.stringify(effectiveUnits))
     formData.append("unit_conversions", JSON.stringify(validConversions))
 
     const result = await onSubmit(formData)
