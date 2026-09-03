@@ -24,9 +24,11 @@ import {
   X,
   Loader2,
   Printer,
-  Archive
+  Archive,
+  Edit3
 } from "lucide-react"
-import { editOrder, archiveOrder } from "@/features/orders/actions"
+import { editOrder, archiveOrder, respondToOrderEdits } from "@/features/orders/actions"
+import { roundTo250 } from "@/lib/round-to-250"
 
 export interface OrderData {
   id: string
@@ -47,6 +49,18 @@ export interface OrderData {
   is_credit?: boolean
   amount_paid?: number
   delivered_at?: string
+  // تعديلات التاجر المقترحة بانتظار موافقة المشتري (تشمل الفقرات المتغيرة فقط)
+  pending_edits?: {
+    proposed_at?: string
+    items: {
+      item_id: string
+      product_name: string
+      product_price: number
+      unit_type: string
+      old_quantity: number
+      new_quantity: number
+    }[]
+  } | null
 }
 
 export interface OrderItemData {
@@ -219,10 +233,34 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
 function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null }) {
   const [expanded, setExpanded] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
+  const [isResponding, setIsResponding] = useState(false)
+
+  // رد المشتري على تعديلات التاجر: موافقة أو إلغاء كامل للشراء
+  const handleRespond = useCallback(async (decision: "approve" | "cancel") => {
+    if (decision === "cancel" && !confirm("هل أنت متأكد من إلغاء الشراء بالكامل؟ ستُعاد جميع الكميات إلى مخزن التاجر.")) return
+    setIsResponding(true)
+    try {
+      const res = await respondToOrderEdits(order.id, decision)
+      if (res.error) {
+        alert(res.error)
+      } else {
+        alert(decision === "approve" ? "تمت الموافقة على التعديلات — سيتجهز التاجر بالقائمة المعدلة" : "تم إلغاء الشراء وإبلاغ التاجر")
+        if (onOrderEdited) onOrderEdited()
+      }
+    } catch {
+      alert("حدث خطأ")
+    } finally {
+      setIsResponding(false)
+    }
+  }, [order.id, onOrderEdited])
 
   const statusConfig = useMemo(() => {
     const configs: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-      pending: {
+      pending: order.pending_edits ? {
+        label: "بانتظار موافقتك على التعديل",
+        color: "text-amber-700 bg-amber-500/10 border-amber-500/40",
+        icon: <Edit3 className="w-3.5 h-3.5" />,
+      } : {
         label: "بإنتظار تأكيد التاجر",
         color: "text-amber-600 bg-amber-500/10 border-amber-500/30",
         icon: <Clock className="w-3.5 h-3.5" />,
@@ -373,6 +411,82 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </div>
           </div>
 
+          {/* تعديلات التاجر بانتظار موافقة المشتري */}
+          {order.status === 'pending' && order.pending_edits && (() => {
+            const editedQtyMap: Record<string, number> = {}
+            for (const s of order.pending_edits.items) editedQtyMap[s.item_id] = s.new_quantity
+            const itemsSum = (order.items || []).reduce((sum, it) => {
+              const q = editedQtyMap[it.id] !== undefined ? editedQtyMap[it.id] : it.quantity
+              return sum + it.product_price * q
+            }, 0)
+            const editedTotal = roundTo250(itemsSum + (order.delivery_fee || 0))
+            return (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Edit3 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-amber-700 dark:text-amber-400">عدّل التاجر كميات قائمتك — بانتظار موافقتك</p>
+                    <p className="text-[10px] text-amber-600/80 dark:text-amber-400/70 mt-0.5">راجع الكميات الجديدة ثم اختر الموافقة على التغيير أو إلغاء الشراء</p>
+                  </div>
+                </div>
+
+                {/* القائمة المعدلة: القديم مشطوب ← الجديد */}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pl-1 pr-2 custom-scrollbar">
+                  {order.pending_edits.items.map(s => (
+                    <div key={s.item_id} className="flex justify-between items-center text-sm bg-white dark:bg-card border border-amber-500/20 rounded-lg p-2.5">
+                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                        <span className="font-semibold truncate">{s.product_name}</span>
+                        <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded">{s.unit_type}</span>
+                      </div>
+                      <div className="text-left shrink-0 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground line-through">{s.old_quantity}</span>
+                        <span className="text-muted-foreground">←</span>
+                        {s.new_quantity > 0 ? (
+                          <span className="font-black text-amber-600">{s.new_quantity}</span>
+                        ) : (
+                          <span className="font-black text-red-600 text-xs">غير متوفر</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* المجموع الكلي بعد التعديل */}
+                <div className="flex justify-between items-center bg-white dark:bg-card border border-amber-500/20 rounded-lg px-3 py-2">
+                  <span className="text-xs font-bold text-muted-foreground">المجموع الكلي بعد التعديل</span>
+                  <span className="font-black text-primary text-sm">{editedTotal.toLocaleString('en-US')} د.ع</span>
+                </div>
+
+                {/* زرا الموافقة والإلغاء */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+                    disabled={isResponding}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRespond("approve")
+                    }}
+                  >
+                    {isResponding ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 ml-1" />}
+                    موافق على التغيير
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="font-bold text-xs sm:text-sm h-9 sm:h-10"
+                    disabled={isResponding}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRespond("cancel")
+                    }}
+                  >
+                    {isResponding ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4 ml-1" />}
+                    إلغاء الشراء
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* كود التحقق */}
           {order.verification_code && (
             <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center space-y-2">
@@ -464,8 +578,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             )}
           </div>
 
-          {/* رقم الدعم وزر التعديل (في حالة الانتظار) */}
-          {order.status === 'pending' && (
+          {/* رقم الدعم وزر التعديل (في حالة الانتظار — ويُخفى زر التعديل أثناء انتظار موافقة المشتري على تعديلات التاجر) */}
+          {order.status === 'pending' && !order.pending_edits && (
             <div className="pt-3 border-t space-y-3">
               {(appSupportPhone || order.support_phone) && (
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">

@@ -3,6 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import { sendNotificationToUser } from "@/utils/onesignal"
+import { roundTo250 } from "@/lib/round-to-250"
 
 /**
  * إنشاء طلب جديد لتاجر معين
@@ -366,6 +367,154 @@ export async function editOrder(orderId: string) {
   } catch (error: any) {
     console.error("Edit order error:", error)
     return { error: error.message || "حدث خطأ أثناء تعديل الطلب" }
+  }
+}
+
+/**
+ * رد المشتري على تعديلات التاجر المقترحة على قائمته
+ * - approve: تطبيق الكميات المعدلة على عناصر الطلب، إعادة الفرق للمخزون، إعادة حساب المجاميع، وإشعار التاجر بتمكينه من التجهيز
+ * - cancel: إلغاء الطلب بالكامل مع إعادة كل الكميات للمخزون وإشعار التاجر بالإلغاء
+ */
+export async function respondToOrderEdits(orderId: string, decision: "approve" | "cancel") {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "يجب تسجيل الدخول" }
+
+  try {
+    // جلب الطلب مع عناصره والتأكد أنه يخص المشتري وأن لديه تعديلات معلقة
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (id, product_id, product_name, product_price, quantity, unit_type)
+      `)
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (orderError || !order) throw new Error("لم يتم العثور على الطلب")
+    if (order.status !== 'pending') throw new Error("لا يمكن الرد على قائمة تم تجهيزها أو تسليمها")
+    if (!order.pending_edits || !order.pending_edits.items) throw new Error("لا توجد تعديلات معلقة على هذه القائمة")
+
+    const items = order.order_items || []
+    const edits: {
+      item_id: string
+      product_name: string
+      product_price: number
+      unit_type: string
+      old_quantity: number
+      new_quantity: number
+    }[] = order.pending_edits.items
+
+    // جلب المنتجات لحساب مضاعف الوحدة عند إعادة الكميات للمخزون
+    const productIds = [...new Set(items.map((i: any) => i.product_id).filter(Boolean))]
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, stock_quantity, units')
+      .in('id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000'])
+
+    // إعادة كمية للمخزون مع مراعاة مضاعف الوحدة للوحدة الأساس
+    const restoreStock = async (productId: string, unitType: string, qty: number) => {
+      if (!productId || qty <= 0) return
+      const p = products?.find(prod => prod.id === productId)
+      if (!p) return
+      let multiplier = 1
+      if (p.units) {
+        const matchingUnit = p.units.find((u: any) => u.type === unitType)
+        if (matchingUnit && matchingUnit.multiplier_to_base) multiplier = matchingUnit.multiplier_to_base
+      }
+      await supabase.from('products')
+        .update({ stock_quantity: (p.stock_quantity ?? 0) + qty * multiplier })
+        .eq('id', productId)
+    }
+
+    if (decision === "approve") {
+      // تطبيق الكميات المعدلة: تحديث الكميات وحذف غير المتوفر وإعادة الفرق للمخزون
+      for (const edit of edits) {
+        const currentItem = items.find((i: any) => i.id === edit.item_id) as any
+        if (!currentItem) continue
+
+        // إعادة فرق الكمية للمخزون (من الكمية الحالية الفعلية وليس اللقطة احتياطاً)
+        const diff = currentItem.quantity - edit.new_quantity
+        if (diff > 0) {
+          await restoreStock(currentItem.product_id, currentItem.unit_type, diff)
+        }
+
+        if (edit.new_quantity <= 0) {
+          await supabase.from('order_items').delete().eq('id', edit.item_id)
+        } else {
+          await supabase.from('order_items').update({ quantity: edit.new_quantity }).eq('id', edit.item_id)
+        }
+      }
+
+      // إعادة حساب المجاميع من العناصر الباقية
+      const { data: remainingItems } = await supabase
+        .from('order_items')
+        .select('product_price, quantity')
+        .eq('order_id', orderId)
+
+      const newSubtotal = (remainingItems || []).reduce((sum: number, it: any) => sum + (it.product_price * it.quantity), 0)
+      const newTotal = roundTo250(newSubtotal + (order.delivery_fee || 0))
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ pending_edits: null, subtotal: newSubtotal, total_rounded: newTotal })
+        .eq('id', orderId)
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+
+      if (updateError) throw updateError
+
+      // إشعار التاجر بأن المشتري وافق ليمكنه التجهيز للمندوب
+      await supabase.from('notifications').insert({
+        user_id: order.merchant_id,
+        title: "وافق المشتري على التعديلات",
+        message: `وافق المشتري على التعديلات المقترحة على القائمة رقم #${order.invoice_number} الجديدة بقيمة ${newTotal.toLocaleString('en-US')} د.ع — يمكنك الآن النقر على «تجهيز للمندوب».`
+      })
+      await sendNotificationToUser(
+        order.merchant_id,
+        "وافق المشتري على التعديلات",
+        `تمت الموافقة على تعديلات القائمة رقم #${order.invoice_number} — يمكنك تجهيزها للمندوب الآن.`
+      )
+
+      revalidatePath('/cart')
+      revalidatePath('/')
+      return { success: true, decision: "approved" }
+    }
+
+    // قرار الإلغاء: إعادة كل الكميات الحالية للمخزون وإلغاء الطلب بالكامل
+    for (const item of items as any[]) {
+      await restoreStock(item.product_id, item.unit_type, item.quantity)
+    }
+
+    const { error: cancelError } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled', pending_edits: null })
+      .eq('id', orderId)
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+
+    if (cancelError) throw cancelError
+
+    // إشعار التاجر بإلغاء المشتري لعملية الشراء
+    await supabase.from('notifications').insert({
+      user_id: order.merchant_id,
+      title: "ألغى المشتري عملية الشراء",
+      message: `ألغى المشتري عملية الشراء للقائمة رقم #${order.invoice_number} بعد مراجعة تعديلاتك، وأُعيدت الكميات إلى مخزنك.`
+    })
+    await sendNotificationToUser(
+      order.merchant_id,
+      "ألغى المشتري عملية الشراء",
+      `أُلغيت القائمة رقم #${order.invoice_number} من قبل المشتري وأُعيدت الكميات إلى مخزنك.`
+    )
+
+    revalidatePath('/cart')
+    revalidatePath('/')
+    return { success: true, decision: "cancelled" }
+  } catch (error: any) {
+    console.error("Respond to order edits error:", error)
+    return { error: error.message || "حدث خطأ أثناء الرد على التعديلات" }
   }
 }
 

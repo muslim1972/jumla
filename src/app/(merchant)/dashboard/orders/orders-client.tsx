@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion } from "./actions"
-import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer } from "lucide-react"
+import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion, proposeOrderEdits } from "./actions"
+import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -58,7 +58,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         .from("orders")
         .select(`
           id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
-          invoice_number, verification_code, status, cancel_requested, created_at, delivery_worker_name,
+          invoice_number, verification_code, status, cancel_requested, pending_edits, created_at, delivery_worker_name,
           is_credit, amount_paid, delivered_at,
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
@@ -79,6 +79,20 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
       const updatedOrder = { ...orders.find(o => o.id === orderId), status: "approved" };
       setOrders(orders.map(o => o.id === orderId ? updatedOrder : o))
       if (selectedOrder?.id === orderId) setSelectedOrder(updatedOrder)
+    } else if (result.error) {
+      setErrorMsg(result.error)
+    }
+    setProcessingId(null)
+  }
+
+  const handleProposeEdits = async (orderId: string, edits: { item_id: string, new_quantity: number }[]) => {
+    setProcessingId(orderId)
+    const result = await proposeOrderEdits(orderId, edits)
+    if (result.success) {
+      const updatedOrder = { ...orders.find(o => o.id === orderId), pending_edits: result.pending_edits }
+      setOrders(orders.map(o => o.id === orderId ? updatedOrder : o))
+      if (selectedOrder?.id === orderId) setSelectedOrder(updatedOrder)
+      alert("تم إرسال التعديلات للمشتري بنجاح — سيصلك إشعار عند موافقته لتتمكن من التجهيز للمندوب.")
     } else if (result.error) {
       setErrorMsg(result.error)
     }
@@ -229,6 +243,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         isProcessing={processingId === selectedOrder?.id}
         onApprove={() => selectedOrder && handleApprove(selectedOrder.id)}
         onReject={() => selectedOrder && handleReject(selectedOrder.id)}
+        onProposeEdits={(edits: { item_id: string, new_quantity: number }[]) => selectedOrder && handleProposeEdits(selectedOrder.id, edits)}
         onReceiveAmount={() => selectedOrder && handleReceiveAmount(selectedOrder.id)}
         onApproveDeletion={() => selectedOrder && handleApproveDeletion(selectedOrder.id)}
       />
@@ -300,6 +315,11 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 مجهز للمندوب
               </div>
+            ) : order.pending_edits ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-blue-500/10 text-blue-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
+                بانتظار موافقة المشتري
+              </div>
             ) : (
               <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-amber-500/10 text-amber-600 font-bold text-[8px] sm:text-[10px] shadow-sm mt-0 sm:mt-1">
                 <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
@@ -313,12 +333,51 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
   )
 }
 
-function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onReceiveAmount, onApproveDeletion }: any) {
+function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onProposeEdits, onReceiveAmount, onApproveDeletion }: any) {
+  // الكميات المتوفرة التي يدخلها التاجر لكل مادة — تُهيأ من الكميات المطلوبة عند فتح كل قائمة
+  const [availableQty, setAvailableQty] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (order) {
+      const init: Record<string, string> = {}
+      for (const it of order.items || []) init[it.id] = String(it.quantity)
+      setAvailableQty(init)
+    }
+  }, [order?.id])
+
   if (!order) return null
 
   const isApproved = order.status === 'approved'
   const isDelivered = order.status === 'delivered'
   const isCancellation = order.cancel_requested
+  // التعديل متاح فقط لقائمة بانتظار المراجعة وبدون تعديلات معلقة وبدون طلب إلغاء
+  const isEditable = order.status === 'pending' && !isCancellation && !order.pending_edits
+
+  // قراءة كمية «المتوفر» المدخلة (الفراغ أو رقم غير صالح = بدون تغيير)
+  const parsedQty = (itemId: string, fallback: number) => {
+    const raw = availableQty[itemId]
+    if (raw === undefined) return fallback
+    const n = parseInt(raw, 10)
+    return Number.isNaN(n) || n < 0 ? fallback : n
+  }
+
+  // الفقرات التي عدّلها التاجر فعلياً (بما فيها تعيين الكمية صفر لنفاد المخزون)
+  const changedEdits = isEditable
+    ? (order.items || [])
+        .filter((it: any) => parsedQty(it.id, it.quantity) !== it.quantity)
+        .map((it: any) => ({ item_id: it.id, new_quantity: parsedQty(it.id, it.quantity) }))
+    : []
+  const hasEdits = changedEdits.length > 0
+
+  // الكميات المقترحة سابقاً (عند انتظار موافقة المشتري) لعرضها في خانة المتوفر
+  const proposedQtyMap: Record<string, number> = {}
+  if (order.pending_edits?.items) {
+    for (const s of order.pending_edits.items) proposedQtyMap[s.item_id] = s.new_quantity
+  }
+
+  // المعاينة المالية للقائمة بعد التعديل (تقريب لأقرب 250 كما في السلة)
+  const previewSubtotal = (order.items || []).reduce((s: number, it: any) => s + it.product_price * parsedQty(it.id, it.quantity), 0)
+  const previewTotal = Math.round((previewSubtotal + (order.delivery_fee || 0)) / 250) * 250
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -372,6 +431,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                      <tr className="bg-muted/50 text-muted-foreground border-b border-border/50">
                        <th className="text-right p-2 sm:p-2.5 font-semibold">المنتج</th>
                        <th className="text-center p-2 sm:p-2.5 font-semibold">الكمية</th>
+                       <th className="text-center p-2 sm:p-2.5 font-semibold">المتوفر</th>
                        <th className="text-left p-2 sm:p-2.5 font-semibold">المجموع</th>
                      </tr>
                    </thead>
@@ -383,8 +443,29 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                            <span className="text-[9px] sm:text-[10px] text-muted-foreground">({item.unit_type})</span>
                          </td>
                          <td className="text-center p-2 sm:p-2.5 font-black tabular-nums text-brand-orange text-xs sm:text-sm">{item.quantity}</td>
+                         <td className="text-center p-1.5 sm:p-2">
+                           {isEditable ? (
+                             <input
+                               type="number"
+                               min={0}
+                               inputMode="numeric"
+                               value={availableQty[item.id] ?? String(item.quantity)}
+                               onChange={(e) => setAvailableQty(prev => ({ ...prev, [item.id]: e.target.value }))}
+                               className="w-12 sm:w-14 text-center font-black tabular-nums text-brand-blue border border-border rounded-md py-1 bg-background focus:outline-none focus:ring-1 focus:ring-brand-blue/50"
+                               aria-label={`الكمية المتوفرة من ${item.product_name}`}
+                             />
+                           ) : (
+                             <span className="font-bold tabular-nums text-muted-foreground text-[10px] sm:text-xs">
+                               {order.pending_edits && proposedQtyMap[item.id] !== undefined
+                                 ? proposedQtyMap[item.id] > 0 ? proposedQtyMap[item.id] : "0"
+                                 : "—"}
+                             </span>
+                           )}
+                         </td>
                          <td className="text-left p-2 sm:p-2.5 font-bold tabular-nums text-brand-blue dark:text-foreground">
-                           {(item.product_price * item.quantity).toLocaleString('en-US')}
+                           <span className={parsedQty(item.id, item.quantity) !== item.quantity ? "text-amber-600" : ""}>
+                             {(item.product_price * parsedQty(item.id, item.quantity)).toLocaleString('en-US')}
+                           </span>
                          </td>
                        </tr>
                      ))}
@@ -398,6 +479,21 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                 <span className="font-bold text-xs sm:text-sm text-brand-blue">المجموع الكلي</span>
                 <span className="font-black text-brand-orange text-base sm:text-lg">{order.total_rounded.toLocaleString('en-US')} د.ع</span>
              </div>
+
+             {/* معاينة المجموع بعد تعديلات التاجر قبل إرسالها للمشتري */}
+             {hasEdits && (
+               <div className="flex justify-between items-center p-2.5 sm:p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs sm:text-sm">
+                  <span className="font-bold text-amber-700 dark:text-amber-500">المجموع الكلي بعد التعديل (تقريبي)</span>
+                  <span className="font-black text-amber-600">{previewTotal.toLocaleString('en-US')} د.ع</span>
+               </div>
+             )}
+
+             {/* حالة انتظار قرار المشتري في التعديلات المقترحة */}
+             {order.pending_edits && !isCancellation && (
+               <div className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 p-3 rounded-lg text-xs font-bold text-center">
+                  أرسلت تعديلاتك للمشتري وهو لم يقرر بعد — ستصلك حالة القائمة فور موافقته أو إلغائه للشراء
+               </div>
+             )}
 
              {order.is_credit && (
                <div className="flex flex-col gap-2 mt-2 p-3 sm:p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg text-sm">
@@ -432,25 +528,47 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                 ) : (
                   <>
                     {!isApproved && !isDelivered && (
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          onClick={onApprove} 
-                          disabled={isProcessing}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
-                        >
-                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                          تجهيز للمندوب
-                        </Button>
-                        <Button 
-                          onClick={onReject} 
-                          disabled={isProcessing}
-                          variant="destructive"
-                          className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
-                        >
-                          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
-                          رفض
-                        </Button>
-                      </div>
+                      <>
+                        {order.pending_edits ? (
+                          <div className="bg-amber-500/10 text-amber-700 dark:text-amber-500 border border-amber-500/20 p-3 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-2">
+                            <Clock className="w-4 h-4 shrink-0 animate-pulse" />
+                            بانتظار موافقة المشتري على التعديلات — يعود زر «تجهيز للمندوب» بعد موافقته
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              onClick={onApprove} 
+                              disabled={isProcessing || hasEdits}
+                              title={hasEdits ? "يُتاح بعد إعلام المشتري بالتغيير وموافقه عليها" : undefined}
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
+                            >
+                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
+                              تجهيز للمندوب
+                            </Button>
+                            <Button 
+                              onClick={onReject} 
+                              disabled={isProcessing}
+                              variant="destructive"
+                              className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
+                            >
+                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4 ml-2" />}
+                              رفض
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* يظهر بمجرد تعديل التاجر أي فقرة في القائمة */}
+                        {hasEdits && (
+                          <Button 
+                            onClick={() => onProposeEdits(changedEdits)} 
+                            disabled={isProcessing}
+                            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+                          >
+                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4 ml-2" />}
+                            إعلام المشتري بالتغيير
+                          </Button>
+                        )}
+                      </>
                     )}
 
                     {isDelivered && (
