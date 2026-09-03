@@ -381,13 +381,13 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           
           {/* معلومات التوصيل */}
           <div className="bg-white dark:bg-card border rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm min-w-0">
               <Store className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="font-semibold text-foreground truncate">{order.store_name}</span>
+              <span className="font-semibold text-foreground truncate min-w-0">{order.store_name}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground truncate">{order.address}</span>
+            <div className="flex items-start gap-2 text-sm min-w-0">
+              <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="text-muted-foreground min-w-0 break-all leading-relaxed">{order.address}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground shrink-0" />

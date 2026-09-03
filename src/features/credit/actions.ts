@@ -43,8 +43,14 @@ export async function searchBuyers(merchantId: string, query: string) {
 
   if (!query || query.trim().length < 2) return { buyers: [] }
 
-  // Search for buyers by name, store name, or phone
-  const { data: buyers, error } = await supabase
+  // التحقق أن الباحث تاجر فعلاً
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== merchantId) return { error: "غير مصرح" }
+
+  // البحث عن المشترين بالاسم، اسم المتجر، أو الهاتف
+  // ملاحظة: سياسة profiles_select تمنع التاجر من قراءة بروفايلات المشترين
+  // عبر جلسته — لذا القراءة هنا عبر supabaseAdmin (نمط getTrustedBuyers)
+  const { data: buyers, error } = await supabaseAdmin
     .from("profiles")
     .select("id, full_name, store_name, phone")
     .eq("role", "guest")

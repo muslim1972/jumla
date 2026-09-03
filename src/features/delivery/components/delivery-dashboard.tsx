@@ -271,12 +271,20 @@ function SettlementView() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl text-sm font-bold text-red-600">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              <span>قوائم تم توصيلها للعميل بانتظار تسديد التاجر</span>
+          <div className="bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl text-sm font-bold text-red-600 space-y-1.5">
+            <div className="flex justify-between items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 shrink-0" />
+                <span>قوائم تم توصيلها للعميل بانتظار تسديد التاجر</span>
+              </div>
+              <span className="whitespace-nowrap">إجمالي المبالغ المستلمة: {orders.reduce((sum, o) => {
+                const paid = o.amount_paid ?? o.total_rounded
+                return sum + ((typeof o.amount_received === 'number' && o.amount_received > 0) ? o.amount_received : paid)
+              }, 0).toLocaleString('en-US')} د.ع</span>
             </div>
-            <span>المبلغ الكلي المطلوب: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString('en-US')} د.ع</span>
+            <p className="text-[11px] font-medium leading-relaxed text-red-600/90">
+              المندوب يسلّم كامل المبلغ المستلم من المشتري إلى التاجر ولا يحق له الاحتفاظ به — أجر التوصيل (مرتب شهري أو مبلغ عن كل توصيل) يُستقطع لحظة تسليم المبلغ للتاجر بموافقتهما في نفس جلسة التحاسب دون المرور بالتطبيق.
+            </p>
           </div>
           {orders.map(order => (
             <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={true} />
@@ -346,12 +354,15 @@ function DeliveryHistoryView() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold text-emerald-600">
+          <div className="flex justify-between items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold text-emerald-600">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
               <span>قوائم مكتملة وتم تسديد التاجر</span>
             </div>
-            <span>إجمالي المبالغ المُسلمة: {orders.reduce((sum, o) => sum + o.total_rounded, 0).toLocaleString('en-US')} د.ع</span>
+            <span className="whitespace-nowrap">إجمالي المبالغ المُسلمة للتاجر: {orders.reduce((sum, o) => {
+              const paid = o.amount_paid ?? o.total_rounded
+              return sum + ((typeof o.amount_received === 'number' && o.amount_received > 0) ? o.amount_received : paid)
+            }, 0).toLocaleString('en-US')} د.ع</span>
           </div>
           {orders.map(order => (
             <OrderDeliveryCard key={order.id} order={order} isHistoryMode={true} isSettlementMode={false} />
@@ -543,10 +554,13 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               </div>
             )}
             <div className="text-[10px] text-muted-foreground font-bold mb-0.5">
-              المبلغ المطلوب تحصيله:
+              {isDelivered ? 'المبلغ المستلم من المشتري:' : 'المبلغ المطلوب تحصيله:'}
             </div>
             <div className="font-black text-brand-orange tabular-nums text-lg">
-              {(order.amount_paid ?? order.total_rounded).toLocaleString('en-US')} د.ع
+              {(isDelivered && typeof order.amount_received === 'number' && order.amount_received > 0
+                ? order.amount_received
+                : requiredAmount
+              ).toLocaleString('en-US')} د.ع
             </div>
             {order.is_credit && (
               <div className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded mt-1">
@@ -685,17 +699,21 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               <p className={`text-xs ${isSettlementMode ? 'text-red-600 dark:text-red-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
                 {isSettlementMode ? 'تم توصيلها للعميل بانتظار استلام التاجر للمبلغ.' : 'تم إكمال الطلب بنجاح.'}
               </p>
-              {/* المبلغ المستلم من المشتري والباقي (إن وجد) */}
-              {typeof order.amount_received === 'number' && (
-                <div className="text-xs font-bold text-brand-blue dark:text-foreground">
-                  المبلغ المستلم: {order.amount_received.toLocaleString('en-US')} د.ع
-                  {(order.amount_paid ?? order.total_rounded) - order.amount_received > 0 && (
-                    <span className="text-red-600 dark:text-red-400">
-                      {' '}— الباقي: {((order.amount_paid ?? order.total_rounded) - order.amount_received).toLocaleString('en-US')} د.ع
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* المبلغ المستلم من المشتري والباقي (إن وجد) — الطلبات القديمة (amount_received = 0) تُعرض كاملة الاستلام */}
+              {isDelivered && (() => {
+                const displayReceived = (typeof order.amount_received === 'number' && order.amount_received > 0) ? order.amount_received : requiredAmount
+                const displayRemaining = Math.max(0, requiredAmount - displayReceived)
+                return (
+                  <div className="text-xs font-bold text-brand-blue dark:text-foreground">
+                    المبلغ المستلم: {displayReceived.toLocaleString('en-US')} د.ع
+                    {displayRemaining > 0 && (
+                      <span className="text-red-600 dark:text-red-400">
+                        {' '}— الباقي: {displayRemaining.toLocaleString('en-US')} د.ع
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>
