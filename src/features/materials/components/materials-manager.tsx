@@ -133,6 +133,17 @@ function MasterProductForm({
     setUnits(units.filter(u => u.type !== type))
   }
 
+  // تفعيل «بدون أجزاء» يضيف الوحدة المختارة تلقائياً إن كانت خانة الوحدات فارغة،
+  // لأن المادة المفردة تحتاج وحدة بيع واحدة على الأقل حتى لو لم تكن لها أجزاء
+  const toggleNoParts = () => {
+    const next = !isNoPartsMaterial
+    setIsNoPartsMaterial(next)
+    if (next && units.length === 0) {
+      setUnits([{ type: currentUnitType }])
+    }
+    setFormError("")
+  }
+
   const handleConfirmConversion = (index: number) => {
     const conv = conversions[index]
     if (!conv.multiplier || parseFloat(conv.multiplier) <= 0 || !conv.to) {
@@ -408,7 +419,7 @@ function MasterProductForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => { setIsNoPartsMaterial(v => !v); setFormError("") }}
+            onClick={toggleNoParts}
             className={cn(
               "h-8 px-2.5 text-xs font-bold transition-all",
               isNoPartsMaterial && "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900"
@@ -421,7 +432,7 @@ function MasterProductForm({
         {isNoPartsMaterial ? (
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 rounded-md text-sm font-bold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            هذه المادة تُباع كوحدة مفردة (بدون أجزاء) — لا حاجة لتحديد الكارتون أو علاقات التحويل.
+            هذه المادة تُباع كوحدة واحدة ({units[0]?.type || currentUnitType}) بدون أجزاء — لا حاجة لتحديد الكارتون أو علاقات التحويل.
           </div>
         ) : (
           <>
