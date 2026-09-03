@@ -292,7 +292,19 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
       },
     }
     return configs[order.status] || configs.pending
-  }, [order.status])
+  }, [order.status, order.pending_edits])
+
+  // المجاميع المعروضة: تعكس تعديلات التاجر المعلقة إن وُجدت حتى لا يرى المشتري مبلغ القائمة الأصلية
+  const displayTotals = useMemo(() => {
+    if (order.status !== 'pending' || !order.pending_edits) return null
+    const editedQtyMap: Record<string, number> = {}
+    for (const s of order.pending_edits.items) editedQtyMap[s.item_id] = s.new_quantity
+    const subtotal = (order.items || []).reduce((sum, it) => {
+      const q = editedQtyMap[it.id] !== undefined ? editedQtyMap[it.id] : it.quantity
+      return sum + it.product_price * q
+    }, 0)
+    return { subtotal, total: roundTo250(subtotal + (order.delivery_fee || 0)) }
+  }, [order])
 
   const dateStr = useMemo(() => {
     return new Date(order.created_at).toLocaleDateString("ar-IQ", {
@@ -412,16 +424,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           </div>
 
           {/* تعديلات التاجر بانتظار موافقة المشتري */}
-          {order.status === 'pending' && order.pending_edits && (() => {
-            const editedQtyMap: Record<string, number> = {}
-            for (const s of order.pending_edits.items) editedQtyMap[s.item_id] = s.new_quantity
-            const itemsSum = (order.items || []).reduce((sum, it) => {
-              const q = editedQtyMap[it.id] !== undefined ? editedQtyMap[it.id] : it.quantity
-              return sum + it.product_price * q
-            }, 0)
-            const editedTotal = roundTo250(itemsSum + (order.delivery_fee || 0))
-            return (
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-3">
+          {order.status === 'pending' && order.pending_edits && displayTotals && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-3">
                 <div className="flex items-start gap-2">
                   <Edit3 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
@@ -454,7 +458,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                 {/* المجموع الكلي بعد التعديل */}
                 <div className="flex justify-between items-center bg-white dark:bg-card border border-amber-500/20 rounded-lg px-3 py-2">
                   <span className="text-xs font-bold text-muted-foreground">المجموع الكلي بعد التعديل</span>
-                  <span className="font-black text-primary text-sm">{editedTotal.toLocaleString('en-US')} د.ع</span>
+                  <span className="font-black text-primary text-sm">{displayTotals.total.toLocaleString('en-US')} د.ع</span>
                 </div>
 
                 {/* زرا الموافقة والإلغاء */}
@@ -483,9 +487,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                     إلغاء الشراء
                   </Button>
                 </div>
-              </div>
-            )
-          })()}
+            </div>
+          )}
 
           {/* كود التحقق */}
           {order.verification_code && (
@@ -507,7 +510,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           <div className="border-t border-dashed pt-3 space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>قيمة المنتجات</span>
-              <span>{order.subtotal.toLocaleString('en-US')} د.ع</span>
+              <span>{(displayTotals ? displayTotals.subtotal : order.subtotal).toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>أجور التوصيل</span>
@@ -515,7 +518,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </div>
             <div className="flex justify-between text-base font-black text-primary pt-2 pb-1 px-1">
               <span>المجموع الكلي</span>
-              <span>{order.total_rounded.toLocaleString('en-US')} د.ع</span>
+              <span>{(displayTotals ? displayTotals.total : order.total_rounded).toLocaleString('en-US')} د.ع</span>
             </div>
 
             {/* تفاصيل الدين */}

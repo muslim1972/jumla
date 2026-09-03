@@ -414,7 +414,8 @@ export async function respondToOrderEdits(orderId: string, decision: "approve" |
       .select('id, stock_quantity, units')
       .in('id', productIds.length > 0 ? productIds : ['00000000-0000-0000-0000-000000000000'])
 
-    // إعادة كمية للمخزون مع مراعاة مضاعف الوحدة للوحدة الأساس
+    // إعادة كمية للمخزون عبر دالة نظامية (المشتري لا يملك UPDATE على products مباشرة)
+    // والمضاعف يحول كمية الوحدة المباعة إلى مكافئها بالوحدة الأساس
     const restoreStock = async (productId: string, unitType: string, qty: number) => {
       if (!productId || qty <= 0) return
       const p = products?.find(prod => prod.id === productId)
@@ -424,9 +425,12 @@ export async function respondToOrderEdits(orderId: string, decision: "approve" |
         const matchingUnit = p.units.find((u: any) => u.type === unitType)
         if (matchingUnit && matchingUnit.multiplier_to_base) multiplier = matchingUnit.multiplier_to_base
       }
-      await supabase.from('products')
-        .update({ stock_quantity: (p.stock_quantity ?? 0) + qty * multiplier })
-        .eq('id', productId)
+      const { error: rpcError } = await supabase.rpc('restore_stock_quantity', {
+        p_order_id: orderId,
+        p_product_id: productId,
+        p_quantity: qty * multiplier
+      })
+      if (rpcError) console.error("فشل استرداد المخزون:", rpcError.message)
     }
 
     if (decision === "approve") {
