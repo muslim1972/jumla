@@ -58,7 +58,17 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
       return
     }
     setSelected(p)
-    setPrices({})
+    // تعبئة الأسعار مسبقاً من تسعيرة الكتالوج الأساسية (base_price × مضاعف الوحدة)
+    // ليقبلها التاجر كما هي أو يعدلها — بدل حقول فارغة
+    const suggestedPrices: Record<string, string> = {}
+    if (p.base_price && p.base_price > 0) {
+      for (const u of p.units || []) {
+        const mult = u.multiplier_to_base && u.multiplier_to_base > 0 ? u.multiplier_to_base : 1
+        const price = p.base_price * mult
+        if (price > 0) suggestedPrices[u.type] = String(price)
+      }
+    }
+    setPrices(suggestedPrices)
     setError("")
     const conversions = p.unit_conversions || []
     const baseUnit = conversions.length > 0
@@ -212,7 +222,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
                       <div className="mt-1 mb-2 p-3 bg-muted/20 border border-brand-blue/30 rounded-lg space-y-3 animate-in slide-in-from-top-1 duration-200">
                         <p className="text-xs font-bold text-brand-blue flex items-center gap-1.5">
                           <Link2 className="w-3.5 h-3.5" />
-                          حدد أسعارك لبيع هذه المادة
+                          أسعار البيع — معبأة مسبقاً من الكتالوج الأساسي، عدّلها إن أردت
                         </p>
 
                         <div className="space-y-2">
