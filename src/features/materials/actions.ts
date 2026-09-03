@@ -52,6 +52,45 @@ function translateMasterError(error: any): string {
   return error?.message || "حدث خطأ غير متوقع"
 }
 
+/**
+ * ينشئ قسماً جديداً في الكتالوج المركزي (جدول categories) لدعم زر
+ * "إضافة قسم جديد" في شاشة إدارة المواد لأقسام غير موجودة بالقائمة.
+ * - يتطلب دور materials أو admin (فحص دفاعي يوازي سياسة RLS في القاعدة).
+ * - يرفض الأسماء الفارغة أو الأطول من 60 حرفاً بعد إزالة الفراغات الطرفية.
+ * - يمنع التكرار بفحص مسبق بالاسم، ويرجع رسالة واضحة عند انتهاك قيد الفريد (23505).
+ * يرجع { success, error?, category? } حيث category هو القسم المُنشأ { id, name }.
+ */
+export async function createCategory(name: string) {
+  const { supabase, error: roleError } = await assertMaterialsRole()
+  if (roleError) return { success: false, error: roleError }
+
+  const trimmed = (name || "").trim()
+  if (!trimmed) return { success: false, error: "اسم القسم مطلوب" }
+  if (trimmed.length > 60) return { success: false, error: "اسم القسم طويل جداً (الحد الأقصى 60 حرفاً)" }
+
+  // فحص التكرار مسبقاً لرسالة أوضح بدل الاعتماد على قيد فريد غير مضمون الوجود
+  const { data: existing } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('name', trimmed)
+    .maybeSingle()
+  if (existing) return { success: false, error: "هذا القسم موجود مسبقاً" }
+
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({ name: trimmed })
+    .select('id, name')
+    .single()
+
+  if (error) {
+    if (error.code === '23505') return { success: false, error: "هذا القسم موجود مسبقاً" }
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath("/materials")
+  return { success: true, category: data }
+}
+
 export async function createMasterProduct(formData: FormData) {
   const { supabase, user, error: roleError } = await assertMaterialsRole()
   if (roleError || !user) return { success: false, error: roleError || "Unauthorized" }

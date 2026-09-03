@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { createMasterProduct, editMasterProduct, deleteMasterProduct } from "@/features/materials/actions"
+import { createMasterProduct, editMasterProduct, deleteMasterProduct, createCategory } from "@/features/materials/actions"
 import { validateBarcode } from "@/features/materials/lib/barcode"
 import { Plus, X, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Search, Pencil, Trash2, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -21,7 +21,7 @@ export type MasterProduct = {
   name: string
   description: string | null
   category_id: string | null
-  categories?: { name: string } | null
+  category_name?: string | null
   image_url: string | null
   barcode: string | null
   base_price: number | null
@@ -35,7 +35,6 @@ type Conversion = {
   to: string;
   multiplier: string;
   isConfirmed: boolean;
-  isNoParts: boolean;
 }
 
 const UNIT_OPTIONS = [
@@ -47,8 +46,7 @@ const emptyConversion = (from: string): Conversion => ({
   from,
   to: "",
   multiplier: "",
-  isConfirmed: false,
-  isNoParts: false
+  isConfirmed: false
 })
 
 function buildConversionsFromInitial(initial?: MasterProduct): Conversion[] {
@@ -60,8 +58,7 @@ function buildConversionsFromInitial(initial?: MasterProduct): Conversion[] {
     from: c.from,
     to: c.to,
     multiplier: String(c.multiplier),
-    isConfirmed: true,
-    isNoParts: false
+    isConfirmed: true
   }))
   rows.push(emptyConversion(rows[rows.length - 1].to))
   return rows
@@ -75,6 +72,7 @@ function MasterProductForm({
   submitLabel,
   onSubmit,
   onSuccess,
+  onCategoryCreated,
 }: {
   categories: { id: string, name: string }[]
   initial?: MasterProduct
@@ -82,6 +80,7 @@ function MasterProductForm({
   submitLabel: string
   onSubmit: (formData: FormData) => Promise<{ success: boolean, error?: string } | undefined>
   onSuccess?: () => void
+  onCategoryCreated?: (category: { id: string, name: string }) => void
 }) {
   const [name, setName] = useState(initial?.name || "")
   const [description, setDescription] = useState(initial?.description || "")
@@ -91,6 +90,12 @@ function MasterProductForm({
   const [basePrice, setBasePrice] = useState(initial?.base_price != null ? String(initial.base_price) : "")
   const [image, setImage] = useState<File | null>(null)
 
+  // إضافة قسم جديد غير موجود بالقائمة (صف إدخال inline بدل Dialog لتجنب التداخل)
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
+  const [isSavingCategory, setIsSavingCategory] = useState(false)
+  const [categoryError, setCategoryError] = useState("")
+
   const [units, setUnits] = useState<{ type: string }[]>(
     initial?.units?.map(u => ({ type: u.type })) || []
   )
@@ -98,6 +103,12 @@ function MasterProductForm({
   const [conversions, setConversions] = useState<Conversion[]>(() => buildConversionsFromInitial(initial))
   const [formError, setFormError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // «بدون أجزاء»: مادة تُباع كوحدة مفردة (مثل الكرسي) — يعطّل قسم علاقات الوحدات بالكامل.
+  // للمادة المحفوظة: تُعتبر بدون أجزاء إذا لم يكن لها تحويلات محفوظة
+  const [isNoPartsMaterial, setIsNoPartsMaterial] = useState(
+    () => initial ? !(initial.unit_conversions?.length) : false
+  )
 
   // الوحدة المرجعية لبداية سلسلة التحويلات = أول وحدة مضافة
   const [hasSavedConversions] = useState(!!initial?.unit_conversions?.length)
@@ -135,7 +146,6 @@ function MasterProductForm({
 
     const newConversions = [...conversions]
     newConversions[index].isConfirmed = true
-    newConversions[index].isNoParts = false
 
     if (index === newConversions.length - 1) {
       newConversions.push(emptyConversion(conv.to))
@@ -145,19 +155,30 @@ function MasterProductForm({
     setFormError("")
   }
 
-  const handleNoParts = (index: number) => {
-    const newConversions = [...conversions]
-    newConversions[index].isNoParts = true
-    newConversions[index].isConfirmed = false
-    newConversions.splice(index + 1)
-    setConversions(newConversions)
-    setFormError("")
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) return
+    setIsSavingCategory(true)
+    setCategoryError("")
+    const result = await createCategory(trimmed)
+    setIsSavingCategory(false)
+    if (!result?.success) {
+      setCategoryError(result?.error || "تعذر إنشاء القسم")
+      return
+    }
+    if (result.category) {
+      // إضافة القسم الجديد للقائمة واختياره تلقائياً للمادة الحالية
+      onCategoryCreated?.(result.category)
+      setCategoryId(result.category.id)
+    }
+    setNewCategoryName("")
+    setIsAddingCategory(false)
   }
 
   const handleConversionChange = (index: number, field: keyof Conversion, value: string) => {
     const newConversions = [...conversions]
-    newConversions[index] = { ...newConversions[index], [field]: value, isConfirmed: false, isNoParts: false }
-    if (conversions[index].isConfirmed || conversions[index].isNoParts) {
+    newConversions[index] = { ...newConversions[index], [field]: value, isConfirmed: false }
+    if (conversions[index].isConfirmed) {
       newConversions.splice(index + 1)
     }
     setConversions(newConversions)
@@ -174,25 +195,26 @@ function MasterProductForm({
       return
     }
 
-    // التحقق من سلسلة التحويلات
-    const firstConv = conversions[0]
-    if (!firstConv) {
-      setFormError("يجب تحديد علاقة الوحدات")
-      return
-    }
-    if (!firstConv.isConfirmed && !firstConv.isNoParts) {
-      if (firstConv.multiplier && firstConv.to && parseFloat(firstConv.multiplier) > 0) {
-        firstConv.isConfirmed = true
-      } else if (!firstConv.multiplier && !firstConv.to) {
-        firstConv.isNoParts = true
-      } else {
-        setFormError("يرجى إكمال وتأكيد علاقة الوحدات أو اختيار 'بدون أجزاء'")
+    // «بدون أجزاء»: تُرسل قائمة تحويلات فارغة ويُتخطى التحقق من سلسلة التحويلات
+    let validConversions: { from: string, to: string, multiplier: number }[] = []
+    if (!isNoPartsMaterial) {
+      const firstConv = conversions[0]
+      if (!firstConv) {
+        setFormError("يجب تحديد علاقة الوحدات")
         return
       }
+      if (!firstConv.isConfirmed) {
+        if (firstConv.multiplier && firstConv.to && parseFloat(firstConv.multiplier) > 0) {
+          firstConv.isConfirmed = true
+        } else {
+          setFormError("يرجى إكمال وتأكيد علاقة الوحدات، أو تفعيل 'بدون أجزاء' إن كانت المادة تُباع مفردة")
+          return
+        }
+      }
+      validConversions = conversions
+        .filter(c => c.isConfirmed)
+        .map(c => ({ from: c.from, to: c.to, multiplier: parseFloat(c.multiplier) }))
     }
-    const validConversions = conversions
-      .filter(c => c.isConfirmed)
-      .map(c => ({ from: c.from, to: c.to, multiplier: parseFloat(c.multiplier) }))
 
     // التحقق من الباركود (اختياري لكن يجب أن يكون صحيحاً إن وُجد)
     const bcError = validateBarcode(barcode)
@@ -232,19 +254,63 @@ function MasterProductForm({
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="space-y-2 flex-1">
           <Label htmlFor={`${formId}-category`}>القسم (اختياري)</Label>
-          <Select name="category_id" value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
-            <SelectTrigger dir="rtl">
-              <span className="flex-1 text-right truncate text-sm">
-                {categoryId === "none" ? "بدون قسم" : (categories?.find(c => c.id === categoryId)?.name || "اختر القسم")}
-              </span>
-            </SelectTrigger>
-            <SelectContent dir="rtl">
-              <SelectItem value="none">بدون قسم</SelectItem>
-              {categories.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Select name="category_id" value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
+                <SelectTrigger dir="rtl">
+                  <span className="flex-1 text-right truncate text-sm">
+                    {categoryId === "none" ? "بدون قسم" : (categories?.find(c => c.id === categoryId)?.name || "اختر القسم")}
+                  </span>
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="none">بدون قسم</SelectItem>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0"
+              title="إضافة قسم جديد غير موجود بالقائمة"
+              onClick={() => setIsAddingCategory(v => !v)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {isAddingCategory && (
+            <div className="flex gap-2">
+              <Input
+                value={newCategoryName}
+                onChange={(e) => { setNewCategoryName(e.target.value); setCategoryError("") }}
+                placeholder="اسم القسم الجديد"
+                maxLength={60}
+                className="h-10"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 shrink-0"
+                onClick={handleCreateCategory}
+                disabled={isSavingCategory || !newCategoryName.trim()}
+              >
+                {isSavingCategory ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10 shrink-0"
+                onClick={() => { setIsAddingCategory(false); setNewCategoryName(""); setCategoryError("") }}
+              >
+                إلغاء
+              </Button>
+            </div>
+          )}
+          {categoryError && <p className="text-xs text-destructive font-bold">{categoryError}</p>}
         </div>
 
         <div className="space-y-2 flex-1">
@@ -331,82 +397,90 @@ function MasterProductForm({
         </div>
       </div>
 
-      {/* سلسلة علاقات الوحدات */}
+      {/* سلسلة علاقات الوحدات — تُعطَّل بالكامل عند تفعيل «بدون أجزاء» */}
       <div className="space-y-3 pt-2 border-t mt-4 bg-muted/10 p-3 rounded-lg border border-dashed border-border/60">
-        <div className="flex items-center gap-2">
-          <Label className="text-brand-blue font-bold">علاقات الوحدات (تحويل المخزون)</Label>
-          <AlertCircle className="w-4 h-4 text-brand-orange" />
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Label className="text-brand-blue font-bold">علاقات الوحدات (تحويل المخزون)</Label>
+            <AlertCircle className="w-4 h-4 text-brand-orange" />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => { setIsNoPartsMaterial(v => !v); setFormError("") }}
+            className={cn(
+              "h-8 px-2.5 text-xs font-bold transition-all",
+              isNoPartsMaterial && "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900"
+            )}
+          >
+            بدون أجزاء
+          </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          حدد مكونات الوحدة ليعرف التجار كيف يُخصم المخزون عند البيع بالوحدات الأصغر.
-        </p>
 
-        <div className="flex flex-col gap-3">
-          {conversions.map((conv, index) => (
-            <div key={conv.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-background p-2 rounded-md border shadow-sm relative">
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <span className="font-bold text-sm bg-muted px-2 py-1.5 rounded-md min-w-[60px] text-center border shrink-0">
-                  1 {conv.from}
-                </span>
-                <span className="text-muted-foreground font-black shrink-0">=</span>
-                <Input
-                  type="number"
-                  placeholder="؟"
-                  className="w-16 h-9 text-center font-bold shrink-0"
-                  value={conv.multiplier}
-                  onChange={(e) => handleConversionChange(index, "multiplier", e.target.value)}
-                  disabled={conv.isNoParts}
-                />
-                <Select
-                  value={conv.to}
-                  onValueChange={(val) => handleConversionChange(index, "to", val || "")}
-                  disabled={conv.isNoParts}
-                >
-                  <SelectTrigger dir="rtl" className="h-9 min-w-[90px] flex-1">
-                    <SelectValue placeholder="وحدة" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    {UNIT_OPTIONS.filter(u => u !== conv.from).map(u => (
-                      <SelectItem key={u} value={u}>{u}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        {isNoPartsMaterial ? (
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400 rounded-md text-sm font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            هذه المادة تُباع كوحدة مفردة (بدون أجزاء) — لا حاجة لتحديد الكارتون أو علاقات التحويل.
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground">
+              حدد مكونات الوحدة ليعرف التجار كيف يُخصم المخزون عند البيع بالوحدات الأصغر.
+            </p>
 
-              <div className="flex items-center gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-none shrink-0 justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleConfirmConversion(index)}
-                  disabled={conv.isNoParts}
-                  className={cn(
-                    "h-9 px-2.5 font-bold transition-all",
-                    conv.isConfirmed
-                      ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
-                      : "text-rose-500 bg-rose-50 hover:bg-rose-100 hover:text-rose-600"
-                  )}
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  {conv.isConfirmed ? "" : "تأكيد"}
-                </Button>
+            <div className="flex flex-col gap-3">
+              {conversions.map((conv, index) => (
+                <div key={conv.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-background p-2 rounded-md border shadow-sm relative">
+                  <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <span className="font-bold text-sm bg-muted px-2 py-1.5 rounded-md min-w-[60px] text-center border shrink-0">
+                      1 {conv.from}
+                    </span>
+                    <span className="text-muted-foreground font-black shrink-0">=</span>
+                    <Input
+                      type="number"
+                      placeholder="؟"
+                      className="w-16 h-9 text-center font-bold shrink-0"
+                      value={conv.multiplier}
+                      onChange={(e) => handleConversionChange(index, "multiplier", e.target.value)}
+                    />
+                    <Select
+                      value={conv.to}
+                      onValueChange={(val) => handleConversionChange(index, "to", val || "")}
+                    >
+                      <SelectTrigger dir="rtl" className="h-9 min-w-[90px] flex-1">
+                        <SelectValue placeholder="وحدة" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {UNIT_OPTIONS.filter(u => u !== conv.from).map(u => (
+                          <SelectItem key={u} value={u}>{u}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleNoParts(index)}
-                  className={cn(
-                    "h-9 px-2.5 text-[11px] font-bold transition-all",
-                    conv.isNoParts && "bg-muted text-muted-foreground border-dashed"
-                  )}
-                >
-                  بدون أجزاء
-                </Button>
-              </div>
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-none shrink-0 justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleConfirmConversion(index)}
+                      className={cn(
+                        "h-9 px-2.5 font-bold transition-all",
+                        conv.isConfirmed
+                          ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
+                          : "text-rose-500 bg-rose-50 hover:bg-rose-100 hover:text-rose-600"
+                      )}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      {conv.isConfirmed ? "" : "تأكيد"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       <div className="space-y-2 pt-2 border-t mt-4">
@@ -454,9 +528,9 @@ function MasterProductRow({ product, onEdit, onDelete }: {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-bold text-sm truncate">{product.name}</span>
-          {product.categories?.name && (
+          {product.category_name && (
             <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">
-              {product.categories.name}
+              {product.category_name}
             </span>
           )}
         </div>
@@ -480,10 +554,14 @@ function MasterProductRow({ product, onEdit, onDelete }: {
           ))}
         </div>
 
-        {product.unit_conversions?.length > 0 && (
+        {product.unit_conversions?.length > 0 ? (
           <p className="text-[10px] text-muted-foreground truncate">
             {product.unit_conversions.map(c => `1 ${c.from} = ${c.multiplier} ${c.to}`).join(" • ")}
           </p>
+        ) : (
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0.5 rounded w-fit">
+            بدون أجزاء — تُباع كوحدة مفردة
+          </span>
         )}
       </div>
 
@@ -511,12 +589,15 @@ function MasterProductRow({ product, onEdit, onDelete }: {
   )
 }
 
-export function MaterialsManager({ initialProducts, categories }: {
+export function MaterialsManager({ initialProducts, categories, loadError }: {
   initialProducts: MasterProduct[]
   categories: { id: string, name: string }[]
+  loadError?: string
 }) {
   const router = useRouter()
   const [products, setProducts] = useState(initialProducts)
+  // قائمة الأقسام محلياً لاستيعاب الأقسام المُنشأة حياً من النموذج قبل أي refresh
+  const [categoryList, setCategoryList] = useState(categories)
   const [query, setQuery] = useState("")
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [addFormKey, setAddFormKey] = useState(0)
@@ -525,10 +606,18 @@ export function MaterialsManager({ initialProducts, categories }: {
   const [deleteError, setDeleteError] = useState("")
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
-  // مزامنة القائمة بعد router.refresh() من السيرفر
+  // مزامنة القوائم بعد router.refresh() من السيرفر
   useEffect(() => {
     setProducts(initialProducts)
   }, [initialProducts])
+
+  const handleCategoryCreated = (category: { id: string, name: string }) => {
+    setCategoryList(prev => prev.some(c => c.id === category.id) ? prev : [...prev, category])
+  }
+
+  useEffect(() => {
+    setCategoryList(categories)
+  }, [categories])
 
   // البحث الفوري: بالاسم أو رمز الباركود
   const filtered = useMemo(() => {
@@ -557,6 +646,13 @@ export function MaterialsManager({ initialProducts, categories }: {
 
   return (
     <div className="space-y-6">
+      {/* فشل تحميل البيانات من السيرفر — يظهر بدل قائمة فارغة زائفة */}
+      {loadError && (
+        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded-md text-sm font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" /> {loadError}
+        </div>
+      )}
+
       {/* البحث الفوري */}
       <div className="relative">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -597,9 +693,10 @@ export function MaterialsManager({ initialProducts, categories }: {
             <MasterProductForm
               key={addFormKey}
               formId="add-master-product"
-              categories={categories}
+              categories={categoryList}
               submitLabel="حفظ المادة في الكتالوج"
               onSubmit={createMasterProduct}
+              onCategoryCreated={handleCategoryCreated}
               onSuccess={() => {
                 setAddFormKey(k => k + 1)
                 router.refresh()
@@ -646,9 +743,10 @@ export function MaterialsManager({ initialProducts, categories }: {
             <MasterProductForm
               key={editing.id}
               formId="edit-master-product"
-              categories={categories}
+              categories={categoryList}
               initial={editing}
               submitLabel="حفظ التعديلات"
+              onCategoryCreated={handleCategoryCreated}
               onSubmit={async (formData) => {
                 formData.append("id", editing.id)
                 return editMasterProduct(formData)
