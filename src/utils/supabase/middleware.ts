@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
     const unauthorized =
       (isMerchantPath && role !== 'merchant') ||
       (isAdminPath && role !== 'admin') ||
-      (isSupportPath && role !== 'support' && role !== 'admin') ||
+      (isSupportPath && role !== 'support' && role !== 'call_center' && role !== 'admin') ||
       (isMaterialsPath && role !== 'materials' && role !== 'admin')
 
     if (unauthorized) {

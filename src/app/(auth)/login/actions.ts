@@ -30,6 +30,30 @@ export async function signIn(formData: FormData) {
     return { error: errorMessage }
   }
 
+  // فحص الحظر: منع دخول الحسابات المحظورة فور نجاح التحقق من كلمة المرور
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("banned_until")
+      .eq("id", user.id)
+      .single()
+
+    const bannedUntil = profile?.banned_until as string | null | undefined
+    // "infinity" حظر دائم — لا يفهمها Date في JS لذا نفحص السلسلة مباشرة
+    const isPermanent = !!bannedUntil && (bannedUntil === "infinity" || bannedUntil.startsWith("9999"))
+    const isBannedTemporarily = !!bannedUntil && !isPermanent && new Date(bannedUntil) > new Date()
+
+    if (bannedUntil && (isPermanent || isBannedTemporarily)) {
+      await supabase.auth.signOut()
+      return {
+        error: isPermanent
+          ? "تم حظرك من التطبيق نهائياً. للاستفسار يرجى التواصل مع الدعم."
+          : `تم حظرك من التطبيق حتى ${new Date(bannedUntil).toLocaleString("ar-IQ")}. للاستفسار يرجى التواصل مع الدعم.`,
+      }
+    }
+  }
+
   return redirect("/")
 }
 

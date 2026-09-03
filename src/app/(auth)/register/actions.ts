@@ -4,26 +4,14 @@ import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { normalizeIrqiPhone, phoneToEmail } from "@/utils/phone"
 
-export async function getMerchantsForRegistration() {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, full_name, store_name")
-    .eq("role", "merchant")
-  
-  return data || []
-}
-
 export async function signUp(formData: FormData) {
   const phone = formData.get("phone") as string
   const password = formData.get("password") as string
   const full_name = formData.get("full_name") as string
   const role = formData.get("role") as string
-  const assigned_merchants_str = formData.get("assigned_merchants") as string
   const latStr = formData.get("latitude") as string
   const lngStr = formData.get("longitude") as string
 
-  const assigned_merchants = assigned_merchants_str ? JSON.parse(assigned_merchants_str) : []
   const latitude = latStr ? parseFloat(latStr) : null
   const longitude = lngStr ? parseFloat(lngStr) : null
 
@@ -45,7 +33,6 @@ export async function signUp(formData: FormData) {
       data: {
         full_name,
         role,
-        assigned_merchants,
         latitude,
         longitude,
         phone: normalizedPhone

@@ -163,7 +163,7 @@ export function FloatingAppMenu({
           </Link>
         )}
 
-        {userRole === 'support' && (
+        {(userRole === 'support' || userRole === 'call_center') && (
           <Link
             href="/support"
             onClick={() => setOpenMenu(null)}
@@ -214,7 +214,7 @@ export function FloatingAppMenu({
         </button>
 
         {/* Debts */}
-        {(!userRole || !['admin', 'merchant', 'delivery', 'support'].includes(userRole)) && (
+        {(!userRole || !['admin', 'merchant', 'delivery', 'support', 'call_center'].includes(userRole)) && (
           <Link
             href="/debts"
             onClick={() => setOpenMenu(null)}
@@ -231,7 +231,7 @@ export function FloatingAppMenu({
         )}
 
         {/* Cart */}
-        {(!userRole || !['admin', 'merchant', 'delivery', 'support'].includes(userRole)) && (
+        {(!userRole || !['admin', 'merchant', 'delivery', 'support', 'call_center'].includes(userRole)) && (
           <Link
             href="/cart"
             onClick={() => setOpenMenu(null)}

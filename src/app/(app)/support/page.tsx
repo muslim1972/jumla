@@ -104,7 +104,7 @@ export default function SupportPage() {
 
     if (profile) {
       setUserProfile(profile)
-      if (profile.role === 'support' || profile.role === 'admin') {
+      if (profile.role === 'support' || profile.role === 'call_center' || profile.role === 'admin') {
         setIsSupport(true)
       }
     }
@@ -409,7 +409,7 @@ export default function SupportPage() {
                       <td className="p-3">
                         <div className="font-black text-brand-blue dark:text-foreground">{profile.full_name || "مستخدم مجهول"}</div>
                         <div className="text-[10px] mt-0.5 inline-block px-2 py-0.5 rounded-full bg-muted border">
-                          {profile.role === 'admin' ? 'مدير' : profile.role === 'support' ? 'دعم فني' : profile.role === 'merchant' ? 'تاجر' : profile.role === 'delivery' ? 'توصيل' : profile.role === 'materials' ? 'إدارة المواد' : 'مشتري'}
+                          {profile.role === 'admin' ? 'مدير' : profile.role === 'support' ? 'دعم فني' : profile.role === 'call_center' ? 'Call Center' : profile.role === 'merchant' ? 'تاجر' : profile.role === 'delivery' ? 'توصيل' : profile.role === 'materials' ? 'إدارة المواد' : 'مشتري'}
                         </div>
                       </td>
                       <td className="p-3">

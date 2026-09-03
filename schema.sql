@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   address TEXT,
   delivery_fee NUMERIC,
   assigned_merchants JSONB, -- Array of merchant ids for delivery workers
+  banned_until timestamptz, -- تاريخ انتهاء الحظر (infinity للحظر الدائم، NULL لغير المحظور)
   support_phone TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

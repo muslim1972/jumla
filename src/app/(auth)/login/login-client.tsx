@@ -14,8 +14,10 @@ import { Loader2, UserCircle, Eye, EyeOff } from "lucide-react"
 const roleLabels: Record<string, { label: string, color: string }> = {
   "guest": { label: "حساب مشتري", color: "bg-blue-100 text-blue-700" },
   "merchant": { label: "حساب تاجر", color: "bg-emerald-100 text-emerald-700" },
+  "member": { label: "عضو تطبيق", color: "bg-indigo-100 text-indigo-700" },
   "delivery": { label: "حساب مندوب", color: "bg-amber-100 text-amber-700" },
   "support": { label: "موظف دعم", color: "bg-purple-100 text-purple-700" },
+  "call_center": { label: "Call Center", color: "bg-teal-100 text-teal-700" },
   "admin": { label: "مدير النظام", color: "bg-red-100 text-red-700" },
   "materials": { label: "إدارة المواد", color: "bg-cyan-100 text-cyan-700" }
 }
@@ -135,7 +137,7 @@ export function LoginClient({ message }: { message?: string }) {
                       name="identity"
                       type="tel"
                       inputMode="numeric"
-                      autoComplete="tel"
+                      autoComplete="off"
                       placeholder="07XX XXX XXXX"
                       required
                       dir="ltr"

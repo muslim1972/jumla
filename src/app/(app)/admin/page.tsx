@@ -18,7 +18,8 @@ import {
   Clock,
   Phone,
   History,
-  MessageCircle
+  MessageCircle,
+  Ban
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -54,7 +55,32 @@ interface Profile {
   full_name: string | null
   role: string | null
   delivery_fee: number | null
+  banned_until: string | null
   created_at: string
+}
+
+// تسميات الأدوار بالعربية (الحسابات القديمة تُعرض شارة ثابتة دون قائمة تغيير)
+const ROLE_LABELS: Record<string, string> = {
+  guest: "مشتري",
+  merchant: "تاجر",
+  member: "عضو تطبيق",
+  admin: "مدير نظام",
+  support: "موظف دعم",
+  delivery: "مندوب توصيل",
+  materials: "إدارة المواد",
+  call_center: "Call Center"
+}
+
+type BanPeriod = "day" | "week" | "month" | "forever"
+
+// الحظر الدائم يُخزَّن "infinity" في PostgreSQL ولا يفهمها Date في JS لذا نفحص السلسلة
+const isPermanentBan = (bannedUntil: string | null | undefined) =>
+  !!bannedUntil && (bannedUntil === "infinity" || bannedUntil.startsWith("9999"))
+
+const isUserBanned = (bannedUntil: string | null | undefined) => {
+  if (!bannedUntil) return false
+  if (isPermanentBan(bannedUntil)) return true
+  return new Date(bannedUntil) > new Date()
 }
 
 interface Banner {
@@ -214,6 +240,47 @@ export default function AdminPage() {
       .update({ delivery_fee: fee })
       .eq("id", userId)
     if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
+  }
+
+  // إدارة حظر حسابات (المشتري والتاجر): زر حظر ← اختيار الفترة ← تأكيد
+  const [banningId, setBanningId] = useState<string | null>(null)
+  const [banPeriod, setBanPeriod] = useState<BanPeriod>("day")
+
+  const handleBanUser = async (userId: string) => {
+    const now = new Date()
+    let bannedUntil: string
+    if (banPeriod === "forever") {
+      bannedUntil = "infinity"
+    } else if (banPeriod === "day") {
+      bannedUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+    } else if (banPeriod === "week") {
+      bannedUntil = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    } else {
+      const monthLater = new Date(now)
+      monthLater.setMonth(monthLater.getMonth() + 1)
+      bannedUntil = monthLater.toISOString()
+    }
+
+    // Optimistic UI update
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, banned_until: bannedUntil } : p))
+    setBanningId(null)
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ banned_until: bannedUntil })
+      .eq("id", userId)
+    if (error) alert("فشل حظر المستخدم: " + error.message)
+  }
+
+  const handleUnbanUser = async (userId: string) => {
+    // Optimistic UI update
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, banned_until: null } : p))
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ banned_until: null })
+      .eq("id", userId)
+    if (error) alert("فشل إلغاء الحظر: " + error.message)
   }
 
   // Manage Top Paid Banners
@@ -920,6 +987,7 @@ export default function AdminPage() {
                     <th className="p-3 font-bold">تاريخ التسجيل</th>
                     <th className="p-3 font-bold text-center">الرتبة / الصلاحية</th>
                     <th className="p-3 font-bold text-center">أجور التوصيل (د.ع)</th>
+                    <th className="p-3 font-bold text-center">الحظر</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -928,18 +996,25 @@ export default function AdminPage() {
                       <td className="p-3 font-black text-brand-blue dark:text-foreground">{profile.full_name || "مستخدم مجهول"}</td>
                       <td className="p-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString("ar-IQ")}</td>
                       <td className="p-3 text-center">
-                        <select 
-                          value={profile.role || "guest"}
-                          onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
-                          className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none"
-                        >
-                          <option value="guest">زائر تجاري (Guest)</option>
-                          <option value="merchant">تاجر جملتي (Merchant)</option>
-                          <option value="admin">مدير نظام (Admin)</option>
-                          <option value="support">موظف دعم (Support)</option>
-                          <option value="delivery">مندوب توصيل (Delivery)</option>
-                          <option value="materials">إدارة المواد (Materials)</option>
-                        </select>
+                        {profile.role === "member" ? (
+                          // قائمة الترقية تظهر فقط للحسابات المنشأة بصفة (عضو تطبيق)
+                          <select
+                            value={profile.role || "guest"}
+                            onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
+                            className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none"
+                          >
+                            <option value="member">عضو تطبيق</option>
+                            <option value="delivery">مندوب توصيل</option>
+                            <option value="materials">إدارة المواد</option>
+                            <option value="support">موظف دعم</option>
+                            <option value="call_center">Call Center</option>
+                          </select>
+                        ) : (
+                          // الحسابات القديمة: شارة ثابتة تبقى على حالها حتى يستقر التطبيق
+                          <span className="inline-block px-2.5 py-1 rounded-full bg-muted text-[11px] font-black text-foreground/80">
+                            {ROLE_LABELS[profile.role || "guest"] || profile.role || "غير محدد"}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-center flex items-center justify-center gap-2">
                         {profile.role === "merchant" ? (
@@ -952,6 +1027,66 @@ export default function AdminPage() {
                               dir="ltr"
                             />
                           </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-center">
+                        {profile.role === "guest" || profile.role === "merchant" ? (
+                          isUserBanned(profile.banned_until) ? (
+                            // محظور: شارة الحالة + إمكانية إلغاء الحظر
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-black whitespace-nowrap">
+                                {isPermanentBan(profile.banned_until)
+                                  ? "محظور نهائياً"
+                                  : `محظور حتى ${new Date(profile.banned_until!).toLocaleDateString("ar-IQ")}`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnbanUser(profile.id)}
+                                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                              >
+                                إلغاء الحظر
+                              </button>
+                            </div>
+                          ) : banningId === profile.id ? (
+                            // اختيار فترة الحظر: يوم / أسبوع / شهر / للأبد
+                            <div className="flex items-center justify-center gap-1.5">
+                              <select
+                                value={banPeriod}
+                                onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
+                                className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-foreground cursor-pointer outline-none"
+                              >
+                                <option value="day">يوم</option>
+                                <option value="week">أسبوع</option>
+                                <option value="month">شهر</option>
+                                <option value="forever">للأبد</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => handleBanUser(profile.id)}
+                                className="px-2 py-1 rounded-lg bg-destructive text-white text-[10px] font-bold cursor-pointer hover:bg-destructive/90 whitespace-nowrap"
+                              >
+                                تأكيد
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setBanningId(null)}
+                                className="px-2 py-1 rounded-lg bg-muted text-foreground text-[10px] font-bold cursor-pointer hover:bg-muted/80 whitespace-nowrap"
+                              >
+                                إلغاء
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => { setBanPeriod("day"); setBanningId(profile.id) }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black cursor-pointer hover:bg-destructive/20"
+                            >
+                              <Ban className="w-3 h-3" />
+                              حظر
+                            </button>
+                          )
                         ) : (
                           <span className="text-muted-foreground text-xs">—</span>
                         )}

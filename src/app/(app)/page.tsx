@@ -49,7 +49,7 @@ export default async function Home() {
   if (userRole === "admin") {
     return redirect("/admin")
   }
-  if (userRole === "support") {
+  if (userRole === "support" || userRole === "call_center") {
     return redirect("/support")
   }
   if (userRole === "merchant") {

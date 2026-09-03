@@ -7,44 +7,20 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
-import { signUp, getMerchantsForRegistration } from "./actions"
-import { useState, useEffect, useTransition } from "react"
-import { Loader2, Search, CheckSquare, Square, MapPin } from "lucide-react"
+import { signUp } from "./actions"
+import { useState, useTransition } from "react"
+import { Loader2, MapPin, Eye, EyeOff } from "lucide-react"
 
 export function RegisterClient({ message }: { message?: string }) {
   const [role, setRole] = useState("guest")
-  const [merchants, setMerchants] = useState<any[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedMerchants, setSelectedMerchants] = useState<string[]>([])
   const [isPending, startTransition] = useTransition()
-  const [isLoadingMerchants, setIsLoadingMerchants] = useState(false)
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
   const [isLocating, setIsLocating] = useState(false)
   const [locationError, setLocationError] = useState("")
   const [phone, setPhone] = useState("")
   const [phoneError, setPhoneError] = useState("")
-
-  useEffect(() => {
-    if (role === "delivery") {
-      setIsLoadingMerchants(true)
-      getMerchantsForRegistration().then(data => {
-        setMerchants(data)
-        setIsLoadingMerchants(false)
-      })
-    }
-  }, [role])
-
-  const toggleMerchant = (id: string) => {
-    setSelectedMerchants(prev => 
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    )
-  }
-
-  const filteredMerchants = merchants.filter(m => 
-    (m.full_name || "").includes(searchQuery) || 
-    (m.store_name || "").includes(searchQuery)
-  )
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleGetLocation = () => {
     setIsLocating(true)
@@ -80,9 +56,6 @@ export function RegisterClient({ message }: { message?: string }) {
     setPhoneError("")
 
     startTransition(() => {
-      if (role === "delivery") {
-        formData.append("assigned_merchants", JSON.stringify(selectedMerchants))
-      }
       signUp(formData)
     })
   }
@@ -129,7 +102,7 @@ export function RegisterClient({ message }: { message?: string }) {
                   name="phone"
                   type="tel"
                   inputMode="numeric"
-                  autoComplete="tel"
+                  autoComplete="off"
                   placeholder="07XX XXX XXXX"
                   required
                   dir="ltr"
@@ -147,7 +120,25 @@ export function RegisterClient({ message }: { message?: string }) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">كلمة المرور</Label>
-              <Input id="password" name="password" type="password" required dir="ltr" />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  dir="ltr"
+                  className="pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">نوع الحساب</Label>
@@ -156,10 +147,9 @@ export function RegisterClient({ message }: { message?: string }) {
                   <SelectValue placeholder="اختر نوع الحساب" />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
-                  <SelectItem value="guest">مشتري (مفرد)</SelectItem>
-                  <SelectItem value="merchant">تاجر (جملتي)</SelectItem>
-                  <SelectItem value="delivery">مندوب توصيل</SelectItem>
-                  <SelectItem value="support">موظف دعم</SelectItem>
+                  <SelectItem value="guest">مشتري</SelectItem>
+                  <SelectItem value="merchant">تاجر</SelectItem>
+                  <SelectItem value="member">عضو تطبيق</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -169,9 +159,9 @@ export function RegisterClient({ message }: { message?: string }) {
               <div className="space-y-2 pt-2 border-t mt-4">
                 <Label>الموقع الجغرافي للمتجر / البقالة (اختياري لكنه يسهل التوصيل)</Label>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    type="button" 
-                    variant={latitude ? "secondary" : "outline"} 
+                  <Button
+                    type="button"
+                    variant={latitude ? "secondary" : "outline"}
                     className="w-full gap-2 border-primary/20 hover:bg-primary/5"
                     onClick={handleGetLocation}
                     disabled={isLocating}
@@ -190,62 +180,6 @@ export function RegisterClient({ message }: { message?: string }) {
                     <input type="hidden" name="latitude" value={latitude} />
                     <input type="hidden" name="longitude" value={longitude} />
                   </>
-                )}
-              </div>
-            )}
-
-            {/* Delivery Merchants Selection */}
-            {role === "delivery" && (
-              <div className="space-y-3 bg-muted/30 p-3 rounded-lg border border-border/50">
-                <Label>اختر التجار الذين تعمل معهم</Label>
-                
-                <div className="relative">
-                  <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="ابحث عن تاجر..." 
-                    className="pr-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <div className="h-40 overflow-y-auto space-y-1 pr-1 border rounded-md p-2 bg-background">
-                  {isLoadingMerchants ? (
-                    <div className="flex items-center justify-center h-full">
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : filteredMerchants.length === 0 ? (
-                    <div className="text-center text-sm text-muted-foreground py-4">
-                      لا يوجد تجار بهذا الاسم
-                    </div>
-                  ) : (
-                    filteredMerchants.map((merchant) => {
-                      const isSelected = selectedMerchants.includes(merchant.id)
-                      return (
-                        <div 
-                          key={merchant.id}
-                          onClick={() => toggleMerchant(merchant.id)}
-                          className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-                            isSelected ? "bg-brand-orange/10 text-brand-orange" : "hover:bg-muted"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="w-4 h-4 shrink-0" />
-                          ) : (
-                            <Square className="w-4 h-4 shrink-0 text-muted-foreground" />
-                          )}
-                          <span className="text-sm font-medium">
-                            {merchant.store_name || merchant.full_name || "تاجر غير معروف"}
-                          </span>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-                {selectedMerchants.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    تم اختيار {selectedMerchants.length} تاجر
-                  </div>
                 )}
               </div>
             )}
@@ -270,8 +204,8 @@ export function RegisterClient({ message }: { message?: string }) {
                   <span className="bg-card px-2 text-muted-foreground">أو</span>
                 </div>
               </div>
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className={buttonVariants({ variant: "outline", className: "w-full font-bold" })}
               >
                 تصفح كزائر

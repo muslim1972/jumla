@@ -52,7 +52,7 @@ export default async function CartPage() {
   
   // منع الحسابات الإدارية والتجار وعمال التوصيل من دخول السلة
   if (userRole === "admin") return redirect("/admin")
-  if (userRole === "support") return redirect("/support")
+  if (userRole === "support" || userRole === "call_center") return redirect("/support")
   if (userRole === "merchant") return redirect("/dashboard")
   if (userRole === "delivery") return redirect("/")
 
