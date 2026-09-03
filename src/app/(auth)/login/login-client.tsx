@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
-import { signIn, checkUserRoleByEmail } from "./actions"
+import { signIn, checkUserRole } from "./actions"
+import { isPhoneIdentity } from "@/utils/phone"
 import { useState, useRef, useTransition } from "react"
 import { Loader2, UserCircle, Eye, EyeOff } from "lucide-react"
 
@@ -20,27 +21,30 @@ const roleLabels: Record<string, { label: string, color: string }> = {
 }
 
 export function LoginClient({ message }: { message?: string }) {
-  const [email, setEmail] = useState("")
+  const [identity, setIdentity] = useState("")
+  const [mode, setMode] = useState<"phone" | "email">("phone")
   const [roleInfo, setRoleInfo] = useState<{ role: string, name: string | null } | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState(message || "")
   const [showPassword, setShowPassword] = useState(false)
-  const lastCheckedEmailRef = useRef("")
-  
-  const checkEmailRole = async (emailValue: string) => {
-    const trimmed = emailValue.trim()
-    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+  const lastCheckedIdentityRef = useRef("")
+
+  const checkIdentityRole = async (value: string) => {
+    const trimmed = value.trim()
+    // رقم هاتف صالح (11 رقماً تبدأ بـ07) أو بريد إلكتروني صالح (للحسابات القديمة)
+    const isValid = isPhoneIdentity(trimmed) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+    if (!trimmed || !isValid) {
       setRoleInfo(null)
       return
     }
-    
-    if (trimmed === lastCheckedEmailRef.current) return
 
-    lastCheckedEmailRef.current = trimmed
+    if (trimmed === lastCheckedIdentityRef.current) return
+
+    lastCheckedIdentityRef.current = trimmed
     setIsChecking(true)
     try {
-      const foundRole = await checkUserRoleByEmail(trimmed)
+      const foundRole = await checkUserRole(trimmed)
       setRoleInfo(foundRole)
     } catch (e) {
       console.error(e)
@@ -49,24 +53,36 @@ export function LoginClient({ message }: { message?: string }) {
     }
   }
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setEmail(value)
-    
-    if (!value || !value.includes('@')) {
+  const handleIdentityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // في وضع الهاتف: أرقام فقط بحد أقصى 11 رقماً
+    const value = mode === "phone" ? e.target.value.replace(/\D/g, "").slice(0, 11) : e.target.value
+    setIdentity(value)
+
+    if (!value) {
       setRoleInfo(null)
-      lastCheckedEmailRef.current = ""
+      lastCheckedIdentityRef.current = ""
+      return
     }
-    
-    // Check automatically when email has a valid format (to avoid setTimeout)
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (emailRegex.test(value.trim())) {
-      checkEmailRole(value)
+
+    // فحص دوري مباشر عند اكتمال الصيغة (رقم هاتف كامل أو بريد صالح)
+    if (isPhoneIdentity(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+      checkIdentityRole(value)
+    } else if (mode === "phone") {
+      setRoleInfo(null)
+      lastCheckedIdentityRef.current = ""
     }
   }
 
-  const handleEmailBlur = () => {
-    checkEmailRole(email)
+  const handleIdentityBlur = () => {
+    checkIdentityRole(identity)
+  }
+
+  const switchMode = (newMode: "phone" | "email") => {
+    setMode(newMode)
+    setIdentity("")
+    setRoleInfo(null)
+    lastCheckedIdentityRef.current = ""
+    setErrorMsg("")
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -88,7 +104,9 @@ export function LoginClient({ message }: { message?: string }) {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">تسجيل الدخول</CardTitle>
           <CardDescription>
-            أدخل بريدك الإلكتروني وكلمة المرور للدخول إلى حسابك
+            {mode === "phone"
+              ? "أدخل رقم هاتفك وكلمة المرور للدخول إلى حسابك"
+              : "الدخول بالبريد الإلكتروني — للحسابات القديمة المسجلة ببريد"}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -100,21 +118,54 @@ export function LoginClient({ message }: { message?: string }) {
             )}
             
             <div className="space-y-2 relative">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                className="text-right"
-                dir="ltr"
-                value={email}
-                onChange={handleEmailChange}
-                onBlur={handleEmailBlur}
-              />
-              
-              {/* Role Indicator below email input */}
+              {mode === "phone" ? (
+                <>
+                  <Label htmlFor="identity">رقم الهاتف</Label>
+                  <div className="flex items-stretch gap-2" dir="ltr">
+                    {/* حقل الدولة ثابت: العلم المصغر + رمز العراق ولا يمكن تعديله */}
+                    <div
+                      className="flex items-center gap-1.5 px-3 rounded-md border bg-muted/60 text-sm font-bold select-none shrink-0"
+                      title="العراق"
+                    >
+                      <span aria-hidden>🇮🇶</span>
+                      <span dir="ltr">+964</span>
+                    </div>
+                    <Input
+                      id="identity"
+                      name="identity"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      placeholder="07XX XXX XXXX"
+                      required
+                      dir="ltr"
+                      maxLength={11}
+                      className="flex-1 tracking-wider"
+                      value={identity}
+                      onChange={handleIdentityChange}
+                      onBlur={handleIdentityBlur}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="identity">البريد الإلكتروني</Label>
+                  <Input
+                    id="identity"
+                    name="identity"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                    className="text-right"
+                    dir="ltr"
+                    value={identity}
+                    onChange={handleIdentityChange}
+                    onBlur={handleIdentityBlur}
+                  />
+                </>
+              )}
+
+              {/* مؤشر الدور أسفل حقل الهوية */}
               <div className="h-6 flex items-center justify-between">
                 <div className="text-sm font-bold text-brand-blue flex-1 text-right">
                    {roleInfo?.name ? <span className="animate-in fade-in slide-in-from-right-2">أهلاً بك، {roleInfo.name} 👋</span> : null}
@@ -128,6 +179,15 @@ export function LoginClient({ message }: { message?: string }) {
                   </div>
                 ) : null}
               </div>
+              <button
+                type="button"
+                onClick={() => switchMode(mode === "phone" ? "email" : "phone")}
+                className="text-xs text-muted-foreground hover:text-brand-orange underline underline-offset-2"
+              >
+                {mode === "phone"
+                  ? "تسجيل الدخول بالبريد الإلكتروني (حسابات قديمة)"
+                  : "تسجيل الدخول برقم الهاتف"}
+              </button>
             </div>
 
             <div className="space-y-2">

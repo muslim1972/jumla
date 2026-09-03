@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { KeyRound, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
+import { isFakePhoneEmail } from "@/utils/phone"
 import { translateError, StatusMessage } from "./types"
 
 export function PasswordManager({ isOpen }: { isOpen: boolean }) {
@@ -115,15 +116,18 @@ export function PasswordManager({ isOpen }: { isOpen: boolean }) {
           <KeyRound className="w-5 h-5" />
           <h3>تغيير كلمة المرور</h3>
         </div>
-        <Button
-          variant="link"
-          onClick={handleForgotPassword}
-          disabled={isSendingReset}
-          className="h-auto p-0 text-xs text-primary underline"
-        >
-          {isSendingReset ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : ""}
-          نسيت كلمة المرور؟
-        </Button>
+        {/* أصحاب الحسابات المسجلة برقم الهاتف لا يملكون بريداً حقيقياً لاستلام رابط إعادة التعيين */}
+        {!isFakePhoneEmail(userEmail) && (
+          <Button
+            variant="link"
+            onClick={handleForgotPassword}
+            disabled={isSendingReset}
+            className="h-auto p-0 text-xs text-primary underline"
+          >
+            {isSendingReset ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : ""}
+            نسيت كلمة المرور؟
+          </Button>
+        )}
       </div>
 
       {passwordMessage && (

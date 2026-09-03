@@ -22,6 +22,8 @@ export function RegisterClient({ message }: { message?: string }) {
   const [longitude, setLongitude] = useState<number | null>(null)
   const [isLocating, setIsLocating] = useState(false)
   const [locationError, setLocationError] = useState("")
+  const [phone, setPhone] = useState("")
+  const [phoneError, setPhoneError] = useState("")
 
   useEffect(() => {
     if (role === "delivery") {
@@ -69,7 +71,14 @@ export function RegisterClient({ message }: { message?: string }) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    
+
+    // التحقق من رقم الهاتف: 11 رقماً تبدأ بـ07 (لا أكثر ولا أقل)
+    if (!/^07\d{9}$/.test(phone)) {
+      setPhoneError("رقم الهاتف يجب أن يكون 11 رقماً ويبدأ بـ07")
+      return
+    }
+    setPhoneError("")
+
     startTransition(() => {
       if (role === "delivery") {
         formData.append("assigned_merchants", JSON.stringify(selectedMerchants))
@@ -105,16 +114,36 @@ export function RegisterClient({ message }: { message?: string }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                className="text-right"
-                dir="ltr"
-              />
+              <Label htmlFor="phone">رقم الهاتف</Label>
+              <div className="flex items-stretch gap-2" dir="ltr">
+                {/* حقل الدولة ثابت: العلم المصغر + رمز العراق ولا يمكن تعديله */}
+                <div
+                  className="flex items-center gap-1.5 px-3 rounded-md border bg-muted/60 text-sm font-bold select-none shrink-0"
+                  title="العراق"
+                >
+                  <span aria-hidden>🇮🇶</span>
+                  <span dir="ltr">+964</span>
+                </div>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="07XX XXX XXXX"
+                  required
+                  dir="ltr"
+                  maxLength={11}
+                  className="flex-1 tracking-wider"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                />
+              </div>
+              {phoneError ? (
+                <p className="text-xs text-destructive">{phoneError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">11 رقماً تبدأ بـ07 — مثال: 07701234567</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">كلمة المرور</Label>

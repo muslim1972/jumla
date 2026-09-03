@@ -3,11 +3,15 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { isPhoneIdentity, phoneToEmail } from "@/utils/phone"
 
 export async function signIn(formData: FormData) {
-  const email = formData.get("email") as string
+  const identity = ((formData.get("identity") as string) || "").trim()
   const password = formData.get("password") as string
   const supabase = await createClient()
+
+  // الدخول برقم الهاتف (يُحوَّل داخلياً إلى البريد الزائف) أو بالبريد الإلكتروني للحسابات القديمة
+  const email = isPhoneIdentity(identity) ? phoneToEmail(identity)! : identity
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -17,9 +21,9 @@ export async function signIn(formData: FormData) {
   if (error) {
     let errorMessage = "حدث خطأ أثناء تسجيل الدخول."
     if (error.message.includes("Invalid login credentials")) {
-      errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+      errorMessage = "رقم الهاتف أو كلمة المرور غير صحيحة"
     } else if (error.message.includes("Email not confirmed")) {
-      errorMessage = "يرجى تأكيد البريد الإلكتروني أولاً"
+      errorMessage = "يرجى تأكيد الحساب أولاً"
     } else {
       errorMessage = error.message
     }
@@ -29,9 +33,11 @@ export async function signIn(formData: FormData) {
   return redirect("/")
 }
 
-export async function checkUserRoleByEmail(email: string) {
+export async function checkUserRole(identity: string) {
+  // قبول رقم الهاتف (يُحوَّل داخلياً) أو البريد الإلكتروني للحسابات القديمة
+  const email = isPhoneIdentity(identity) ? phoneToEmail(identity)! : (identity || "").trim()
   if (!email || !email.includes('@')) return null
-  
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   
@@ -52,7 +58,7 @@ export async function checkUserRoleByEmail(email: string) {
     // 1. جلب قائمة المستخدمين والبحث عن المستخدم بواسطة الإيميل
     const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers()
     if (listError) {
-      console.error("Error listing users in checkUserRoleByEmail:", listError.message)
+      console.error("Error listing users in checkUserRole:", listError.message)
       return null
     }
     
@@ -75,7 +81,7 @@ export async function checkUserRoleByEmail(email: string) {
     
     return profile ? { role: profile.role, name: profile.full_name } : null
   } catch (e) {
-    console.error("Unexpected error in checkUserRoleByEmail:", e)
+    console.error("Unexpected error in checkUserRole:", e)
     return null
   }
 }

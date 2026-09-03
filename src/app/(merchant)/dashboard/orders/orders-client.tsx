@@ -495,18 +495,29 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                </div>
              )}
 
-             {order.is_credit && (
-               <div className="flex flex-col gap-2 mt-2 p-3 sm:p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg text-sm">
-                 <div className="flex justify-between">
-                   <span className="text-emerald-700 font-bold">المبلغ الواصل للمندوب:</span>
-                   <span className="font-black text-emerald-700">{order.amount_paid.toLocaleString('en-US')} د.ع</span>
-                 </div>
-                 <div className="flex justify-between">
-                   <span className="text-red-600 font-bold">الباقي (يُسجل ديناً):</span>
-                   <span className="font-black text-red-600">{(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span>
-                 </div>
-               </div>
-             )}
+             {/* المبلغ الواصل — يظهر للفواتير الآجلة وللمُسلّمة (المستلم فعلياً من المشتري) */}
+            {(order.is_credit || order.status === 'delivered') && (() => {
+              const received = (typeof order.amount_received === 'number' && order.amount_received > 0)
+                ? order.amount_received
+                : (order.amount_paid ?? order.total_rounded)
+              const remaining = Math.max(0, order.total_rounded - received)
+              return (
+                <div className="flex flex-col gap-2 mt-2 p-3 sm:p-4 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/20 rounded-lg text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                      {order.status === 'delivered' ? 'المبلغ المستلم من المشتري:' : 'المبلغ الواصل للمندوب:'}
+                    </span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400">{received.toLocaleString('en-US')} د.ع</span>
+                  </div>
+                  {remaining > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-red-600 dark:text-red-400 font-bold">الباقي (يُسجل ديناً):</span>
+                      <span className="font-black text-red-600 dark:text-red-400">{remaining.toLocaleString('en-US')} د.ع</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
               {/* الإجراءات */}
              <div className="pt-4 border-t border-border/50 space-y-2 sm:space-y-3">

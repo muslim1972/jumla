@@ -33,6 +33,7 @@ export async function getMerchantOrders() {
       delivery_worker_name,
       is_credit,
       amount_paid,
+      amount_received,
       items:order_items(
         id,
         product_name,

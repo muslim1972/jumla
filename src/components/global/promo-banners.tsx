@@ -95,7 +95,8 @@ export function PromoBanners() {
     setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length)
   }
 
-  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard')) return null
+  // إخفاء الإعلان السفلي في صفحات المتجر ولوحات التحكم وصفحات الدخول وإنشاء الحساب
+  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard') || pathname === '/login' || pathname === '/register') return null
 
   if (banners.length === 0) return null
 

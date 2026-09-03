@@ -236,15 +236,24 @@ export async function confirmDelivery(orderId: string, secretCode: string, amoun
     : requiredAmount
 
   // تحديث حالة الطلب
+  const updatePayload: Record<string, unknown> = {
+    status: "delivered",
+    delivered_at: new Date().toISOString(),
+    delivery_worker_id: userId,
+    delivery_worker_name: deliveryName,
+    amount_received: finalReceived
+  }
+
+  // الاستلام الجزئي لمشتري الثقة: يُعاد تشكيل الفاتورة آجلة بمقدار المستلم
+  // ليتسجل الباقي ديناً رسمياً في نظام الديون لدى التاجر والمشتري
+  if (finalReceived < requiredAmount) {
+    updatePayload.is_credit = true
+    updatePayload.amount_paid = finalReceived
+  }
+
   const { error: updateError } = await supabase
     .from("orders")
-    .update({
-      status: "delivered",
-      delivered_at: new Date().toISOString(),
-      delivery_worker_id: userId,
-      delivery_worker_name: deliveryName,
-      amount_received: finalReceived
-    })
+    .update(updatePayload)
     .eq("id", orderId)
 
   if (updateError) {
