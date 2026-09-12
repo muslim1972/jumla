@@ -11,42 +11,35 @@ export async function getWalletData() {
     return { success: false, error: "يجب تسجيل الدخول أولاً" }
   }
 
-  // Get Wallet
-  let { data: wallet, error: walletError } = await supabase
+  // استعلام واحد: المحفظة مع آخر 50 حركة مضمّنة (بدل استعلامين متسلسلين)
+  const { data: walletRow, error: walletError } = await supabase
     .from('wallets')
-    .select('*')
+    .select('*, wallet_transactions(*)')
     .eq('user_id', user.id)
+    .order('created_at', { foreignTable: 'wallet_transactions', ascending: false })
+    .limit(50, { foreignTable: 'wallet_transactions' })
     .maybeSingle()
 
   if (walletError) {
     return { success: false, error: "حدث خطأ أثناء جلب بيانات المحفظة" }
   }
 
-  // Auto-create wallet if it doesn't exist
-  if (!wallet) {
+  // Auto-create wallet if it doesn't exist (المحفظة الجديدة بلا حركات سابقة)
+  if (!walletRow) {
     const { data: newWallet, error: createError } = await supabase
       .from('wallets')
       .insert([{ user_id: user.id, balance: 0 }])
       .select('*')
       .single()
-      
+
     if (createError) {
       return { success: false, error: "لم نتمكن من إنشاء محفظة لك" }
     }
-    wallet = newWallet
+
+    return { success: true, wallet: newWallet, transactions: [] }
   }
 
-  // Get Transactions
-  const { data: transactions, error: transError } = await supabase
-    .from('wallet_transactions')
-    .select('*')
-    .eq('wallet_id', wallet.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  if (transError) {
-    return { success: false, error: "حدث خطأ أثناء جلب حركات المحفظة" }
-  }
+  const { wallet_transactions: transactions = [], ...wallet } = walletRow as any
 
   return { 
     success: true, 

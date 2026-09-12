@@ -25,6 +25,21 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
   useEffect(() => {
     if (!merchantId) return
 
+    const fetchPendingCount = async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('merchant_id', merchantId)
+        .in('status', ['pending', 'delivered'])
+
+      if (count !== null) {
+        setPendingCount(count)
+      }
+    }
+
+    // تجميع الأحداث: حد أقصى استعلام count واحد كل ثانية بدل استعلام لكل حدث
+    let ordersTimer: ReturnType<typeof setTimeout> | null = null
+
     const ordersChannel = supabase
       .channel('merchant_pending_orders')
       .on(
@@ -35,17 +50,15 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
           table: 'orders',
           filter: `merchant_id=eq.${merchantId}`,
         },
-        async () => {
-          // Fetch new count when any order changes for this merchant
-          const { count } = await supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('merchant_id', merchantId)
-            .in('status', ['pending', 'delivered'])
-            
-          if (count !== null) {
-            setPendingCount(count)
-          }
+        (payload: any) => {
+          // العدّاد يعتمد على طلبات pending/delivered فقط
+          const status = payload.new?.status ?? payload.old?.status
+          if (status !== 'pending' && status !== 'delivered') return
+          if (ordersTimer) return
+          ordersTimer = setTimeout(() => {
+            ordersTimer = null
+            fetchPendingCount()
+          }, 1000)
         }
       )
       .subscribe()

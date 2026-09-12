@@ -23,6 +23,8 @@ import {
   getCurrentProfile,
   getCartCount,
   getAppSettings,
+  getPromoBanners,
+  getTopBanners,
 } from "@/lib/app-context";
 import { ScrollToTop } from "@/components/global/scroll-to-top";
 
@@ -33,13 +35,13 @@ export default async function RootLayout({
 }) {
   // استعلامات مغلّفة بـ React.cache — تُنفَّذ مرة واحدة لكل طلب وتُعاد استخدامها في (app)/layout
   // جلب المستخدم يجري داخلياً عبر getCurrentUser المخزّنة
-  const [{ role, fullName }, cartCount, settings] = await Promise.all([
+  const [{ role, fullName }, cartCount, settings, promoBanners, topBanners] = await Promise.all([
     getCurrentProfile(),
     getCartCount(),
     getAppSettings(),
+    getPromoBanners(),
+    getTopBanners(),
   ]);
-
-  const topBanners: any[] = []
 
   return (
     <html
@@ -73,7 +75,7 @@ export default async function RootLayout({
             {children}
           </main>
           
-          <PromoBanners />
+          <PromoBanners initialBanners={promoBanners} />
         </ThemeProvider>
       </body>
     </html>

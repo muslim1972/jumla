@@ -3,28 +3,27 @@ import { redirect } from "next/navigation"
 import { MerchantTabs } from "@/features/merchant/components/merchant-tabs"
 import Link from "next/link"
 import { Award, ArrowLeft } from "lucide-react"
+import { getCurrentUser, getCurrentProfile } from "@/lib/app-context"
 
 export default async function MerchantLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // استعلامات مغلّفة بـ React.cache — نفسها المستدعاة في root layout فلا تكرار للاستعلام
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/login")
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single()
+  const { role } = await getCurrentProfile()
 
-  if (profile?.role !== 'merchant') {
+  if (role !== 'merchant') {
     redirect("/")
   }
+
+  const supabase = await createClient()
 
   const [pendingOrdersResponse, unpaidBillsResponse] = await Promise.all([
     // جلب عدد الطلبات قيد الانتظار الأولية (والتي تشمل قيد الانتظار والمسلمة بانتظار استلام المبلغ)

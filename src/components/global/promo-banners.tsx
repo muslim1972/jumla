@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createClient } from "@/utils/supabase/client"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -50,31 +49,13 @@ const DEFAULT_BANNERS: Banner[] = [
   }
 ]
 
-export function PromoBanners() {
-  const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS)
+export function PromoBanners({ initialBanners }: { initialBanners?: Banner[] }) {
+  const [banners] = useState<Banner[]>(
+    initialBanners && initialBanners.length > 0 ? initialBanners : DEFAULT_BANNERS
+  )
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const pathname = usePathname()
-
-  // Fetch banners from Supabase database
-  useEffect(() => {
-    async function fetchBanners() {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from("banners")
-          .select("*")
-          .order("created_at", { ascending: false })
-
-        if (!error && data && data.length > 0) {
-          setBanners(data)
-        }
-      } catch (err) {
-        console.log("Could not load banners from Supabase table, using local defaults:", err)
-      }
-    }
-    fetchBanners()
-  }, [])
 
   // Auto-scroll every 3 seconds
   useEffect(() => {

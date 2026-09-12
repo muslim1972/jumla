@@ -53,3 +53,37 @@ export const getAppSettings = cache(async () => {
     .maybeSingle()
   return settings
 })
+
+/** بانرات الترويج السفلية (جدول banners) — تُجلب سيرفرياً وتُمرَّر لـ PromoBanners */
+export const getPromoBanners = cache(async () => {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('banners')
+      .select('id, title, description, bg_gradient, image_url, link_url')
+      .order('created_at', { ascending: false })
+    if (error || !data || data.length === 0) return []
+    return data
+  } catch {
+    return []
+  }
+})
+
+/** شريط الإعلانات العلوي (جدول top_banners) النشطة ضمن فترتها الزمنية */
+export const getTopBanners = cache(async () => {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('top_banners')
+      .select('id, text, link_url, start_date, end_date')
+    if (error || !data || data.length === 0) return []
+    const now = Date.now()
+    return data.filter((b: any) => {
+      const from = b.start_date ? new Date(b.start_date).getTime() : 0
+      const to = b.end_date ? new Date(b.end_date).getTime() : Infinity
+      return from <= now && now <= to
+    })
+  } catch {
+    return []
+  }
+})

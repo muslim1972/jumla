@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { createClient } from "@/utils/supabase/client"
 import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory, getDeliveryPendingCount } from "@/features/delivery/actions"
@@ -28,7 +28,13 @@ export function DeliveryDashboard() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
-        () => {
+        (payload: any) => {
+          // العدّاد يعتمد على طلبات approved فقط — تجاهل بقية أحداث الجدول
+          const relevant =
+            (payload.eventType === 'INSERT' && payload.new?.status === 'approved') ||
+            (payload.eventType === 'UPDATE' && (payload.new?.status === 'approved' || payload.old?.status === 'approved')) ||
+            (payload.eventType === 'DELETE' && payload.old?.status === 'approved')
+          if (!relevant) return
           loadPendingCount()
         }
       )
@@ -104,12 +110,14 @@ function CurrentDeliveries() {
   const [merchants, setMerchants] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [expandedMerchant, setExpandedMerchant] = useState<string | null>(null)
-  
+  const merchantsRef = useRef<any[]>([])
+
   const loadMerchants = useCallback(async () => {
     setIsLoading(true)
     const result = await getDeliveryMerchants()
     if (result.merchants) {
       setMerchants(result.merchants)
+      merchantsRef.current = result.merchants
     }
     setIsLoading(false)
   }, [])
@@ -125,7 +133,10 @@ function CurrentDeliveries() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
-        () => {
+        (payload: any) => {
+          // تجاهل التغييرات على طلبات تجار غير معيَّنين لعامل التوصيل
+          const mid = payload.new?.merchant_id || payload.old?.merchant_id
+          if (merchantsRef.current.length > 0 && mid && !merchantsRef.current.some((m: any) => m.id === mid)) return
           loadMerchants()
         }
       )

@@ -1,7 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { ProductExplorer } from "@/features/products/components/product-explorer"
-import { PromoBanners } from "@/components/global/promo-banners"
 import { DeliveryDashboard } from "@/features/delivery/components/delivery-dashboard"
 import Link from "next/link"
 import { ShoppingCart, Award, ArrowLeft } from "lucide-react"
@@ -149,7 +148,6 @@ export default async function Home() {
             
 
 
-            <PromoBanners />
           </>
         )}
       </div>

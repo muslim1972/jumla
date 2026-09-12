@@ -58,51 +58,67 @@ export async function signIn(formData: FormData) {
 }
 
 export async function checkUserRole(identity: string) {
-  // قبول رقم الهاتف (يُحوَّل داخلياً) أو البريد الإلكتروني للحسابات القديمة
-  const email = isPhoneIdentity(identity) ? phoneToEmail(identity)! : (identity || "").trim()
-  if (!email || !email.includes('@')) return null
+  const trimmed = (identity || "").trim()
+  if (!trimmed) return null
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
+
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error("Missing Supabase configuration in environment variables")
     return null
   }
-  
+
   try {
-    // إنشاء عميل باستخدام مفتاح الخدمة لتخطي قيود الـ RLS والوصول الآمن للمستخدمين
+    // عميل بمفتاح الخدمة لتخطي قيود الـ RLS والوصول الآمن
     const adminClient = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     })
-    
-    // 1. جلب قائمة المستخدمين والبحث عن المستخدم بواسطة الإيميل
+
+    // هوية الهاتف: استعلام مباشر عن profiles بالرقم — بدل سحب جدول المستخدمين كاملاً بـ listUsers
+    if (isPhoneIdentity(trimmed)) {
+      const { data: profile, error: profileError } = await adminClient
+        .from('profiles')
+        .select('role, full_name')
+        .eq('phone', trimmed)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error("Error fetching profile role in checkUserRole:", profileError.message)
+        return null
+      }
+
+      return profile ? { role: profile.role, name: profile.full_name } : null
+    }
+
+    // الحسابات البريدية القديمة فقط: البحث في قائمة المستخدمين
+    if (!trimmed.includes('@')) return null
+
     const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers()
     if (listError) {
       console.error("Error listing users in checkUserRole:", listError.message)
       return null
     }
-    
-    const user = usersData.users.find(u => u.email?.toLowerCase() === email.toLowerCase().trim())
+
+    const user = usersData.users.find(u => u.email?.toLowerCase() === trimmed.toLowerCase())
     if (!user) {
       return null
     }
-    
-    // 2. جلب دور المستخدم من جدول profiles
+
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
       .select('role, full_name')
       .eq('id', user.id)
       .single()
-      
+
     if (profileError) {
-      console.error("Error fetching profile role in checkUserRoleByEmail:", profileError.message)
+      console.error("Error fetching profile role in checkUserRole:", profileError.message)
       return null
     }
-    
+
     return profile ? { role: profile.role, name: profile.full_name } : null
   } catch (e) {
     console.error("Unexpected error in checkUserRole:", e)

@@ -1,18 +1,12 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef, useDeferredValue } from "react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { AddToCartButton } from "@/features/cart/components/add-to-cart-button"
-import { ProductCard } from "@/features/products/components/product-card"
 import Image from "next/image"
 import Link from "next/link"
-import { 
-  PackageOpen, 
-  LayoutGrid, 
-  List, 
-  Search, 
-  ChevronLeft, 
-  ChevronRight,
+import {
+  PackageOpen,
+  Search,
+  ChevronLeft,
   Store,
   Star,
   Truck

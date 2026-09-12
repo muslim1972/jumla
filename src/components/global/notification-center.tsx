@@ -35,19 +35,25 @@ export function NotificationCenter() {
   }, [])
 
   useEffect(() => {
-    load()
-
-    // تحديث لحظي: أي إشعار جديد يصل لأي حساب يظهر فوراً
     const supabase = createClient()
-    const channel = supabase
-      .channel("notification_center_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
-        load()
-      })
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const init = async () => {
+      await load()
+      // فلترة القناة بإشعارات هذا المستخدم فقط — بدل بث جدول notifications كاملاً
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      channel = supabase
+        .channel("notification_center_realtime")
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+          load()
+        })
+        .subscribe()
+    }
+    init()
 
     return () => {
-      supabase.removeChannel(channel)
+      if (channel) supabase.removeChannel(channel)
     }
   }, [load])
 

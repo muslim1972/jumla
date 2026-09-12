@@ -124,39 +124,28 @@ export default function SupportPage() {
   }
 
   const fetchOrders = async () => {
+    // join مضمّن: أسماء المشتري والتاجر مع الطلب في استعلام واحد
     const { data: ordersData, error } = await supabase
       .from('orders')
       .select(`
         *,
-        order_items (*)
+        order_items (*),
+        buyer:profiles!user_id(full_name, store_name),
+        merchant:profiles!merchant_id(full_name, store_name)
       `)
       .order('created_at', { ascending: false })
       .limit(50)
 
     if (!error && ordersData) {
-      // جلب أسماء المشترين والتجار لتسهيل العرض
-      const userIds = [...new Set(ordersData.flatMap(o => [o.user_id, o.merchant_id]).filter(Boolean))]
-      
-      let profileMap: Record<string, string> = {}
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, full_name, store_name')
-          .in('id', userIds)
-        
-        if (profilesData) {
-          profileMap = Object.fromEntries(
-            profilesData.map(p => [p.id, p.store_name || p.full_name || "مستخدم مجهول"])
-          )
+      const enrichedOrders = ordersData.map((o: any) => {
+        const { buyer, merchant, order_items, ...rest } = o
+        return {
+          ...rest,
+          buyer_name: buyer?.store_name || buyer?.full_name || "مستخدم مجهول",
+          merchant_name: merchant?.store_name || merchant?.full_name || "مستخدم مجهول",
+          items: order_items
         }
-      }
-
-      const enrichedOrders = ordersData.map((o: any) => ({
-        ...o,
-        buyer_name: profileMap[o.user_id],
-        merchant_name: profileMap[o.merchant_id],
-        items: o.order_items
-      }))
+      })
 
       setOrders(enrichedOrders)
     }

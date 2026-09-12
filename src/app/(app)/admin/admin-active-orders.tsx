@@ -17,6 +17,7 @@ export function AdminActiveOrders() {
       setIsLoading(true)
       const supabase = createClient()
       
+      // join مضمّن: اسم التاجر مع الطلب في استعلام واحد
       const { data: orders } = await supabase
         .from("orders")
         .select(`
@@ -29,6 +30,7 @@ export function AdminActiveOrders() {
           status,
           created_at,
           invoice_number,
+          merchant:profiles!merchant_id(full_name),
           items:order_items(
             id,
             product_name,
@@ -41,36 +43,19 @@ export function AdminActiveOrders() {
         .order("created_at", { ascending: false })
 
       if (orders && orders.length > 0) {
-        // Fetch merchant names
-        const merchantIds = [...new Set(orders.map((o: any) => o.merchant_id).filter(Boolean))]
-        let merchantMap: Record<string, string> = {}
-        
-        if (merchantIds.length > 0) {
-          const { data: merchants } = await supabase
-            .from("profiles")
-            .select("id, full_name")
-            .in("id", merchantIds)
-          
-          if (merchants) {
-            merchantMap = merchants.reduce((acc: any, m: any) => {
-              acc[m.id] = m.full_name
-              return acc
-            }, {})
-          }
-        }
-
         // Group by merchant
         const grouped: Record<string, { merchantName: string, orders: any[] }> = {}
         orders.forEach((order: any) => {
           const mId = order.merchant_id || "unknown"
-          const mName = merchantMap[mId] || "تاجر غير معروف"
-          
+          const mName = order.merchant?.full_name || "تاجر غير معروف"
+          const { merchant, ...rest } = order
+
           if (!grouped[mId]) {
             grouped[mId] = { merchantName: mName, orders: [] }
           }
-          grouped[mId].orders.push(order)
+          grouped[mId].orders.push(rest)
         })
-        
+
         setGroupedOrders(grouped)
       }
       setIsLoading(false)

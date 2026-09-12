@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Phone, MessageCircle, Send, Globe, X, PhoneCall } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useFloatingMenu } from "@/components/global/floating-menu-provider"
@@ -12,6 +12,33 @@ export function FloatingContactButton({ settings }: { settings: any }) {
   
   const [activeIconIndex, setActiveIconIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
+
+  // Build the animation sequence (Phone -> App -> Phone -> App...)
+  // يُحسب قبل أي حكم شرطي مبكر للحفاظ على ترتيب الهوكس بين الرندرات
+  const sequence = useMemo(() => {
+    const seq: { Icon: any, color?: string }[] = []
+    const baseIcon = { Icon: PhoneCall }
+
+    if (settings?.whatsapp_number) {
+      seq.push(baseIcon)
+      seq.push({ Icon: MessageCircle, color: "text-emerald-400" })
+    }
+    if (settings?.facebook_link) {
+      seq.push(baseIcon)
+      seq.push({ Icon: Globe, color: "text-blue-300" })
+    }
+    if (settings?.telegram_link) {
+      seq.push(baseIcon)
+      seq.push({ Icon: Send, color: "text-blue-300" })
+    }
+    if (settings?.support_phone) {
+      seq.push(baseIcon)
+      seq.push({ Icon: Phone, color: "text-brand-orange" })
+    }
+    if (seq.length === 0) seq.push(baseIcon)
+
+    return seq
+  }, [settings])
 
   // Auto-close menu after 3 seconds of inactivity
   useEffect(() => {
@@ -26,7 +53,17 @@ export function FloatingContactButton({ settings }: { settings: any }) {
     };
   }, [isOpen, isHovered, setOpenMenu]);
 
-  // Early return removed to avoid React Hooks mismatch
+  // Cycle icons every 2 seconds
+  useEffect(() => {
+    if (isOpen || sequence.length <= 1) {
+      setActiveIconIndex(0) // Reset to base when open
+      return
+    }
+    const interval = setInterval(() => {
+      setActiveIconIndex((prev) => (prev + 1) % sequence.length)
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [isOpen, sequence.length])
 
   if (!settings) return null
 
@@ -43,41 +80,6 @@ export function FloatingContactButton({ settings }: { settings: any }) {
     const cleanNumber = number.replace(/[^\d+]/g, '')
     return `https://wa.me/${cleanNumber.replace('+', '')}`
   }
-
-  // Build the animation sequence (Phone -> App -> Phone -> App...)
-  const sequence: { Icon: any, color?: string }[] = []
-  const baseIcon = { Icon: PhoneCall }
-  
-  if (settings.whatsapp_number) {
-    sequence.push(baseIcon)
-    sequence.push({ Icon: MessageCircle, color: "text-emerald-400" })
-  }
-  if (settings.facebook_link) {
-    sequence.push(baseIcon)
-    sequence.push({ Icon: Globe, color: "text-blue-300" })
-  }
-  if (settings.telegram_link) {
-    sequence.push(baseIcon)
-    sequence.push({ Icon: Send, color: "text-blue-300" })
-  }
-  if (settings.support_phone) {
-    sequence.push(baseIcon)
-    sequence.push({ Icon: Phone, color: "text-brand-orange" })
-  }
-  
-  if (sequence.length === 0) sequence.push(baseIcon)
-
-  // Cycle icons every 2 seconds
-  useEffect(() => {
-    if (isOpen || sequence.length <= 1) {
-      setActiveIconIndex(0) // Reset to base when open
-      return
-    }
-    const interval = setInterval(() => {
-      setActiveIconIndex((prev) => (prev + 1) % sequence.length)
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [isOpen, sequence.length])
 
   const ActiveIconInfo = sequence[activeIconIndex]
   const ActiveIcon = ActiveIconInfo.Icon

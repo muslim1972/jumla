@@ -22,29 +22,39 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
 
   useEffect(() => {
-    // Only load if no initial orders were provided
-    if (initialOrders.length === 0) {
-      loadOrders()
-    }
-
     const supabase = createClient()
-    const channel = supabase
-      .channel('merchant-orders-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        () => {
-          loadOrders()
-        }
-      )
-      .subscribe()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const init = async () => {
+      // Only load if no initial orders were provided
+      if (initialOrders.length === 0) {
+        await loadOrders()
+      }
+
+      // فلترة القناة بطلبات هذا التاجر فقط — بدل بث جدول orders كاملاً
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      channel = supabase
+        .channel('merchant-orders-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `merchant_id=eq.${user.id}`,
+          },
+          () => {
+            loadOrders()
+          }
+        )
+        .subscribe()
+    }
+    init()
 
     return () => {
-      supabase.removeChannel(channel)
+      if (channel) supabase.removeChannel(channel)
     }
   }, [])
 
