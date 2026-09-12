@@ -14,8 +14,8 @@ create or replace function public.create_order_atomic(
   p_subtotal numeric,
   p_delivery_fee numeric,
   p_total_rounded numeric,
-  p_is_credit boolean default false,
-  p_amount_paid numeric default null,
+  p_is_credit boolean,
+  p_amount_paid numeric,
   p_items jsonb
 )
 returns table (order_id uuid, invoice_number text)
