@@ -113,6 +113,8 @@ export default function AdminPage() {
   const [topBanners, setTopBanners] = useState<TopBanner[]>([])
   const [adRequests, setAdRequests] = useState<AdRequest[]>([])
   const [productsCount, setProductsCount] = useState(0)
+  const [buyersCount, setBuyersCount] = useState(0)
+  const [merchantsCount, setMerchantsCount] = useState(0)
   
   // App Revenue State
   const [totalPaidRevenue, setTotalPaidRevenue] = useState(0)
@@ -173,6 +175,8 @@ export default function AdminPage() {
         const [
           { data: profileList },
           { count },
+          { count: buyers },
+          { count: merchants },
           { data: bannerList },
           { data: topBannerList },
           { data: adRequestList },
@@ -180,6 +184,8 @@ export default function AdminPage() {
         ] = await Promise.all([
           supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
           supabase.from("products").select("*", { count: "exact", head: true }).limit(500),
+          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "guest"),
+          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant"),
           supabase.from("banners").select("*").order("created_at", { ascending: false }).limit(500),
           supabase.from("top_banners").select("*").order("created_at", { ascending: false }).limit(500),
           supabase.from("ad_requests").select("*").order("created_at", { ascending: false }).limit(500),
@@ -188,6 +194,8 @@ export default function AdminPage() {
 
         if (profileList) setProfiles(profileList)
         if (count) setProductsCount(count)
+        setBuyersCount(buyers ?? 0)
+        setMerchantsCount(merchants ?? 0)
         if (bannerList) setBanners(bannerList)
         if (topBannerList) setTopBanners(topBannerList)
         if (adRequestList) setAdRequests(adRequestList)
@@ -216,8 +224,6 @@ export default function AdminPage() {
   // Mock data fallbacks for overview when DB is empty
   const mockBannersCount = banners.length || 4
   const mockTopBannersCount = topBanners.length || 3
-  const mockMerchantsCount = profiles.filter(p => p.role === "merchant").length || 3
-  const mockUsersCount = profiles.length || 5
 
   // Manage Users
   const handleUpdateRole = async (userId: string, newRole: string) => {
@@ -532,8 +538,21 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{mockMerchantsCount}</div>
+                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{merchantsCount}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">تاجر جملتي نشط</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-border/40 shadow-premium">
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">الأسواق المسجلة (المشترون)</CardTitle>
+                <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
+                  <Users className="w-4 h-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{buyersCount}</div>
+                <p className="text-[10px] text-muted-foreground mt-1">سوق مشتري مسجل بالتطبيق</p>
               </CardContent>
             </Card>
 
@@ -545,7 +564,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{productsCount || 18}</div>
+                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{productsCount}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">منتج نشط بالمنصة</p>
               </CardContent>
             </Card>
@@ -1032,7 +1051,7 @@ export default function AdminPage() {
                         )}
                       </td>
                       <td className="p-3 text-center">
-                        {profile.role === "guest" || profile.role === "merchant" ? (
+                        {profile.role === "guest" || profile.role === "merchant" || profile.role === "support" ? (
                           isUserBanned(profile.banned_until) ? (
                             // محظور: شارة الحالة + إمكانية إلغاء الحظر
                             <div className="flex flex-col items-center gap-1.5">
