@@ -108,7 +108,10 @@ export function NotificationCenter() {
       {/* قائمة الإشعارات المنسدلة */}
       <div
         className={cn(
-          "absolute top-full mt-2.5 left-0 w-[300px] sm:w-[360px] max-h-[380px] overflow-y-auto custom-scrollbar",
+          // موبايل: شريط بعرض الشاشة بهوامش آمنة وارتفاع نسبةً للشاشة (يتكيف ذاتياً مع القياس)
+          "fixed inset-x-3 top-[60px] max-h-[min(420px,calc(100dvh-76px))] overflow-y-auto custom-scrollbar",
+          // شاشات أكبر: قائمة منسدلة من الجرس
+          "sm:absolute sm:inset-x-auto sm:top-full sm:mt-2.5 sm:left-0 sm:w-[360px] sm:max-h-[380px]",
           "bg-card border shadow-2xl rounded-2xl transition-all duration-200 origin-top",
           isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 -translate-y-2 pointer-events-none"
         )}
