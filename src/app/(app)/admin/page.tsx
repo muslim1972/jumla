@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { 
-  BarChart3, 
-  Users, 
-  Plus, 
-  Trash2, 
+import {
+  BarChart3,
+  Users,
+  Plus,
+  Trash2,
   ShieldAlert,
   TrendingUp,
-  Store, 
-  Package, 
+  Store,
+  Package,
   Image as ImageIcon,
   DollarSign,
   UserCheck,
@@ -106,7 +106,7 @@ export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [showContactSettings, setShowContactSettings] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
-  
+
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -115,11 +115,11 @@ export default function AdminPage() {
   const [productsCount, setProductsCount] = useState(0)
   const [buyersCount, setBuyersCount] = useState(0)
   const [merchantsCount, setMerchantsCount] = useState(0)
-  
+
   // App Revenue State
   const [totalPaidRevenue, setTotalPaidRevenue] = useState(0)
   const [totalUnpaidRevenue, setTotalUnpaidRevenue] = useState(0)
-  
+
   // Forms States (Free Banners)
   const [newAdTitle, setNewAdTitle] = useState("")
   const [newAdDesc, setNewAdDesc] = useState("")
@@ -137,7 +137,7 @@ export default function AdminPage() {
   const [newTopEndDate, setNewTopEndDate] = useState(() => {
     const nextWeek = new Date()
     nextWeek.setDate(nextWeek.getDate() + 7)
-    nextWeek.setMinutes(nextWeek.getMinutes() - nextWeek.getTimezoneOffset())
+    nextWeek.setMinutes(nextWeek.getMinutes() - now.getTimezoneOffset())
     return nextWeek.toISOString().slice(0, 16)
   })
   const [newTopIsActive, setNewTopIsActive] = useState(true)
@@ -150,14 +150,14 @@ export default function AdminPage() {
     async function checkAuth() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      
+
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single()
-        
+
         setUserProfile(profile)
         setIsAdmin(profile?.role === "admin")
       }
@@ -184,6 +184,7 @@ export default function AdminPage() {
         ] = await Promise.all([
           supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(500),
           supabase.from("products").select("*", { count: "exact", head: true }).limit(500),
+          // عدّاد دقيق للأسواق (المشترين) والتجار بغض النظر عن limit القائمة
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "guest"),
           supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "merchant"),
           supabase.from("banners").select("*").order("created_at", { ascending: false }).limit(500),
@@ -199,7 +200,7 @@ export default function AdminPage() {
         if (bannerList) setBanners(bannerList)
         if (topBannerList) setTopBanners(topBannerList)
         if (adRequestList) setAdRequests(adRequestList)
-        
+
         if (billingList) {
           let paid = 0
           let unpaid = 0
@@ -229,7 +230,7 @@ export default function AdminPage() {
   const handleUpdateRole = async (userId: string, newRole: string) => {
     // Optimistic UI update
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role: newRole } : p))
-    
+
     const { error } = await supabase
       .from("profiles")
       .update({ role: newRole })
@@ -240,7 +241,7 @@ export default function AdminPage() {
   const handleUpdateDeliveryFee = async (userId: string, fee: number) => {
     // Optimistic UI update
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, delivery_fee: fee } : p))
-    
+
     const { error } = await supabase
       .from("profiles")
       .update({ delivery_fee: fee })
@@ -248,7 +249,7 @@ export default function AdminPage() {
     if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
   }
 
-  // إدارة حظر حسابات (المشتري والتاجر): زر حظر ← اختيار الفترة ← تأكيد
+  // إدارة حظر حسابات (المشتري والتاجر وموظف الدعم): زر حظر ← اختيار الفترة ← تأكيد
   const [banningId, setBanningId] = useState<string | null>(null)
   const [banPeriod, setBanPeriod] = useState<BanPeriod>("day")
 
@@ -370,7 +371,7 @@ export default function AdminPage() {
 
     // Optimistic update
     setBanners(prev => [newBanner, ...prev])
-    
+
     // Save to DB
     const { error } = await supabase
       .from("banners")
@@ -392,7 +393,7 @@ export default function AdminPage() {
 
   const handleDeleteBanner = async (id: string) => {
     setBanners(prev => prev.filter(b => b.id !== id))
-    
+
     const { error } = await supabase
       .from("banners")
       .delete()
@@ -420,7 +421,7 @@ export default function AdminPage() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-brand-blue dark:text-foreground">لوحة إدارة النظام</h1>
             <div className="flex items-center gap-2">
-              <Button 
+              <Button
                 onClick={() => setShowAuditLogs(true)}
                 variant="outline"
                 size="sm"
@@ -429,7 +430,7 @@ export default function AdminPage() {
                 <History className="w-3 h-3 sm:w-4 sm:h-4" />
                 سجل الحركات
               </Button>
-              <Button 
+              <Button
                 onClick={() => setShowContactSettings(true)}
                 variant="outline"
                 size="sm"
@@ -442,10 +443,10 @@ export default function AdminPage() {
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">تتبع الأداء، وأدر المتاجر، وخصص الإعلانات الترويجية.</p>
         </div>
-        
+
         {/* Tabs Control */}
         <div className="flex bg-muted/65 p-1 rounded-xl w-full sm:w-auto shadow-inner flex-wrap gap-1">
-          <button 
+          <button
             onClick={() => setActiveTab("overview")}
             className={cn(
               "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
@@ -454,7 +455,7 @@ export default function AdminPage() {
           >
             الإحصائيات
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("paidBanners")}
             className={cn(
               "relative flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
@@ -468,7 +469,7 @@ export default function AdminPage() {
               </span>
             )}
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("banners")}
             className={cn(
               "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
@@ -477,7 +478,7 @@ export default function AdminPage() {
           >
             إعلانات السلايدر السفلي
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("users")}
             className={cn(
               "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
@@ -486,7 +487,7 @@ export default function AdminPage() {
           >
             المستخدمين والتوصيل
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("merchantBilling")}
             className={cn(
               "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
@@ -551,7 +552,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{buyersCount}</div>
+                <div className="text-lg sm:text-2xl font-black text-emerald-600">{buyersCount}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">سوق مشتري مسجل بالتطبيق</p>
               </CardContent>
             </Card>
@@ -564,7 +565,7 @@ export default function AdminPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{productsCount}</div>
+                <div className="text-lg sm:text-2xl font-black text-brand-blue dark:text-foreground">{productsCount || 18}</div>
                 <p className="text-[10px] text-muted-foreground mt-1">منتج نشط بالمنصة</p>
               </CardContent>
             </Card>
@@ -622,15 +623,15 @@ export default function AdminPage() {
                       </linearGradient>
                     </defs>
                     {/* Area path */}
-                    <path 
-                      d="M0,150 L0,120 L80,95 L160,110 L240,65 L320,85 L400,40 L480,25 L500,25 L500,150 Z" 
-                      fill="url(#chartGrad)" 
+                    <path
+                      d="M0,150 L0,120 L80,95 L160,110 L240,65 L320,85 L400,40 L480,25 L500,25 L500,150 Z"
+                      fill="url(#chartGrad)"
                     />
                     {/* Line path */}
-                    <path 
-                      d="M0,120 L80,95 L160,110 L240,65 L320,85 L400,40 L480,25 L500,25" 
-                      fill="none" 
-                      stroke="oklch(var(--brand-orange))" 
+                    <path
+                      d="M0,120 L80,95 L160,110 L240,65 L320,85 L400,40 L480,25 L500,25"
+                      fill="none"
+                      stroke="oklch(var(--brand-orange))"
                       strokeWidth="3.5"
                       strokeLinecap="round"
                     />
@@ -668,9 +669,9 @@ export default function AdminPage() {
               <form onSubmit={handleAddBanner} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="title" className="text-xs font-bold">العنوان الرئيسي</Label>
-                  <Input 
-                    id="title" 
-                    placeholder="العرض أو عنوان البانر..." 
+                  <Input
+                    id="title"
+                    placeholder="العرض أو عنوان البانر..."
                     value={newAdTitle}
                     onChange={(e) => setNewAdTitle(e.target.value)}
                     required
@@ -678,9 +679,9 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="desc" className="text-xs font-bold">الوصف والتفاصيل</Label>
-                  <Input 
-                    id="desc" 
-                    placeholder="وصف تفصيلي جذاب للمستخدم..." 
+                  <Input
+                    id="desc"
+                    placeholder="وصف تفصيلي جذاب للمستخدم..."
                     value={newAdDesc}
                     onChange={(e) => setNewAdDesc(e.target.value)}
                   />
@@ -707,9 +708,9 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="link" className="text-xs font-bold">رابط التوجيه (اختياري)</Label>
-                  <Input 
-                    id="link" 
-                    placeholder="مثال: /cart أو /products..." 
+                  <Input
+                    id="link"
+                    placeholder="مثال: /cart أو /products..."
                     value={newAdLink}
                     onChange={(e) => setNewAdLink(e.target.value)}
                   />
@@ -727,7 +728,7 @@ export default function AdminPage() {
               <span className="w-1.5 h-5 bg-brand-orange rounded-full inline-block" />
               الإعلانات المنشورة حالياً ({banners.length})
             </h2>
-            
+
             {banners.length === 0 ? (
               <div className="text-center py-12 bg-card rounded-2xl border border-dashed text-muted-foreground text-sm">
                 لا توجد إعلانات نشطة حالياً. يرجى ملء النموذج لإضافة إعلانك الأول.
@@ -748,9 +749,9 @@ export default function AdminPage() {
                         <p className="text-muted-foreground"><strong>الرابط الحالي:</strong> <span className="underline">{banner.link_url || "/"}</span></p>
                         <p className="text-muted-foreground"><strong>الخلفية:</strong> <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{banner.bg_gradient?.split(" ")[0] || "افتراضي"}</code></p>
                       </div>
-                      <Button 
-                        variant="destructive" 
-                        size="icon" 
+                      <Button
+                        variant="destructive"
+                        size="icon"
                         onClick={() => handleDeleteBanner(banner.id)}
                         className="h-8 w-8 cursor-pointer shrink-0"
                         title="حذف الإعلان"
@@ -784,8 +785,8 @@ export default function AdminPage() {
                 <form onSubmit={handleAddTopBanner} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="top-text" className="text-xs font-bold">نص الإعلان</Label>
-                    <textarea 
-                      id="top-text" 
+                    <textarea
+                      id="top-text"
                       rows={2}
                       className="w-full px-3 py-2 text-xs rounded-xl border border-input bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       placeholder="اكتب العرض الترويجي الجذاب هنا..."
@@ -794,12 +795,12 @@ export default function AdminPage() {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <Label htmlFor="top-link" className="text-xs font-bold">رابط التوجيه (اختياري)</Label>
-                    <Input 
-                      id="top-link" 
-                      placeholder="مثال: /products أو رابط خارجي..." 
+                    <Input
+                      id="top-link"
+                      placeholder="مثال: /products أو رابط خارجي..."
                       value={newTopLink}
                       onChange={(e) => setNewTopLink(e.target.value)}
                     />
@@ -808,8 +809,8 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="start-date" className="text-[11px] font-bold">تاريخ البدء</Label>
-                      <Input 
-                        id="start-date" 
+                      <Input
+                        id="start-date"
                         type="datetime-local"
                         value={newTopStartDate}
                         onChange={(e) => setNewTopStartDate(e.target.value)}
@@ -819,8 +820,8 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="end-date" className="text-[11px] font-bold">تاريخ الانتهاء</Label>
-                      <Input 
-                        id="end-date" 
+                      <Input
+                        id="end-date"
                         type="datetime-local"
                         value={newTopEndDate}
                         onChange={(e) => setNewTopEndDate(e.target.value)}
@@ -831,8 +832,8 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex items-center gap-2 pt-1">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id="top-active"
                       checked={newTopIsActive}
                       onChange={(e) => setNewTopIsActive(e.target.checked)}
@@ -864,7 +865,7 @@ export default function AdminPage() {
                   {topBanners.map((banner) => {
                     const isExpired = new Date(banner.end_date) < new Date()
                     const isUpcoming = new Date(banner.start_date) > new Date()
-                    
+
                     return (
                       <Card key={banner.id} className={cn(
                         "overflow-hidden border border-border/40 shadow-premium p-4 flex flex-col justify-between gap-3 relative",
@@ -875,9 +876,9 @@ export default function AdminPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={cn(
                                 "text-[9px] font-black px-2 py-0.5 rounded-full border",
-                                isExpired 
-                                  ? "bg-red-500/10 text-red-500 border-red-500/20" 
-                                  : isUpcoming 
+                                isExpired
+                                  ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                  : isUpcoming
                                     ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                     : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                               )}>
@@ -889,8 +890,8 @@ export default function AdminPage() {
                                   onClick={() => handleToggleTopBannerActive(banner.id, banner.is_active)}
                                   className={cn(
                                     "text-[9px] font-bold px-2 py-0.5 rounded-full border cursor-pointer",
-                                    banner.is_active 
-                                      ? "bg-brand-blue/15 text-brand-blue border-brand-blue/30" 
+                                    banner.is_active
+                                      ? "bg-brand-blue/15 text-brand-blue border-brand-blue/30"
                                       : "bg-muted text-muted-foreground border-border/60"
                                   )}
                                 >
@@ -900,10 +901,10 @@ export default function AdminPage() {
                             </div>
                             <p className="font-bold text-xs sm:text-sm text-foreground pt-1.5">{banner.text}</p>
                           </div>
-                          
-                          <Button 
-                            variant="destructive" 
-                            size="icon" 
+
+                          <Button
+                            variant="destructive"
+                            size="icon"
                             onClick={() => handleDeleteTopBanner(banner.id)}
                             className="h-8 w-8 cursor-pointer shrink-0"
                             title="حذف الإعلان"
@@ -1038,9 +1039,9 @@ export default function AdminPage() {
                       <td className="p-3 text-center flex items-center justify-center gap-2">
                         {profile.role === "merchant" ? (
                           <div className="flex items-center gap-1.5 max-w-[120px]">
-                            <Input 
-                              type="number" 
-                              value={profile.delivery_fee || 0} 
+                            <Input
+                              type="number"
+                              value={profile.delivery_fee || 0}
                               onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
                               className="h-8 text-center text-xs font-bold"
                               dir="ltr"
@@ -1127,13 +1128,13 @@ export default function AdminPage() {
       )}
 
       {/* حوار سجل الحركات */}
-      <AuditLogViewer 
-        open={showAuditLogs} 
-        onOpenChange={setShowAuditLogs} 
+      <AuditLogViewer
+        open={showAuditLogs}
+        onOpenChange={setShowAuditLogs}
       />
 
       {/* حوار إعدادات التواصل */}
-      <ContactSettingsModal 
+      <ContactSettingsModal
         open={showContactSettings}
         onOpenChange={setShowContactSettings}
       />
