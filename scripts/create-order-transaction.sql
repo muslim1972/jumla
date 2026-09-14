@@ -27,8 +27,8 @@ declare
   v_user_id uuid := auth.uid();
   v_support_phone text;
   v_editing_id uuid;
-  v_editing_invoice text;
-  v_invoice text;
+  v_editing_invoice integer;
+  v_invoice_num integer;
   v_new_order_id uuid;
   v_item jsonb;
   v_rec record;
@@ -141,9 +141,9 @@ begin
      where orders.id = v_editing_id;
 
     v_new_order_id := v_editing_id;
-    v_invoice := v_editing_invoice;
+    v_invoice_num := v_editing_invoice;
   else
-    v_invoice := public.get_next_invoice_number(p_merchant_id)::text;
+    v_invoice_num := public.get_next_invoice_number(p_merchant_id);
 
     insert into orders (
       user_id, merchant_id, verification_code, store_name, address, phone,
@@ -152,7 +152,7 @@ begin
     ) values (
       v_user_id, p_merchant_id, p_verification_code, p_store_name, p_address, p_phone,
       p_subtotal, p_delivery_fee, p_total_rounded, 'pending', v_support_phone,
-      v_invoice, p_is_credit, coalesce(p_amount_paid, p_total_rounded),
+      v_invoice_num, p_is_credit, coalesce(p_amount_paid, p_total_rounded),
       nullif(v_lat, '')::numeric, nullif(v_lon, '')::numeric
     )
     returning id into v_new_order_id;
@@ -174,7 +174,7 @@ begin
      select it->>'cart_item_id' from jsonb_array_elements(p_items) as it
    );
 
-  return query select v_new_order_id, v_invoice;
+  return query select v_new_order_id, v_invoice_num::text;
 end;
 $$;
 
