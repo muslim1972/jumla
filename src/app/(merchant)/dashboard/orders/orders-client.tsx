@@ -68,7 +68,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         .from("orders")
         .select(`
           id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
-          invoice_number, verification_code, status, cancel_requested, pending_edits, created_at, delivery_worker_name,
+          invoice_number, status, cancel_requested, pending_edits, created_at, delivery_worker_name,
           is_credit, amount_paid, delivered_at,
           items:order_items(id, product_name, product_price, quantity, unit_type)
         `)
@@ -629,10 +629,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
 
 function handlePrintOrder(order: any, dateStr: string, deliveryDateStr?: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
-  const maskedCode = order.verification_code && order.verification_code.length > 2 
-    ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
-    : order.verification_code || '---';
-  
+
   const itemsRows = (order.items || []).map((item: any) => `
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${item.product_name} <span style="color:#888;font-size:11px;">(${item.unit_type})</span></td>
@@ -695,11 +692,6 @@ function handlePrintOrder(order: any, dateStr: string, deliveryDateStr?: string)
     .total-row.grand { font-size: 16px; font-weight: 900; color: #111; margin-top: 5px; padding-top: 10px; border-top: 1px dashed #eee; }
     .total-row.grand .amount { color: #e85d26; }
 
-    .verification { background: #f0fdf4; border: 1px dashed #22c55e; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px; }
-    .verification .label { font-size: 12px; color: #166534; font-weight: bold; margin-bottom: 5px; }
-    .verification .code { font-family: monospace; font-size: 24px; font-weight: 900; letter-spacing: 4px; color: #15803d; }
-    .verification .warning { font-size: 10px; color: #dc2626; margin-top: 8px; font-weight: bold; background: #fef2f2; padding: 4px; border-radius: 4px; }
-
     .footer { text-align: center; font-size: 11px; color: #888; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px; }
 
     @media print {
@@ -757,12 +749,6 @@ function handlePrintOrder(order: any, dateStr: string, deliveryDateStr?: string)
         <div class="total-row" style="color: #059669; font-weight: bold;"><span>المبلغ الواصل</span><span>${order.amount_paid.toLocaleString('en-US')} د.ع</span></div>
         <div class="total-row grand" style="color: #dc2626; border-top: 1px dashed #fca5a5; padding-top: 10px;"><span>الباقي (دين)</span><span class="amount">${((order.total_rounded || 0) - order.amount_paid).toLocaleString('en-US')} د.ع</span></div>
       ` : ''}
-    </div>
-
-    <div class="verification">
-      <div class="label">كود التحقق السري للطلب</div>
-      <div class="code">${maskedCode}</div>
-      <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
     </div>
 
     <div class="footer">
