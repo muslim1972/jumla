@@ -284,9 +284,28 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
               <span className="text-muted-foreground text-xs">🏪</span>
               <span className="font-medium">{order.store_name}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">📍</span>
-              <span>{order.address}</span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-start gap-2">
+                <span className="text-muted-foreground text-xs mt-0.5">📍</span>
+                <span className="break-words leading-relaxed">
+                  {order.address ? order.address.replace(/(https?:\/\/[^\s]+)/, '').replace(/\s*-\s*$/, '').trim() : ""}
+                </span>
+              </div>
+              {order.address && order.address.match(/(https?:\/\/[^\s]+)/) && (
+                <div className="mr-5">
+                  <a 
+                    href={order.address.match(/(https?:\/\/[^\s]+)/)![0]} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-md inline-flex items-center gap-1 font-bold hover:bg-emerald-500/20 transition-colors w-max"
+                    title="فتح الموقع على الخريطة"
+                  >
+                    <span className="text-xs">🗺️</span>
+                    عرض الخريطة
+                  </a>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2" dir="ltr">
               <span className="text-muted-foreground text-xs">📞</span>
@@ -401,7 +420,7 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
                 <div class="header"><h1>جُملتي</h1><div class="invoice-num">قائمة رقم #${invoiceNum}</div><div class="date">تاريخ القائمة: ${dateStr}</div></div>
                 <div class="status">مؤرشف</div>
                 <div class="section"><div class="section-title">معلومات التاجر</div><div class="info-grid"><div class="info-item"><span class="info-label">التاجر: </span><span class="info-value">${order.merchant_name || '---'}</span></div>${order.support_phone ? `<div class="info-item"><span class="info-label">هاتف الدعم: </span><span class="info-value" dir="ltr">${order.support_phone}</span></div>` : ''}</div></div>
-                <div class="section"><div class="section-title">معلومات التوصيل</div><div class="info-grid"><div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div><div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div><div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>${order.delivered_at ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${new Date(order.delivered_at).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' })}</span></div>` : ''}</div></div>
+                <div class="section"><div class="section-title">معلومات التوصيل</div><div class="info-grid"><div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div><div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div><div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address ? order.address.replace(/(https?:\\\/\\\/[^\\s]+)/, '').replace(/\\s*-\\s*$/, '').trim() : ""}</span></div>${order.delivered_at ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${new Date(order.delivered_at).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' })}</span></div>` : ''}</div></div>
                 <div class="section"><div class="section-title">تفاصيل المنتجات</div><table><thead><tr><th>المنتج</th><th style="text-align:center;">الكمية</th><th style="text-align:center;">سعر الوحدة</th><th style="text-align:left;">المجموع</th></tr></thead><tbody>${itemsRows}</tbody></table></div>
                 <div class="totals">
                   <div class="total-row"><span>قيمة المنتجات</span><span>${order.subtotal.toLocaleString('en-US')} د.ع</span></div>

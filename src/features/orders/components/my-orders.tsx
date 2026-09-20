@@ -174,7 +174,7 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
       <div class="info-grid">
         <div class="info-item"><span class="info-label">الاسم: </span><span class="info-value">${order.store_name}</span></div>
         <div class="info-item"><span class="info-label">الهاتف: </span><span class="info-value" dir="ltr">${order.phone}</span></div>
-        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address}</span></div>
+        <div class="info-item" style="grid-column:span 2;"><span class="info-label">العنوان: </span><span class="info-value">${order.address ? order.address.replace(/(https?:\\\/\\\/[^\\s]+)/, '').replace(/\\s*-\\s*$/, '').trim() : ""}</span></div>
         ${order.delivery_worker_name && (order.status === 'delivered' || order.status === 'completed') ? `<div class="info-item" style="grid-column:span 2; background:#ecfdf5; border:1px solid #a7f3d0;"><span class="info-label" style="color:#047857">تم التوصيل بواسطة: </span><span class="info-value" style="color:#059669">${order.delivery_worker_name}</span></div>` : ''}
         ${deliveryDateStr ? `<div class="info-item" style="grid-column:span 2;"><span class="info-label">تاريخ التسليم: </span><span class="info-value" dir="ltr">${deliveryDateStr}</span></div>` : ''}
       </div>
@@ -393,9 +393,28 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
               <Store className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="font-semibold text-foreground truncate min-w-0">{order.store_name}</span>
             </div>
-            <div className="flex items-start gap-2 text-sm min-w-0">
-              <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-muted-foreground min-w-0 break-all leading-relaxed">{order.address}</span>
+            <div className="flex flex-col gap-1.5 text-sm min-w-0">
+              <div className="flex items-start gap-2 min-w-0">
+                <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="text-muted-foreground min-w-0 break-words leading-relaxed">
+                  {order.address ? order.address.replace(/(https?:\/\/[^\s]+)/, '').replace(/\s*-\s*$/, '').trim() : ""}
+                </span>
+              </div>
+              {order.address && order.address.match(/(https?:\/\/[^\s]+)/) && (
+                <div className="mr-6">
+                  <a 
+                    href={order.address.match(/(https?:\/\/[^\s]+)/)![0]} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-md inline-flex items-center gap-1 font-bold hover:bg-emerald-500/20 transition-colors w-max max-w-full"
+                    title="فتح الموقع على الخريطة"
+                  >
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">عرض الخريطة</span>
+                  </a>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
