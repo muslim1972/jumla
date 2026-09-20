@@ -129,11 +129,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground transition-colors duration-300;
-  }
+  /* منع التمرير الأفقي على كل الأجهزة — يحل مشكلة بعض أجهزة Android التي تسمح بالسحب أفقياً */
   html {
     @apply font-sans;
+    overflow-x: hidden;
+    max-width: 100vw;
+    max-width: 100dvw;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    overflow-x: hidden;
+    max-width: 100vw;
+    max-width: 100dvw;
+    width: 100%;
   }
 }
 

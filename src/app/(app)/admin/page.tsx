@@ -30,6 +30,7 @@ import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 import { ContactSettingsModal } from "@/features/admin/components/contact-settings-modal"
 import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
+import { updateUserRoleWithSync, getAdminUserDetails } from "@/features/admin/actions"
 
 interface TopBanner {
   id: string
@@ -225,16 +226,18 @@ export default function AdminPage() {
   const mockBannersCount = banners.length || 4
   const mockTopBannersCount = topBanners.length || 3
 
-  // Manage Users
+  // Manage Users — تحديث الدور مع مزامنة auth.users عبر server action آمن
   const handleUpdateRole = async (userId: string, newRole: string) => {
     // Optimistic UI update
     setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role: newRole } : p))
     
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role: newRole })
-      .eq("id", userId)
-    if (error) alert("فشل تحديث الرتبة في قاعدة البيانات: " + error.message)
+    const result = await updateUserRoleWithSync(userId, newRole)
+    if (result.error) {
+      alert("فشل تحديث الرتبة: " + result.error)
+      // Revert on error — إعادة جلب البيانات
+      const { data } = await supabase.from("profiles").select("*").eq("id", userId).single()
+      if (data) setProfiles(prev => prev.map(p => p.id === userId ? data : p))
+    }
   }
 
   const handleUpdateDeliveryFee = async (userId: string, fee: number) => {

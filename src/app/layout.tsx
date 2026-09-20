@@ -47,14 +47,15 @@ export default async function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${cairo.variable} font-sans antialiased`}
+      className={`${cairo.variable} font-sans antialiased overflow-x-hidden`}
       suppressHydrationWarning
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
       </head>
-      <body className="min-h-screen flex flex-col bg-background text-foreground">
+      <body className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden w-full">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

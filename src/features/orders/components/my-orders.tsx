@@ -321,52 +321,52 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
   }, [])
 
   return (
-    <div className="bg-white dark:bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-card border rounded-xl overflow-hidden max-w-full shadow-sm hover:shadow-md transition-shadow">
       {/* رأس البطاقة */}
       <div 
         onClick={toggleExpand}
-        className="p-3 sm:p-4 flex items-center justify-between cursor-pointer select-none"
+        className="p-3 sm:p-4 flex flex-col sm:flex-row items-start justify-between cursor-pointer select-none gap-3 sm:gap-4 relative"
       >
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2 rounded-lg">
+        <div className="flex items-start gap-3 w-full sm:w-auto overflow-hidden">
+          <div className="bg-primary/10 p-2 rounded-lg shrink-0">
             <FileText className="w-5 h-5 text-primary" />
           </div>
-          <div>
-            <h3 className="font-bold text-sm sm:text-base">
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm sm:text-base truncate">
               {order.merchant_name || order.store_name}
               {order.invoice_number && <span className="text-muted-foreground font-normal mr-1">#{String(order.invoice_number).padStart(5, '0')}</span>}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+              <Clock className="w-3 h-3 shrink-0" />
               تاريخ الطلب: {dateStr}
             </p>
             {order.delivered_at && (
-              <p className="text-[10px] text-emerald-600 mt-0.5 font-medium flex items-center gap-1">
+              <p className="text-[10px] text-emerald-600 mt-0.5 font-medium flex items-center gap-1 truncate">
                 تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="text-left flex flex-col items-end">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:justify-end border-t sm:border-0 border-border/50 pt-2 sm:pt-0">
+          <div className="text-right sm:text-left flex flex-col items-start sm:items-end min-w-0">
             {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? (
               <>
-                <p className="text-[10px] text-muted-foreground line-through">
+                <p className="text-[10px] text-muted-foreground line-through truncate w-full">
                   {order.total_rounded.toLocaleString('en-US')}
                 </p>
-                <p className="font-black text-red-600 text-sm sm:text-base">
+                <p className="font-black text-red-600 text-sm sm:text-base truncate w-full">
                   الباقي {(order.total_rounded - order.amount_paid).toLocaleString('en-US')}
                 </p>
               </>
             ) : (
-              <p className="font-black text-primary text-sm sm:text-base">
+              <p className="font-black text-primary text-sm sm:text-base truncate w-full">
                 {order.total_rounded.toLocaleString('en-US')}
               </p>
             )}
-            <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max mr-auto`}>
+            <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max`}>
               {statusConfig.icon}
-              {statusConfig.label}
+              <span className="truncate">{statusConfig.label}</span>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted/50 rounded-full shrink-0">
@@ -409,14 +409,14 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </h4>
             <div className="space-y-2 max-h-48 overflow-y-auto pl-1 pr-2 custom-scrollbar">
               {(order.items || []).map(item => (
-                <div key={item.id} className="flex justify-between items-center text-sm bg-white dark:bg-card border rounded-lg p-2.5">
-                  <div className="flex flex-col gap-0.5 overflow-hidden">
+                <div key={item.id} className="flex justify-between items-center text-sm bg-white dark:bg-card border rounded-lg p-2 sm:p-2.5 gap-2">
+                  <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
                     <span className="font-semibold truncate">{item.product_name}</span>
-                    <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded">{item.unit_type}</span>
+                    <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded truncate max-w-full">{item.unit_type}</span>
                   </div>
                   <div className="text-left shrink-0">
-                    <p className="font-bold">{item.quantity} × {(item.product_price).toLocaleString('en-US')}</p>
-                    <p className="text-[10px] text-primary font-bold">{(item.product_price * item.quantity).toLocaleString('en-US')}</p>
+                    <p className="font-bold whitespace-nowrap">{item.quantity} × {(item.product_price).toLocaleString('en-US')}</p>
+                    <p className="text-[10px] text-primary font-bold whitespace-nowrap">{(item.product_price * item.quantity).toLocaleString('en-US')}</p>
                   </div>
                 </div>
               ))}
@@ -437,18 +437,18 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                 {/* القائمة المعدلة: القديم مشطوب ← الجديد */}
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pl-1 pr-2 custom-scrollbar">
                   {order.pending_edits.items.map(s => (
-                    <div key={s.item_id} className="flex justify-between items-center text-sm bg-white dark:bg-card border border-amber-500/20 rounded-lg p-2.5">
-                      <div className="flex flex-col gap-0.5 overflow-hidden">
+                    <div key={s.item_id} className="flex justify-between items-center text-sm bg-white dark:bg-card border border-amber-500/20 rounded-lg p-2 sm:p-2.5 gap-2">
+                      <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
                         <span className="font-semibold truncate">{s.product_name}</span>
-                        <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded">{s.unit_type}</span>
+                        <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded truncate max-w-full">{s.unit_type}</span>
                       </div>
-                      <div className="text-left shrink-0 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground line-through">{s.old_quantity}</span>
+                      <div className="text-left shrink-0 flex items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs text-muted-foreground line-through whitespace-nowrap">{s.old_quantity}</span>
                         <span className="text-muted-foreground">←</span>
                         {s.new_quantity > 0 ? (
-                          <span className="font-black text-amber-600">{s.new_quantity}</span>
+                          <span className="font-black text-amber-600 whitespace-nowrap">{s.new_quantity}</span>
                         ) : (
-                          <span className="font-black text-red-600 text-xs">غير متوفر</span>
+                          <span className="font-black text-red-600 text-[10px] sm:text-xs whitespace-nowrap">غير متوفر</span>
                         )}
                       </div>
                     </div>
@@ -651,7 +651,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto" showCloseButton={true}>
+      <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto" showCloseButton={true}>
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-lg">

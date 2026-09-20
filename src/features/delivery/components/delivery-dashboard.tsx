@@ -54,7 +54,7 @@ export function DeliveryDashboard() {
         </h2>
         
         {/* Tabs */}
-        <div className="flex border-b border-border/40 gap-4 overflow-x-auto custom-scrollbar">
+        <div className="flex border-b border-border/40 gap-4 overflow-x-auto custom-scrollbar pt-3 overflow-visible">
           <button 
             onClick={() => setActiveTab("current")}
             className={cn(
@@ -64,7 +64,7 @@ export function DeliveryDashboard() {
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
           >
-            <div className="relative flex items-center justify-center">
+            <div className="relative overflow-visible flex items-center justify-center">
               <Clock className="w-4 h-4" />
               {pendingCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in shadow-sm">
@@ -283,17 +283,17 @@ function SettlementView() {
       ) : (
         <div className="space-y-4">
           <div className="bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl text-sm font-bold text-red-600 space-y-1.5">
-            <div className="flex justify-between items-center gap-2">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 shrink-0" />
                 <span>قوائم تم توصيلها للعميل بانتظار تسديد التاجر</span>
               </div>
-              <span className="whitespace-nowrap">إجمالي المبالغ المستلمة: {orders.reduce((sum, o) => {
+              <span className="whitespace-normal text-left">إجمالي المبالغ المستلمة: {orders.reduce((sum, o) => {
                 const paid = o.amount_paid ?? o.total_rounded
                 return sum + ((typeof o.amount_received === 'number' && o.amount_received > 0) ? o.amount_received : paid)
               }, 0).toLocaleString('en-US')} د.ع</span>
             </div>
-            <p className="text-[11px] font-medium leading-relaxed text-red-600/90">
+            <p className="text-[10px] font-medium leading-relaxed text-red-600/90">
               المندوب يسلّم كامل المبلغ المستلم من المشتري إلى التاجر ولا يحق له الاحتفاظ به — أجر التوصيل (مرتب شهري أو مبلغ عن كل توصيل) يُستقطع لحظة تسليم المبلغ للتاجر بموافقتهما في نفس جلسة التحاسب دون المرور بالتطبيق.
             </p>
           </div>
@@ -365,12 +365,12 @@ function DeliveryHistoryView() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex justify-between items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold text-emerald-600">
+          <div className="flex flex-col gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl text-sm font-bold text-emerald-600">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 shrink-0" />
               <span>قوائم مكتملة وتم تسديد التاجر</span>
             </div>
-            <span className="whitespace-nowrap">إجمالي المبالغ المُسلمة للتاجر: {orders.reduce((sum, o) => {
+            <span className="whitespace-normal text-left">إجمالي المبالغ المُسلمة للتاجر: {orders.reduce((sum, o) => {
               const paid = o.amount_paid ?? o.total_rounded
               return sum + ((typeof o.amount_received === 'number' && o.amount_received > 0) ? o.amount_received : paid)
             }, 0).toLocaleString('en-US')} د.ع</span>
@@ -492,9 +492,9 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
     )}>
       <button 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-start justify-between p-4 text-right cursor-pointer"
+        className="w-full flex flex-col sm:flex-row items-start justify-between p-4 text-right cursor-pointer gap-4 relative"
       >
-        <div className="space-y-2">
+        <div className="space-y-2 w-full sm:w-auto sm:max-w-[60%]">
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm sm:text-base text-brand-blue">{order.store_name}</span>
             {isSettlementMode && (
@@ -550,8 +550,8 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
             <span>{order.phone}</span>
           </div>
         </div>
-        <div className="text-left shrink-0">
-          <div className="flex flex-col items-end">
+        <div className="text-left shrink-0 w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-start items-end border-t border-border/50 sm:border-0 pt-3 sm:pt-0">
+          <div className="flex flex-col items-start sm:items-end">
             {/* تاريخ إصدار القائمة */}
             {order.created_at && (
               <div className="text-[10px] font-bold text-brand-blue dark:text-foreground bg-muted/60 px-2 py-0.5 rounded-full flex items-center gap-1 mb-1">
@@ -579,13 +579,15 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               </div>
             )}
           </div>
-          {isHistoryMode && order.delivered_at && (
-            <div className="text-[10px] mt-1 text-muted-foreground text-left">
-              {new Date(order.delivered_at).toLocaleTimeString('ar-IQ')}
+          <div className="flex flex-col items-end">
+            {isHistoryMode && order.delivered_at && (
+              <div className="text-[10px] mb-2 sm:mb-0 sm:mt-1 text-muted-foreground text-left">
+                {new Date(order.delivered_at).toLocaleTimeString('ar-IQ')}
+              </div>
+            )}
+            <div className="text-muted-foreground mt-2 flex justify-end">
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </div>
-          )}
-          <div className="text-muted-foreground mt-2 flex justify-end">
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </div>
         </div>
       </button>
@@ -647,7 +649,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               </div>
 
               {/* حقلا المبلغ المستلم والمبلغ الباقي — يُفعّلان لمشتريي قائمة الثقات فقط */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-brand-blue dark:text-foreground flex items-center gap-1.5 flex-wrap">
                     المبلغ المستلم (د.ع)
@@ -688,7 +690,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-bold bg-brand-orange hover:bg-brand-orange/90 text-white"
+                className="w-full h-12 text-sm sm:text-base font-bold bg-brand-orange hover:bg-brand-orange/90 text-white"
                 disabled={isSubmitting || secretCode.length !== 7}
               >
                 {isSubmitting ? (

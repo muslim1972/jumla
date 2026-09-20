@@ -85,7 +85,7 @@ export function NotificationCenter() {
   }
 
   return (
-    <div className="relative pointer-events-auto" ref={containerRef}>
+    <div className="relative overflow-visible pointer-events-auto" ref={containerRef}>
       {/* زر الجرس مع شارة العدد */}
       <button
         onClick={handleToggle}

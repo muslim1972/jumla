@@ -389,7 +389,7 @@ export function CartClient({
       <>
         {/* الحل الثاني: الإعلان العلوي يختفي مع السكرول ويبقى العنوان عالقاً تحت الشريط العلوي على كل الأحجام */}
         <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
-          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
+          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-2">
             <Button
               variant="outline"
               size="sm"
@@ -405,7 +405,7 @@ export function CartClient({
               size="sm"
               onClick={handleOpenMyOrders}
               disabled={isLoadingOrders}
-              className="relative gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+              className="relative overflow-visible gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
             >
               {unreadNotificationsCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-sm">
@@ -457,7 +457,7 @@ export function CartClient({
       {/* Sticky Header Group: Tabs + Title — يعلق تحت الشريط العلوي مباشرة في كل الأحجام بينما الإعلان يمر فوقه ويختفي */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
         {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
-        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1">
+        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-2">
           {merchantGroups.length > 0 && (
             <Link href={`/store/${merchantGroups[0].merchantId}`} className="shrink-0">
               <Button
@@ -486,7 +486,7 @@ export function CartClient({
             size="sm"
             onClick={handleOpenMyOrders}
             disabled={isLoadingOrders}
-            className="relative gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
+            className="relative overflow-visible gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
           >
             {unreadNotificationsCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-sm">

@@ -213,7 +213,7 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
                   isPending && !isTabPending && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <div className="relative flex items-center justify-center">
+                <div className="relative overflow-visible flex items-center justify-center">
                   {isTabPending ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                   {tab.badge !== undefined && tab.badge > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in shadow-sm">

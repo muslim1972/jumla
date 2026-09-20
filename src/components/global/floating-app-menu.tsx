@@ -241,7 +241,7 @@ export function FloatingAppMenu({
             <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap text-brand-orange">
               <span className="text-[11px] font-black">السلة</span>
             </span>
-            <div className="bg-brand-orange p-1 rounded-full text-white shrink-0 relative">
+            <div className="bg-brand-orange p-1 rounded-full text-white shrink-0 relative overflow-visible">
               <ShoppingCart className="w-4 h-4" />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center border border-background">
