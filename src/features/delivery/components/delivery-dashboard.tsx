@@ -509,9 +509,27 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               </span>
             )}
             {!isSettlementMode && isDelivered && (
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> تم التسليم
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> تم التسليم
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2.5 gap-1 border-amber-400 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 font-bold rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRatingTarget({
+                      id: order.user_id,
+                      name: order.buyer_name || order.store_name || 'المشتري',
+                      role: 'buyer'
+                    })
+                  }}
+                >
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  تقييم المشتري ⭐
+                </Button>
+              </div>
             )}
           </div>
           {order.merchant_name && (

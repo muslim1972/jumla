@@ -118,7 +118,7 @@ export async function getMyOrders() {
         merchant:profiles!merchant_id(full_name)
       `)
       .eq('user_id', user.id)
-      .in('status', ['pending', 'approved', 'editing'])
+      .in('status', ['pending', 'approved', 'editing', 'delivered', 'completed'])
       .order('created_at', { ascending: false })
 
     if (error) throw error

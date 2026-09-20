@@ -654,49 +654,95 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           {/* أزرار التقييم (فقط للطلبات المكتملة أو المُسلّمة) */}
           {(order.status === 'delivered' || order.status === 'completed') && (
             <div className="pt-3 border-t space-y-2">
-              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 text-amber-500" />
-                تقييم الخدمة
+              <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                تقييم الخدمة وإبداء الرأي
               </h4>
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full text-xs gap-1.5"
+                  className="w-full text-xs gap-1.5 border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 font-bold"
                   onClick={(e) => {
                     e.stopPropagation()
                     setRatingTarget({
-                      id: (order as any).merchant_id || '', // ملاحظة: merchant_id قد يحتاج ضمه للواجهة Data إذا لم يكن موجوداً، لكن يمكن استخراجه لاحقاً أو تمريره
-                      name: order.store_name,
+                      id: order.merchant_id || '',
+                      name: order.merchant_name || 'التاجر',
                       role: 'merchant'
                     })
                   }}
                 >
-                  <Store className="w-3.5 h-3.5" />
-                  تقييم المتجر
+                  <Store className="w-3.5 h-3.5 text-amber-500" />
+                  تقييم المتجر ⭐
                 </Button>
                 
-                {order.delivery_worker_name && (order as any).delivery_worker_id && (
+                {order.delivery_worker_name && order.delivery_worker_id && (
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="w-full text-xs gap-1.5"
+                    className="w-full text-xs gap-1.5 border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-bold"
                     onClick={(e) => {
                       e.stopPropagation()
                       setRatingTarget({
-                        id: (order as any).delivery_worker_id,
+                        id: order.delivery_worker_id!,
                         name: order.delivery_worker_name!,
                         role: 'delivery'
                       })
                     }}
                   >
-                    <Truck className="w-3.5 h-3.5" />
-                    تقييم المندوب
+                    <Truck className="w-3.5 h-3.5 text-blue-500" />
+                    تقييم المندوب ⭐
                   </Button>
                 )}
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* قسم التقييم السريع الظاهر مباشرة على البطاقة للطلبات المكتملة دون الحاجة للتوسيع */}
+      {(order.status === 'delivered' || order.status === 'completed') && !expanded && (
+        <div className="bg-amber-500/10 border-t border-amber-500/20 p-2.5 sm:p-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-300">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+            <span>طلب مكتمل! قيّم تجربتك لمساعدة المجتمع:</span>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="flex-1 sm:flex-initial h-8 text-xs font-bold border-amber-400 bg-background text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 gap-1 shadow-sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                setRatingTarget({
+                  id: order.merchant_id || '',
+                  name: order.merchant_name || 'التاجر',
+                  role: 'merchant'
+                })
+              }}
+            >
+              <Store className="w-3.5 h-3.5 text-amber-500" />
+              تقييم المتجر ⭐
+            </Button>
+            {order.delivery_worker_name && order.delivery_worker_id && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="flex-1 sm:flex-initial h-8 text-xs font-bold border-blue-400 bg-background text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 gap-1 shadow-sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setRatingTarget({
+                    id: order.delivery_worker_id!,
+                    name: order.delivery_worker_name!,
+                    role: 'delivery'
+                  })
+                }}
+              >
+                <Truck className="w-3.5 h-3.5 text-blue-500" />
+                تقييم المندوب ⭐
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
@@ -718,6 +764,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
 // المكون الرئيسي
 export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
   const [appSupportPhone, setAppSupportPhone] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending")
 
   useEffect(() => {
     if (open) {
@@ -735,6 +782,22 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
     [orders]
   )
 
+  const completedOrders = useMemo(() =>
+    orders.filter(o => ['delivered', 'completed'].includes(o.status)),
+    [orders]
+  )
+
+  // التبديل التلقائي إلى التبويب المتاح
+  useEffect(() => {
+    if (open) {
+      if (pendingOrders.length === 0 && completedOrders.length > 0) {
+        setActiveTab("completed")
+      } else {
+        setActiveTab("pending")
+      }
+    }
+  }, [open, pendingOrders.length, completedOrders.length])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto" showCloseButton={true}>
@@ -747,6 +810,34 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
           </DialogTitle>
         </DialogHeader>
 
+        {/* أزرار التبديل بين الطلبات الحالية والمكتملة */}
+        <div className="flex border-b border-border/60 mb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("pending")}
+            className={`flex-1 py-2 text-center text-xs font-bold border-b-2 transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "pending"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" />
+            قيد التوصيل ({pendingOrders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("completed")}
+            className={`flex-1 py-2 text-center text-xs font-bold border-b-2 transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === "completed"
+                ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/5"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            الطلبات المكتملة والتقييم ({completedOrders.length})
+          </button>
+        </div>
+
         {orders.length === 0 ? (
           <div className="text-center py-12">
             <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -756,17 +847,43 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* الطلبات قيد التوصيل */}
-            {pendingOrders.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5" />
-                  قيد التوصيل ({pendingOrders.length})
-                </p>
-                {pendingOrders.map(order => (
-                  <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
-                ))}
-              </div>
+            {activeTab === "pending" && (
+              pendingOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-xs">
+                  لا توجد طلبات جارية قيد التوصيل حالياً.
+                  {completedOrders.length > 0 && (
+                    <div className="mt-2">
+                      <Button variant="link" size="sm" onClick={() => setActiveTab("completed")} className="text-amber-600 font-bold">
+                        عرض الطلبات المكتملة لتقييمها ({completedOrders.length})
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pendingOrders.map(order => (
+                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
+                  ))}
+                </div>
+              )
+            )}
+
+            {activeTab === "completed" && (
+              completedOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-xs">
+                  لا توجد طلبات مكتملة سابقة بعد.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-800 dark:text-amber-300 font-medium flex items-center gap-2">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+                    <span>يمكنك هنا تقييم التجار والمندوبين لكل طلب مكتمل، أو تعديل تقييمك السابق في أي وقت!</span>
+                  </div>
+                  {completedOrders.map(order => (
+                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
+                  ))}
+                </div>
+              )
             )}
           </div>
         )}

@@ -4,10 +4,12 @@ import { useState, useMemo, useRef, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List } from "lucide-react"
+import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List, MessageSquare } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { RatingDialog } from "@/features/orders/components/rating-dialog"
 import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 
@@ -28,7 +30,9 @@ export function StoreClient({
   cartItems, 
   userRole,
   averageRating = 0,
-  ratingCount = 0
+  ratingCount = 0,
+  reviews = [],
+  userCompletedOrderId = null
 }: { 
   merchant: any
   products: any[]
@@ -37,6 +41,8 @@ export function StoreClient({
   userRole: string
   averageRating?: number
   ratingCount?: number
+  reviews?: any[]
+  userCompletedOrderId?: string | null
 }) {
   const [activeCategory, setActiveCategory] = useState<string>("popular")
   const categoryNavRef = useRef<HTMLDivElement>(null)
@@ -49,12 +55,9 @@ export function StoreClient({
   // الأقسام التي تم توسيعها لعرض جميع منتجاتها
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
-  // استخدام التقييم الحقيقي إن وجد، وإلا توليد رقم وهمي للجمالية فقط إن لم توجد تقييمات سابقة
-  const rating = useMemo(() => {
-    if (ratingCount > 0) return averageRating;
-    const name = merchant.full_name || ""
-    return ((name.charCodeAt(0) + (name.charCodeAt(1) || 0)) % 5) * 0.1 + 4.5
-  }, [merchant.full_name, averageRating, ratingCount])
+  // نوافذ التقييم والمراجعات
+  const [showReviewsModal, setShowReviewsModal] = useState(false)
+  const [showRateModal, setShowRateModal] = useState(false)
 
   // Group products by categories based on keywords
   const groupedProducts = useMemo(() => {
@@ -187,10 +190,16 @@ export function StoreClient({
               {merchant.full_name}
             </h2>
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground font-medium">
-              <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold shadow-sm">
-                <Star className="w-3.5 h-3.5 fill-brand-orange" />
-                {rating.toFixed(1)} ({ratingCount > 0 ? ratingCount : "100+"})
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowReviewsModal(true)}
+                className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full font-bold shadow-sm transition-all border border-amber-500/30 cursor-pointer active:scale-95"
+                title="اضغط لعرض التقييمات وآراء العملاء"
+              >
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span>{ratingCount > 0 ? `${averageRating.toFixed(1)} (${ratingCount} تقييم)` : "متجر جديد (0 تقييم)"}</span>
+                <span className="text-[10px] underline font-bold mr-0.5 text-amber-600 dark:text-amber-300">الآراء ⭐</span>
+              </button>
               <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
                 <Truck className="w-3.5 h-3.5 text-primary" />
                 {merchant.delivery_fee !== null 
@@ -329,6 +338,131 @@ export function StoreClient({
             </Link>
           </div>
         </div>
+      )}
+
+      {/* نافذة تقييمات المتجر والآراء */}
+      <Dialog open={showReviewsModal} onOpenChange={setShowReviewsModal}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600">
+                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+              </div>
+              تقييمات وآراء العملاء عن {merchant.full_name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* ملخص التقييم */}
+            <div className="bg-muted/40 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-border/50 text-center">
+              <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <span>{ratingCount > 0 ? averageRating.toFixed(1) : "0.0"}</span>
+                <span className="text-base text-muted-foreground font-normal">/ 5.0</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-5 h-5 ${
+                      s <= Math.round(averageRating)
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-muted-foreground/30"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">
+                {ratingCount > 0 ? `مبني على ${ratingCount} تقييم حقيقي من أصحاب الماركت` : "لا توجد تقييمات حتى الآن"}
+              </p>
+            </div>
+
+            {/* إمكانية التقييم المباشر إن كان للمشتري طلب سابق */}
+            {userCompletedOrderId ? (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-2">
+                <div className="text-xs text-amber-800 dark:text-amber-300 font-bold">
+                  لديك طلب سابق من هذا المتجر! شاركنا تجربتك:
+                </div>
+                <Button 
+                  size="sm" 
+                  className="h-8 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-sm"
+                  onClick={() => {
+                    setShowReviewsModal(false)
+                    setShowRateModal(true)
+                  }}
+                >
+                  <Star className="w-3.5 h-3.5 fill-white text-white" />
+                  تقييم المتجر ⭐
+                </Button>
+              </div>
+            ) : user ? (
+              <p className="text-[11px] text-muted-foreground bg-muted/20 p-2.5 rounded-lg border text-center">
+                ℹ️ يمكنك إضافة تقييمك ورأيك في هذا المتجر فور إتمام واستلام أول طلب منه.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground bg-muted/20 p-2.5 rounded-lg border text-center">
+                ℹ️ سجّل الدخول لإمكانية الطلب وتقييم المتجر.
+              </p>
+            )}
+
+            {/* قائمة التعليقات والآراء */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" />
+                آراء أصحاب الماركت ({reviews.length})
+              </h4>
+
+              {reviews.length === 0 ? (
+                <div className="text-center py-8 bg-muted/10 rounded-xl border border-dashed border-border/60">
+                  <Star className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                  <p className="text-xs text-muted-foreground">كن أول من يقيّم هذا المتجر بعد استلام طلبك!</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pl-1 pr-1 custom-scrollbar">
+                  {reviews.map((rev: any) => (
+                    <div key={rev.id} className="p-3 rounded-xl bg-card border border-border/60 space-y-1.5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-foreground">{rev.reviewerName}</span>
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-3 h-3 ${
+                                s <= rev.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {rev.comment ? (
+                        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{rev.comment}</p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground/60 italic">بدون تعليق كتابي</p>
+                      )}
+                      <div className="text-[9px] text-muted-foreground/50 text-left" dir="ltr">
+                        {new Date(rev.created_at).toLocaleDateString('ar-IQ', { dateStyle: 'short' })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة التقييم للمشتري في صفحة المتجر */}
+      {userCompletedOrderId && (
+        <RatingDialog
+          open={showRateModal}
+          onOpenChange={setShowRateModal}
+          orderId={userCompletedOrderId}
+          ratedId={merchant.id}
+          ratedName={merchant.full_name}
+          ratedRole="merchant"
+          onSuccess={() => {
+            router.refresh()
+          }}
+        />
       )}
     </div>
   )
