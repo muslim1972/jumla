@@ -108,7 +108,13 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <MasterCatalogLinker masterProducts={masterProducts || []} linkedIds={linkedIds} disabled={!isProfileComplete} />
+          <MasterCatalogLinker 
+            masterProducts={masterProducts || []} 
+            linkedIds={linkedIds} 
+            merchantProducts={products || []}
+            categories={categories}
+            disabled={!isProfileComplete} 
+          />
         </div>
 
         {/* Dashboard Content */}

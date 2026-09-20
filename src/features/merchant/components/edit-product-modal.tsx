@@ -189,7 +189,7 @@ function LinkedPricingForm({ product, onClose }: { product: any, onClose: () => 
   )
 }
 
-export function EditProductModal({ product, categories = [] }: { product: any, categories?: {id: string, name: string}[] }) {
+export function EditProductModal({ product, categories = [], compactMode = false }: { product: any, categories?: {id: string, name: string}[], compactMode?: boolean }) {
   const [open, setOpen] = useState(false)
   const [units, setUnits] = useState<Unit[]>(product.units || (product.price ? [{ type: product.unit_type, price: product.price }] : []))
   const [categoryId, setCategoryId] = useState(product.category_id || "none")
@@ -400,21 +400,29 @@ export function EditProductModal({ product, categories = [] }: { product: any, c
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="flex gap-1.5 w-full mt-2">
+      {compactMode ? (
         <DialogTrigger render={
-          <Button variant="outline" className="flex-1 border-brand-orange text-brand-orange hover:bg-brand-orange/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4">
-            <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> تعديل
+          <Button variant="outline" size="sm" className="h-7 text-[10px] px-2 font-bold border-brand-orange text-brand-orange hover:bg-brand-orange/10">
+            <Edit className="w-3 h-3 ml-1" /> تعديل
           </Button>
         } />
-        <Button 
-          variant="outline" 
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4"
-        >
-          {isDeleting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> {isLinked ? "إلغاء الربط" : "حذف"}</>}
-        </Button>
-      </div>
+      ) : (
+        <div className="flex gap-1.5 w-full mt-2">
+          <DialogTrigger render={
+            <Button variant="outline" className="flex-1 border-brand-orange text-brand-orange hover:bg-brand-orange/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4">
+              <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> تعديل
+            </Button>
+          } />
+          <Button 
+            variant="outline" 
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex-1 border-destructive text-destructive hover:bg-destructive/10 h-8 sm:h-9 text-[11px] sm:text-sm px-1 sm:px-4"
+          >
+            {isDeleting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 sm:ml-2" /> {isLinked ? "إلغاء الربط" : "حذف"}</>}
+          </Button>
+        </div>
+      )}
 
       <DialogContent dir="rtl" className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>

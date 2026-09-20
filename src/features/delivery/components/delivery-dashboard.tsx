@@ -441,10 +441,16 @@ function MerchantOrders({ merchantId }: { merchantId: string }) {
   )
 }
 
+import { RatingDialog } from "@/features/orders/components/rating-dialog"
+import { Star } from "lucide-react"
+
 function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettlementMode = false }: { order: any, isHistoryMode?: boolean, isSettlementMode?: boolean }) {
   const [order, setOrder] = useState(initialOrder)
   const [isExpanded, setIsExpanded] = useState(false)
   const [secretCode, setSecretCode] = useState("")
+  
+  // حالة نافذة التقييم
+  const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
 
@@ -729,7 +735,45 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               })()}
             </div>
           )}
+
+          {/* أزرار التقييم (تظهر للمندوب للطلبات المكتملة لتقييم العميل) */}
+          {isDelivered && (
+            <div className="pt-3 border-t space-y-2">
+              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-amber-500" />
+                تقييم المشتري
+              </h4>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs gap-1.5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setRatingTarget({
+                    id: order.user_id,
+                    name: order.buyer_name || 'المشتري',
+                    role: 'buyer'
+                  })
+                }}
+              >
+                <Star className="w-3.5 h-3.5" />
+                تقييم صاحب الماركت
+              </Button>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* نافذة التقييم */}
+      {ratingTarget && (
+        <RatingDialog
+          open={!!ratingTarget}
+          onOpenChange={(open) => !open && setRatingTarget(null)}
+          orderId={order.id}
+          ratedId={ratingTarget.id}
+          ratedName={ratingTarget.name}
+          ratedRole={ratingTarget.role}
+        />
       )}
     </div>
   )

@@ -30,6 +30,7 @@ import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 import { ContactSettingsModal } from "@/features/admin/components/contact-settings-modal"
 import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
+import { AdminUserDetails } from "@/features/admin/components/admin-user-details"
 import { updateUserRoleWithSync, getAdminUserDetails } from "@/features/admin/actions"
 
 interface TopBanner {
@@ -110,6 +111,17 @@ export default function AdminPage() {
   
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([])
+  
+  // Users Tab States
+  const [searchQuery, setSearchQuery] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  
+  const filteredProfiles = profiles.filter(p => {
+    const matchesSearch = p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false
+    const matchesRole = roleFilter === "all" || p.role === roleFilter
+    return matchesSearch && matchesRole
+  })
   const [banners, setBanners] = useState<Banner[]>([])
   const [topBanners, setTopBanners] = useState<TopBanner[]>([])
   const [adRequests, setAdRequests] = useState<AdRequest[]>([])
@@ -993,13 +1005,33 @@ export default function AdminPage() {
       {activeTab === "users" && (
         <Card className="border border-border/40 shadow-premium animate-in fade-in duration-300">
           <CardHeader>
-            <CardTitle className="text-lg font-black text-brand-blue dark:text-foreground">صلاحيات المستخدمين وأجور التوصيل</CardTitle>
-            <CardDescription className="text-xs">تحكم في أدوار المستخدمين وعين أجور توصيل التجار الفردية</CardDescription>
+            <CardTitle className="text-lg font-black text-brand-blue dark:text-foreground">المستخدمين والصلاحيات</CardTitle>
+            <CardDescription className="text-xs">تحكم في أدوار المستخدمين، واعرض تفاصيل حساباتهم وتقييماتهم</CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto p-0 sm:p-6">
-            {profiles.length === 0 ? (
+          <CardContent className="overflow-x-auto p-0 sm:p-6 space-y-4">
+            {/* Search and Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0">
+              <Input
+                placeholder="ابحث بالاسم..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xs"
+              />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="bg-card border border-input rounded-md h-10 px-3 text-sm outline-none"
+              >
+                <option value="all">الكل</option>
+                {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {filteredProfiles.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                لم يتم العثور على مستخدمين مسجلين بعد.
+                لم يتم العثور على مستخدمين يطابقون بحثك.
               </div>
             ) : (
               <table className="w-full text-right border-collapse text-xs sm:text-sm">
@@ -1008,109 +1040,97 @@ export default function AdminPage() {
                     <th className="p-3 font-bold">الاسم الكامل</th>
                     <th className="p-3 font-bold">تاريخ التسجيل</th>
                     <th className="p-3 font-bold text-center">الرتبة / الصلاحية</th>
-                    <th className="p-3 font-bold text-center">أجور التوصيل (د.ع)</th>
-                    <th className="p-3 font-bold text-center">الحظر</th>
+                    <th className="p-3 font-bold text-center">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {profiles.map((profile) => (
+                  {filteredProfiles.map((profile) => (
                     <tr key={profile.id} className="hover:bg-muted/10 transition-colors">
                       <td className="p-3 font-black text-brand-blue dark:text-foreground">{profile.full_name || "مستخدم مجهول"}</td>
                       <td className="p-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString("ar-IQ")}</td>
                       <td className="p-3 text-center">
-                        {profile.role === "member" ? (
-                          // قائمة الترقية تظهر فقط للحسابات المنشأة بصفة (عضو تطبيق)
-                          <select
-                            value={profile.role || "guest"}
-                            onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
-                            className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none"
-                          >
-                            <option value="member">عضو تطبيق</option>
-                            <option value="delivery">مندوب توصيل</option>
-                            <option value="materials">إدارة المواد</option>
-                            <option value="support">موظف دعم</option>
-                            <option value="call_center">Call Center</option>
-                          </select>
-                        ) : (
-                          // الحسابات القديمة: شارة ثابتة تبقى على حالها حتى يستقر التطبيق
-                          <span className="inline-block px-2.5 py-1 rounded-full bg-muted text-[11px] font-black text-foreground/80">
-                            {ROLE_LABELS[profile.role || "guest"] || profile.role || "غير محدد"}
-                          </span>
-                        )}
+                        <select
+                          value={profile.role || "guest"}
+                          onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
+                          className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none w-[130px]"
+                        >
+                          {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
+                          ))}
+                        </select>
                       </td>
-                      <td className="p-3 text-center flex items-center justify-center gap-2">
-                        {profile.role === "merchant" ? (
-                          <div className="flex items-center gap-1.5 max-w-[120px]">
+                      <td className="p-3 text-center flex items-center justify-center gap-2 flex-wrap">
+                        {/* أجور التوصيل للتجار */}
+                        {profile.role === "merchant" && (
+                          <div className="flex items-center gap-1 min-w-max">
+                            <span className="text-[10px] text-muted-foreground">أجور توصيل:</span>
                             <Input 
                               type="number" 
                               value={profile.delivery_fee || 0} 
                               onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
-                              className="h-8 text-center text-xs font-bold"
+                              className="h-7 w-16 text-center text-xs font-bold p-1"
                               dir="ltr"
                             />
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
                         )}
-                      </td>
-                      <td className="p-3 text-center">
-                        {profile.role === "guest" || profile.role === "merchant" || profile.role === "support" ? (
-                          isUserBanned(profile.banned_until) ? (
-                            // محظور: شارة الحالة + إمكانية إلغاء الحظر
-                            <div className="flex flex-col items-center gap-1.5">
-                              <span className="inline-block px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-[10px] font-black whitespace-nowrap">
-                                {isPermanentBan(profile.banned_until)
-                                  ? "محظور نهائياً"
-                                  : `محظور حتى ${new Date(profile.banned_until!).toLocaleDateString("ar-IQ")}`}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleUnbanUser(profile.id)}
-                                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                              >
-                                إلغاء الحظر
-                              </button>
-                            </div>
-                          ) : banningId === profile.id ? (
-                            // اختيار فترة الحظر: يوم / أسبوع / شهر / للأبد
-                            <div className="flex items-center justify-center gap-1.5">
-                              <select
-                                value={banPeriod}
-                                onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
-                                className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-foreground cursor-pointer outline-none"
-                              >
-                                <option value="day">يوم</option>
-                                <option value="week">أسبوع</option>
-                                <option value="month">شهر</option>
-                                <option value="forever">للأبد</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => handleBanUser(profile.id)}
-                                className="px-2 py-1 rounded-lg bg-destructive text-white text-[10px] font-bold cursor-pointer hover:bg-destructive/90 whitespace-nowrap"
-                              >
-                                تأكيد
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setBanningId(null)}
-                                className="px-2 py-1 rounded-lg bg-muted text-foreground text-[10px] font-bold cursor-pointer hover:bg-muted/80 whitespace-nowrap"
-                              >
-                                إلغاء
-                              </button>
-                            </div>
-                          ) : (
+
+                        {/* زر التفاصيل */}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setSelectedUserId(profile.id)}
+                        >
+                          التفاصيل
+                        </Button>
+
+                        {/* الحظر */}
+                        {isUserBanned(profile.banned_until) ? (
+                          <div className="flex items-center gap-1.5 min-w-max">
+                            <span className="inline-block px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-black">
+                              {isPermanentBan(profile.banned_until) ? "محظور نهائياً" : "محظور مؤقتاً"}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => { setBanPeriod("day"); setBanningId(profile.id) }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/10 text-destructive text-[10px] font-black cursor-pointer hover:bg-destructive/20"
+                              onClick={() => handleUnbanUser(profile.id)}
+                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                             >
-                              <Ban className="w-3 h-3" />
-                              حظر
+                              فك
                             </button>
-                          )
+                          </div>
+                        ) : banningId === profile.id ? (
+                          <div className="flex items-center gap-1 min-w-max">
+                            <select
+                              value={banPeriod}
+                              onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
+                              className="bg-card border border-border/80 rounded p-0.5 text-[10px] cursor-pointer outline-none"
+                            >
+                              <option value="day">يوم</option>
+                              <option value="week">أسبوع</option>
+                              <option value="month">شهر</option>
+                              <option value="forever">للأبد</option>
+                            </select>
+                            <button
+                              onClick={() => handleBanUser(profile.id)}
+                              className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] cursor-pointer"
+                            >
+                              تأكيد
+                            </button>
+                            <button
+                              onClick={() => setBanningId(null)}
+                              className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px] cursor-pointer"
+                            >
+                              إلغاء
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
+                          <button
+                            type="button"
+                            onClick={() => setBanningId(profile.id)}
+                            className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+                          >
+                            حظر
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1121,6 +1141,13 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* نافذة تفاصيل المستخدم */}
+      <AdminUserDetails 
+        open={!!selectedUserId} 
+        onOpenChange={(open) => !open && setSelectedUserId(null)} 
+        userId={selectedUserId} 
+      />
 
       {/* MERCHANT BILLING TAB */}
       {activeTab === "merchantBilling" && (

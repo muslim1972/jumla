@@ -389,7 +389,7 @@ export function CartClient({
       <>
         {/* الحل الثاني: الإعلان العلوي يختفي مع السكرول ويبقى العنوان عالقاً تحت الشريط العلوي على كل الأحجام */}
         <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
-          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-2">
+          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-3">
             <Button
               variant="outline"
               size="sm"
@@ -457,7 +457,7 @@ export function CartClient({
       {/* Sticky Header Group: Tabs + Title — يعلق تحت الشريط العلوي مباشرة في كل الأحجام بينما الإعلان يمر فوقه ويختفي */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
         {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
-        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-2">
+        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-3">
           {merchantGroups.length > 0 && (
             <Link href={`/store/${merchantGroups[0].merchantId}`} className="shrink-0">
               <Button

@@ -12,6 +12,8 @@ import { linkMasterProduct } from "@/app/(merchant)/dashboard/actions"
 import { Search, X, Loader2, AlertCircle, ChevronDown, ChevronUp, Package, Link2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+import { EditProductModal } from "@/features/merchant/components/edit-product-modal"
+
 type MasterProduct = {
   id: string
   name: string
@@ -24,9 +26,11 @@ type MasterProduct = {
   unit_conversions: { from: string, to: string, multiplier: number }[]
 }
 
-export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
+export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProducts = [], categories = [], disabled }: {
   masterProducts: MasterProduct[]
   linkedIds: string[]
+  merchantProducts?: any[]
+  categories?: any[]
   disabled: boolean
 }) {
   const router = useRouter()
@@ -168,6 +172,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
               {filtered.map(p => {
                 const isLinked = linkedIds.includes(p.id)
                 const isSelected = selected?.id === p.id
+                const merchantProductMatch = isLinked ? merchantProducts.find((mp: any) => mp.master_product_id === p.id) : null
                 return (
                   <div key={p.id} className="space-y-0">
                     {/* صف المادة مع مربع الاختيار */}
@@ -200,9 +205,18 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, disabled }: {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm truncate">{p.name}</span>
                           {isLinked && (
-                            <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
-                              مضافة لمتجرك
-                            </span>
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+                                مضافة لمتجرك
+                              </span>
+                              {merchantProductMatch && (
+                                <EditProductModal 
+                                  product={merchantProductMatch} 
+                                  categories={categories} 
+                                  compactMode={true} 
+                                />
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap mt-0.5">

@@ -61,6 +61,8 @@ export interface OrderData {
       new_quantity: number
     }[]
   } | null
+  merchant_id?: string
+  delivery_worker_id?: string
 }
 
 export interface OrderItemData {
@@ -229,11 +231,17 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
   }
 }
 
+import { RatingDialog } from "@/features/orders/components/rating-dialog"
+import { Star } from "lucide-react"
+
 // مكون بطاقة الطلب الفردي
 function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null }) {
   const [expanded, setExpanded] = useState(false)
   const [isArchiving, setIsArchiving] = useState(false)
   const [isResponding, setIsResponding] = useState(false)
+  
+  // حالة نافذة التقييم
+  const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
 
   // رد المشتري على تعديلات التاجر: موافقة أو إلغاء كامل للشراء
   const handleRespond = useCallback(async (decision: "approve" | "cancel") => {
@@ -623,7 +631,66 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
               </Button>
             </div>
           )}
+
+          {/* أزرار التقييم (فقط للطلبات المكتملة أو المُسلّمة) */}
+          {(order.status === 'delivered' || order.status === 'completed') && (
+            <div className="pt-3 border-t space-y-2">
+              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-amber-500" />
+                تقييم الخدمة
+              </h4>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs gap-1.5"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRatingTarget({
+                      id: (order as any).merchant_id || '', // ملاحظة: merchant_id قد يحتاج ضمه للواجهة Data إذا لم يكن موجوداً، لكن يمكن استخراجه لاحقاً أو تمريره
+                      name: order.store_name,
+                      role: 'merchant'
+                    })
+                  }}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  تقييم المتجر
+                </Button>
+                
+                {order.delivery_worker_name && (order as any).delivery_worker_id && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-xs gap-1.5"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setRatingTarget({
+                        id: (order as any).delivery_worker_id,
+                        name: order.delivery_worker_name!,
+                        role: 'delivery'
+                      })
+                    }}
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    تقييم المندوب
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* نافذة التقييم */}
+      {ratingTarget && (
+        <RatingDialog
+          open={!!ratingTarget}
+          onOpenChange={(open) => !open && setRatingTarget(null)}
+          orderId={order.id}
+          ratedId={ratingTarget.id}
+          ratedName={ratingTarget.name}
+          ratedRole={ratingTarget.role}
+        />
       )}
     </div>
   )
