@@ -51,6 +51,21 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
     if (cartRes.data) cartItems = cartRes.data
   }
 
+  // Fetch average rating for the merchant
+  let averageRating = 0;
+  let ratingCount = 0;
+  const { data: ratingsData } = await supabase
+    .from('user_ratings')
+    .select('rating')
+    .eq('rated_id', merchantId)
+    .eq('rated_role', 'merchant')
+
+  if (ratingsData && ratingsData.length > 0) {
+    const sum = ratingsData.reduce((acc, curr) => acc + curr.rating, 0);
+    averageRating = sum / ratingsData.length;
+    ratingCount = ratingsData.length;
+  }
+
   return (
     <div className="w-full bg-muted/10">
       <StoreClient 
@@ -58,7 +73,9 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
         products={products} 
         user={user} 
         cartItems={cartItems} 
-        userRole={userRole} 
+        userRole={userRole}
+        averageRating={averageRating}
+        ratingCount={ratingCount}
       />
     </div>
   )

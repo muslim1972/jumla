@@ -26,13 +26,17 @@ export function StoreClient({
   products, 
   user, 
   cartItems, 
-  userRole 
+  userRole,
+  averageRating = 0,
+  ratingCount = 0
 }: { 
   merchant: any
   products: any[]
   user: any
   cartItems: any[]
   userRole: string
+  averageRating?: number
+  ratingCount?: number
 }) {
   const [activeCategory, setActiveCategory] = useState<string>("popular")
   const categoryNavRef = useRef<HTMLDivElement>(null)
@@ -45,11 +49,12 @@ export function StoreClient({
   // الأقسام التي تم توسيعها لعرض جميع منتجاتها
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
-  // Generate stable mock rating
+  // استخدام التقييم الحقيقي إن وجد، وإلا توليد رقم وهمي للجمالية فقط إن لم توجد تقييمات سابقة
   const rating = useMemo(() => {
+    if (ratingCount > 0) return averageRating;
     const name = merchant.full_name || ""
     return ((name.charCodeAt(0) + (name.charCodeAt(1) || 0)) % 5) * 0.1 + 4.5
-  }, [merchant.full_name])
+  }, [merchant.full_name, averageRating, ratingCount])
 
   // Group products by categories based on keywords
   const groupedProducts = useMemo(() => {
@@ -184,7 +189,7 @@ export function StoreClient({
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground font-medium">
               <div className="flex items-center gap-1 bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-md font-bold shadow-sm">
                 <Star className="w-3.5 h-3.5 fill-brand-orange" />
-                {rating.toFixed(1)} (100+)
+                {rating.toFixed(1)} ({ratingCount > 0 ? ratingCount : "100+"})
               </div>
               <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
                 <Truck className="w-3.5 h-3.5 text-primary" />

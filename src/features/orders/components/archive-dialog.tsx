@@ -18,11 +18,15 @@ import {
   Loader2,
   Calendar,
   Hash,
-  RotateCcw
+  RotateCcw,
+  Star,
+  Store,
+  Truck
 } from "lucide-react"
 import { searchArchivedOrders } from "@/features/orders/actions"
 import { addToCart } from "@/features/cart/actions"
 import type { OrderData, OrderItemData } from "@/features/orders/components/my-orders"
+import { RatingDialog } from "@/features/orders/components/rating-dialog"
 
 // عنصر قابل لإعادة الطلب (product_id متوفر من الاستعلام order_items (*))
 type ReorderItemData = OrderItemData & { product_id: string }
@@ -180,6 +184,7 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
   const router = useRouter()
   const [expanded, setExpanded] = useState(false)
   const [isReordering, setIsReordering] = useState(false)
+  const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
 
   // الأصناف التي ما زالت تشير إلى منتجات قابلة لإعادة الطلب
   const reorderableItems = (order.items || []).filter(
@@ -418,7 +423,64 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
             <span>🖨️</span>
             طباعة القائمة
           </Button>
+
+          {/* أزرار التقييم */}
+          <div className="pt-3 border-t space-y-2">
+            <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 text-amber-500" />
+              تقييم الخدمة
+            </h4>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs gap-1.5"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setRatingTarget({
+                    id: order.merchant_id || '', 
+                    name: order.merchant_name || order.store_name,
+                    role: 'merchant'
+                  })
+                }}
+              >
+                <Store className="w-3.5 h-3.5" />
+                تقييم المتجر
+              </Button>
+              
+              {order.delivery_worker_name && order.delivery_worker_id && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-xs gap-1.5"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRatingTarget({
+                      id: order.delivery_worker_id!,
+                      name: order.delivery_worker_name!,
+                      role: 'delivery'
+                    })
+                  }}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  تقييم المندوب
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* نافذة التقييم */}
+      {ratingTarget && (
+        <RatingDialog
+          open={!!ratingTarget}
+          onOpenChange={(open) => !open && setRatingTarget(null)}
+          orderId={order.id}
+          ratedId={ratingTarget.id}
+          ratedName={ratingTarget.name}
+          ratedRole={ratingTarget.role}
+        />
       )}
     </div>
   )
