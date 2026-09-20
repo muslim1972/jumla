@@ -122,20 +122,40 @@ export function CheckoutDialog({
 
           {/* العنوان */}
           <div className="space-y-2">
-            <Label htmlFor="checkout-address" className="flex items-center gap-2 text-sm font-semibold">
-              <MapPin className="w-4 h-4 text-muted-foreground" />
-              العنوان الدقيق
-            </Label>
-            <Input
-              id="checkout-address"
-              placeholder="مثال: كربلاء - حي الحسين - شارع 40 - بناية 5"
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value)
-                if (errors.address) setErrors(prev => ({ ...prev, address: "" }))
-              }}
-              className={errors.address ? "border-destructive ring-2 ring-destructive/20" : ""}
-            />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="checkout-address" className="flex items-center gap-2 text-sm font-semibold">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                العنوان الدقيق
+              </Label>
+              {address.match(/(https?:\/\/[^\s]+)/) && (
+                <a 
+                  href={address.match(/(https?:\/\/[^\s]+)/)![0]} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-md flex items-center gap-1 font-bold hover:bg-emerald-500/20 transition-colors"
+                  title="فتح الموقع على الخريطة"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  عرض الخريطة
+                </a>
+              )}
+            </div>
+            <div className="relative">
+              <Input
+                id="checkout-address"
+                placeholder="مثال: كربلاء - حي الحسين - شارع 40"
+                value={address.replace(/(https?:\/\/[^\s]+)/, '').replace(/\s*-\s*$/, '').trim()}
+                onChange={(e) => {
+                  const urlMatch = address.match(/(https?:\/\/[^\s]+)/)
+                  const url = urlMatch ? urlMatch[0] : ""
+                  const newText = e.target.value
+                  setAddress(newText + (url ? ` - ${url}` : ""))
+                  if (errors.address) setErrors(prev => ({ ...prev, address: "" }))
+                }}
+                className={errors.address ? "border-destructive ring-2 ring-destructive/20" : ""}
+                dir="rtl"
+              />
+            </div>
             {errors.address && (
               <p className="text-xs text-destructive flex items-center gap-1 animate-in slide-in-from-top-1">
                 <AlertCircle className="w-3 h-3" />
