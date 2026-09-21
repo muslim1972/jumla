@@ -19,19 +19,24 @@ import {
   Phone,
   History,
   MessageCircle,
-  Ban
+  Ban,
+  Check,
+  X,
+  AlertCircle,
+  Loader2
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 import { ContactSettingsModal } from "@/features/admin/components/contact-settings-modal"
 import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
 import { AdminUserDetails } from "@/features/admin/components/admin-user-details"
-import { updateUserRoleWithSync, getAdminUserDetails } from "@/features/admin/actions"
+import { updateUserRoleWithSync, getAdminUserDetails, approveUser, rejectUser } from "@/features/admin/actions"
 
 interface TopBanner {
   id: string
@@ -59,6 +64,10 @@ interface Profile {
   delivery_fee: number | null
   banned_until: string | null
   created_at: string
+  approval_status?: string | null
+  phone?: string | null
+  store_name?: string | null
+  address?: string | null
 }
 
 // تسميات الأدوار بالعربية (الحسابات القديمة تُعرض شارة ثابتة دون قائمة تغيير)
@@ -115,12 +124,26 @@ export default function AdminPage() {
   // Users Tab States
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null)
+  const [rejectModalUser, setRejectModalUser] = useState<{ id: string; name: string } | null>(null)
+  const [rejectReason, setRejectReason] = useState("")
   
+  const pendingApprovalCount = profiles.filter(p => p.approval_status === "pending").length
+
   const filteredProfiles = profiles.filter(p => {
-    const matchesSearch = p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false
+    const term = searchQuery.toLowerCase()
+    const matchesSearch = (p.full_name?.toLowerCase().includes(term) || false) ||
+                          (p.store_name?.toLowerCase().includes(term) || false) ||
+                          (p.phone?.includes(term) || false)
     const matchesRole = roleFilter === "all" || p.role === roleFilter
-    return matchesSearch && matchesRole
+    const matchesApproval = 
+      approvalFilter === "all" ? true :
+      approvalFilter === "pending" ? p.approval_status === "pending" :
+      approvalFilter === "approved" ? (p.approval_status === "approved" || !p.approval_status) :
+      approvalFilter === "rejected" ? p.approval_status === "rejected" : true
+    return matchesSearch && matchesRole && matchesApproval
   })
   const [banners, setBanners] = useState<Banner[]>([])
   const [topBanners, setTopBanners] = useState<TopBanner[]>([])
@@ -261,6 +284,42 @@ export default function AdminPage() {
       .update({ delivery_fee: fee })
       .eq("id", userId)
     if (error) alert("فشل تحديث أجور التوصيل: " + error.message)
+  }
+
+  // تفعيل حساب المستخدم المعلق
+  const handleApproveUser = async (userId: string) => {
+    setProcessingUserId(userId)
+    // Optimistic UI update
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, approval_status: 'approved' } : p))
+    
+    const res = await approveUser(userId)
+    setProcessingUserId(null)
+    
+    if (res.error) {
+      alert("فشل تفعيل الحساب: " + res.error)
+      const { data } = await supabase.from("profiles").select("*").eq("id", userId).single()
+      if (data) setProfiles(prev => prev.map(p => p.id === userId ? data : p))
+    }
+  }
+
+  // رفض حساب المستخدم مع إشعار
+  const handleConfirmReject = async () => {
+    if (!rejectModalUser) return
+    const userId = rejectModalUser.id
+    setProcessingUserId(userId)
+    // Optimistic UI update
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, approval_status: 'rejected' } : p))
+    
+    const res = await rejectUser(userId, rejectReason)
+    setProcessingUserId(null)
+    setRejectModalUser(null)
+    setRejectReason("")
+
+    if (res.error) {
+      alert("فشل رفض الحساب: " + res.error)
+      const { data } = await supabase.from("profiles").select("*").eq("id", userId).single()
+      if (data) setProfiles(prev => prev.map(p => p.id === userId ? data : p))
+    }
   }
 
   // إدارة حظر حسابات (المشتري والتاجر): زر حظر ← اختيار الفترة ← تأكيد
@@ -495,11 +554,16 @@ export default function AdminPage() {
           <button 
             onClick={() => setActiveTab("users")}
             className={cn(
-              "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+              "relative flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5",
               activeTab === "users" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >
             المستخدمين والتوصيل
+            {pendingApprovalCount > 0 && (
+              <span className="flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white shadow-sm animate-pulse border-2 border-background">
+                {pendingApprovalCount}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => setActiveTab("merchantBilling")}
@@ -519,6 +583,41 @@ export default function AdminPage() {
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Metrics Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* New Registrations Card */}
+            <Card 
+              onClick={() => {
+                setActiveTab("users")
+                setApprovalFilter("pending")
+              }}
+              className={cn(
+                "border shadow-premium cursor-pointer transition-all hover:scale-[1.02] col-span-2 sm:col-span-1",
+                pendingApprovalCount > 0 
+                  ? "border-amber-500/60 bg-amber-500/5 ring-1 ring-amber-500/30" 
+                  : "border-border/40"
+              )}
+            >
+              <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">طلبات التسجيل الجديدة</CardTitle>
+                <div className={cn(
+                  "p-2 rounded-xl", 
+                  pendingApprovalCount > 0 ? "bg-amber-500/20 text-amber-600 animate-pulse" : "bg-muted text-muted-foreground"
+                )}>
+                  <UserCheck className="w-4 h-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className={cn(
+                  "text-lg sm:text-2xl font-black", 
+                  pendingApprovalCount > 0 ? "text-amber-600" : "text-brand-blue dark:text-foreground"
+                )}>
+                  {pendingApprovalCount}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {pendingApprovalCount > 0 ? "حساب بانتظار موافقتك ⏳ (انقر هنا)" : "لا توجد طلبات معلقة"}
+                </p>
+              </CardContent>
+            </Card>
+
             <Card className="border border-border/40 shadow-premium lg:col-span-1">
               <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-xs sm:text-sm font-bold text-muted-foreground">أرباح التطبيق (مسددة)</CardTitle>
@@ -1010,23 +1109,77 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent className="overflow-x-auto p-0 sm:p-6 space-y-4">
             {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0">
-              <Input
-                placeholder="ابحث بالاسم..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-xs"
-              />
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="bg-card border border-input rounded-md h-10 px-3 text-sm outline-none"
-              >
-                <option value="all">الكل</option>
-                {Object.entries(ROLE_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
-              </select>
+            <div className="flex flex-col sm:flex-row gap-3 px-4 sm:px-0 flex-wrap items-center justify-between">
+              <div className="flex gap-2 flex-wrap items-center w-full sm:w-auto">
+                <Input
+                  placeholder="ابحث بالاسم، المتجر، أو الهاتف..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-xs text-xs sm:text-sm h-9"
+                />
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="bg-card border border-input rounded-md h-9 px-2.5 text-xs outline-none cursor-pointer"
+                >
+                  <option value="all">كل الأدوار</option>
+                  {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Approval status filter pills */}
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/40 text-xs w-full sm:w-auto overflow-x-auto">
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter("all")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-xs whitespace-nowrap",
+                    approvalFilter === "all" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  الكل ({profiles.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter("pending")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-xs flex items-center gap-1.5 whitespace-nowrap",
+                    approvalFilter === "pending" ? "bg-amber-500 text-white shadow-xs" : "text-amber-600 hover:bg-amber-500/10"
+                  )}
+                >
+                  بانتظار الموافقة ⏳
+                  {pendingApprovalCount > 0 && (
+                    <span className={cn(
+                      "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                      approvalFilter === "pending" ? "bg-white text-amber-700" : "bg-amber-500 text-white"
+                    )}>
+                      {pendingApprovalCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter("approved")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-xs whitespace-nowrap",
+                    approvalFilter === "approved" ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  المفعّلون ✅
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovalFilter("rejected")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer text-xs whitespace-nowrap",
+                    approvalFilter === "rejected" ? "bg-destructive text-white shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  المرفوضون ❌
+                </button>
+              </div>
             </div>
 
             {filteredProfiles.length === 0 ? (
@@ -1034,112 +1187,253 @@ export default function AdminPage() {
                 لم يتم العثور على مستخدمين يطابقون بحثك.
               </div>
             ) : (
-              <table className="w-full text-right border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-muted-foreground text-xs">
-                    <th className="p-3 font-bold">الاسم الكامل</th>
-                    <th className="p-3 font-bold">تاريخ التسجيل</th>
-                    <th className="p-3 font-bold text-center">الرتبة / الصلاحية</th>
-                    <th className="p-3 font-bold text-center">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {filteredProfiles.map((profile) => (
-                    <tr key={profile.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="p-3 font-black text-brand-blue dark:text-foreground">{profile.full_name || "مستخدم مجهول"}</td>
-                      <td className="p-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString("ar-IQ")}</td>
-                      <td className="p-3 text-center">
-                        <select
-                          value={profile.role || "guest"}
-                          onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
-                          className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none w-[130px]"
-                        >
-                          {Object.entries(ROLE_LABELS).map(([val, label]) => (
-                            <option key={val} value={val}>{label}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-3 text-center flex items-center justify-center gap-2 flex-wrap">
-                        {/* أجور التوصيل للتجار */}
-                        {profile.role === "merchant" && (
-                          <div className="flex items-center gap-1 min-w-max">
-                            <span className="text-[10px] text-muted-foreground">أجور توصيل:</span>
-                            <Input 
-                              type="number" 
-                              value={profile.delivery_fee || 0} 
-                              onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
-                              className="h-7 w-16 text-center text-xs font-bold p-1"
-                              dir="ltr"
-                            />
-                          </div>
-                        )}
-
-                        {/* زر التفاصيل */}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setSelectedUserId(profile.id)}
-                        >
-                          التفاصيل
-                        </Button>
-
-                        {/* الحظر */}
-                        {isUserBanned(profile.banned_until) ? (
-                          <div className="flex items-center gap-1.5 min-w-max">
-                            <span className="inline-block px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-black">
-                              {isPermanentBan(profile.banned_until) ? "محظور نهائياً" : "محظور مؤقتاً"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleUnbanUser(profile.id)}
-                              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                            >
-                              فك
-                            </button>
-                          </div>
-                        ) : banningId === profile.id ? (
-                          <div className="flex items-center gap-1 min-w-max">
-                            <select
-                              value={banPeriod}
-                              onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
-                              className="bg-card border border-border/80 rounded p-0.5 text-[10px] cursor-pointer outline-none"
-                            >
-                              <option value="day">يوم</option>
-                              <option value="week">أسبوع</option>
-                              <option value="month">شهر</option>
-                              <option value="forever">للأبد</option>
-                            </select>
-                            <button
-                              onClick={() => handleBanUser(profile.id)}
-                              className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] cursor-pointer"
-                            >
-                              تأكيد
-                            </button>
-                            <button
-                              onClick={() => setBanningId(null)}
-                              className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px] cursor-pointer"
-                            >
-                              إلغاء
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setBanningId(profile.id)}
-                            className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
-                          >
-                            حظر
-                          </button>
-                        )}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-right border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-muted-foreground text-xs">
+                      <th className="p-3 font-bold">الاسم ومعلومات الحساب</th>
+                      <th className="p-3 font-bold">تاريخ التسجيل</th>
+                      <th className="p-3 font-bold text-center">الرتبة / الصلاحية</th>
+                      <th className="p-3 font-bold text-center">حالة الحساب</th>
+                      <th className="p-3 font-bold text-center">إجراءات</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredProfiles.map((profile) => {
+                      const isPending = profile.approval_status === "pending"
+                      const isRejected = profile.approval_status === "rejected"
+                      const isProcessing = processingUserId === profile.id
+
+                      return (
+                        <tr key={profile.id} className={cn(
+                          "hover:bg-muted/10 transition-colors",
+                          isPending ? "bg-amber-500/5" : ""
+                        )}>
+                          <td className="p-3">
+                            <div className="font-black text-brand-blue dark:text-foreground">
+                              {profile.full_name || "مستخدم مجهول"}
+                            </div>
+                            {profile.store_name && (
+                              <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Store className="w-3 h-3 text-brand-orange" />
+                                <span>{profile.store_name}</span>
+                              </div>
+                            )}
+                            {profile.phone && (
+                              <div className="text-[10px] text-muted-foreground dir-ltr text-right mt-0.5" dir="ltr">
+                                {profile.phone}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString("ar-IQ")}</td>
+                          <td className="p-3 text-center">
+                            <select
+                              value={profile.role || "guest"}
+                              onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
+                              className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none w-[130px]"
+                            >
+                              {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                                <option key={val} value={val}>{label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-3 text-center">
+                            {isPending ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold animate-pulse">
+                                <Clock className="w-3 h-3" />
+                                بانتظار الموافقة
+                              </span>
+                            ) : isRejected ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-destructive/15 text-destructive border border-destructive/30 text-[11px] font-bold">
+                                <X className="w-3 h-3" />
+                                مرفوض
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
+                                <Check className="w-3 h-3" />
+                                مفعّل
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-2 flex-wrap">
+                              {/* أزرار الموافقة والرفض السريعة */}
+                              {isPending && (
+                                <div className="flex items-center gap-1.5 bg-background/90 p-0.5 rounded-lg border border-border/60">
+                                  <Button 
+                                    size="sm"
+                                    disabled={isProcessing}
+                                    onClick={() => handleApproveUser(profile.id)}
+                                    className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1 cursor-pointer"
+                                    title="الموافقة وتفعيل الحساب"
+                                  >
+                                    {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                    تفعيل
+                                  </Button>
+                                  <Button 
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={isProcessing}
+                                    onClick={() => {
+                                      setRejectModalUser({ id: profile.id, name: profile.full_name || "المستخدم" })
+                                      setRejectReason("")
+                                    }}
+                                    className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
+                                    title="رفض الحساب"
+                                  >
+                                    <X className="w-3 h-3" />
+                                    رفض
+                                  </Button>
+                                </div>
+                              )}
+
+                              {isRejected && (
+                                <Button 
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isProcessing}
+                                  onClick={() => handleApproveUser(profile.id)}
+                                  className="h-7 px-2.5 border-emerald-500/50 text-emerald-700 hover:bg-emerald-50 text-xs font-bold gap-1 cursor-pointer"
+                                  title="إعادة تفعيل الحساب"
+                                >
+                                  {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                  إعادة تفعيل
+                                </Button>
+                              )}
+
+                              {/* أجور التوصيل للتجار */}
+                              {profile.role === "merchant" && (
+                                <div className="flex items-center gap-1 min-w-max">
+                                  <span className="text-[10px] text-muted-foreground">أجور توصيل:</span>
+                                  <Input 
+                                    type="number" 
+                                    value={profile.delivery_fee || 0} 
+                                    onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
+                                    className="h-7 w-16 text-center text-xs font-bold p-1"
+                                    dir="ltr"
+                                  />
+                                </div>
+                              )}
+
+                              {/* زر التفاصيل */}
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 px-2 text-xs cursor-pointer"
+                                onClick={() => setSelectedUserId(profile.id)}
+                              >
+                                التفاصيل
+                              </Button>
+
+                              {/* الحظر */}
+                              {isUserBanned(profile.banned_until) ? (
+                                <div className="flex items-center gap-1.5 min-w-max">
+                                  <span className="inline-block px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-black">
+                                    {isPermanentBan(profile.banned_until) ? "محظور نهائياً" : "محظور مؤقتاً"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnbanUser(profile.id)}
+                                    className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                                  >
+                                    فك
+                                  </button>
+                                </div>
+                              ) : banningId === profile.id ? (
+                                <div className="flex items-center gap-1 min-w-max">
+                                  <select
+                                    value={banPeriod}
+                                    onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
+                                    className="bg-card border border-border/80 rounded p-0.5 text-[10px] cursor-pointer outline-none"
+                                  >
+                                    <option value="day">يوم</option>
+                                    <option value="week">أسبوع</option>
+                                    <option value="month">شهر</option>
+                                    <option value="forever">للأبد</option>
+                                  </select>
+                                  <button
+                                    onClick={() => handleBanUser(profile.id)}
+                                    className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] cursor-pointer"
+                                  >
+                                    تأكيد
+                                  </button>
+                                  <button
+                                    onClick={() => setBanningId(null)}
+                                    className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px] cursor-pointer"
+                                  >
+                                    إلغاء
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setBanningId(profile.id)}
+                                  className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+                                >
+                                  حظر
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* نافذة تأكيد رفض الحساب */}
+      {rejectModalUser && (
+        <Dialog open={!!rejectModalUser} onOpenChange={(open) => !open && setRejectModalUser(null)}>
+          <DialogContent className="sm:max-w-md p-6">
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <DialogTitle className="text-base font-black">رفض طلب تسجيل الحساب</DialogTitle>
+              </div>
+            </DialogHeader>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              هل أنت متأكد من رفض تفعيل حساب <strong className="text-foreground">{rejectModalUser.name}</strong>؟ سيتم إشعار المستخدم بالرفض ومنعه من الدخول.
+            </p>
+            <div className="space-y-1.5 pt-2">
+              <Label htmlFor="reject-reason" className="text-xs font-bold">سبب الرفض (اختياري، يظهر للمستخدم):</Label>
+              <Input
+                id="reject-reason"
+                placeholder="مثال: يرجى كتابة اسم المتجر ورقم الهاتف الصحيح..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+            <DialogFooter className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRejectModalUser(null)}
+                disabled={!!processingUserId}
+                className="cursor-pointer text-xs"
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleConfirmReject}
+                disabled={!!processingUserId}
+                className="cursor-pointer text-xs font-bold"
+              >
+                {processingUserId ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : null}
+                تأكيد الرفض
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* نافذة تفاصيل المستخدم */}

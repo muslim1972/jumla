@@ -30,15 +30,31 @@ export async function signIn(formData: FormData) {
     return { error: errorMessage }
   }
 
-  // فحص الحظر: منع دخول الحسابات المحظورة فور نجاح التحقق من كلمة المرور
+  // فحص الحظر والموافقة: منع دخول الحسابات المحظورة أو المعلقة فور نجاح التحقق من كلمة المرور
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("banned_until")
+      .select("banned_until, approval_status")
       .eq("id", user.id)
       .single()
 
+    // 1. فحص موافقة الإدارة (Approval)
+    if (profile?.approval_status === 'pending') {
+      await supabase.auth.signOut()
+      return {
+        error: "حسابك قيد المراجعة والتدقيق من قبل الإدارة ولم يتم تفعيله بعد ⏳. سيصلك إشعار فور تفعيله، أو يمكنك التواصل مع الدعم للتعجيل."
+      }
+    }
+
+    if (profile?.approval_status === 'rejected') {
+      await supabase.auth.signOut()
+      return {
+        error: "نعتذر، لم تتم الموافقة على تفعيل هذا الحساب من قبل الإدارة. يرجى التواصل مع الدعم الفني للاستفسار."
+      }
+    }
+
+    // 2. فحص الحظر (Ban)
     const bannedUntil = profile?.banned_until as string | null | undefined
     // "infinity" حظر دائم — لا يفهمها Date في JS لذا نفحص السلسلة مباشرة
     const isPermanent = !!bannedUntil && (bannedUntil === "infinity" || bannedUntil.startsWith("9999"))

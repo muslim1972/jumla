@@ -45,15 +45,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Role-based protection: the role is read ONCE from profiles (the trusted source)
+  // Role-based and approval protection: read from profiles (the trusted source)
   if (user && isProtectedPath) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, approval_status')
       .eq('id', user.id)
       .single()
 
     const role = profile?.role
+    const approvalStatus = profile?.approval_status
+
+    // منع الحسابات غير المفعلة من دخول لوحات التحكم أو المسارات المحمية
+    if (role !== 'admin' && (approvalStatus === 'pending' || approvalStatus === 'rejected')) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/awaiting-approval"
+      return NextResponse.redirect(url)
+    }
+
     const unauthorized =
       (isMerchantPath && role !== 'merchant') ||
       (isAdminPath && role !== 'admin') ||

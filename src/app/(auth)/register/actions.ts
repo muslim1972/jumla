@@ -47,5 +47,46 @@ export async function signUp(formData: FormData) {
     return redirect("/register?message=" + encodeURIComponent("حدث خطأ أثناء إنشاء الحساب: " + error.message))
   }
 
-  return redirect("/login?message=" + encodeURIComponent("تم إنشاء الحساب بنجاح. يرجى تسجيل الدخول."))
+  // إرسال إشعار فوري لجميع مدراء النظام بالطلب الجديد
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (supabaseUrl && supabaseServiceKey) {
+      const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+      const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey)
+      
+      const { data: admins } = await adminClient
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin')
+
+      if (admins && admins.length > 0) {
+        const ROLE_NAMES: Record<string, string> = {
+          guest: "مشتري / صاحب ماركت",
+          merchant: "تاجر جملة",
+          delivery: "مندوب توصيل",
+          materials: "مسؤول مواد",
+          support: "دعم فني",
+        }
+        const roleText = ROLE_NAMES[role] || role || "مستخدم جديد"
+        const notifications = admins.map(adm => ({
+          user_id: adm.id,
+          title: "طلب تسجيل حساب جديد 🔔",
+          message: `قام ${full_name || 'مستخدم جديد'} بالتسجيل كـ (${roleText}) برقم (${normalizedPhone}) وهو بانتظار موافقتك لتفعيل الحساب.`,
+        }))
+
+        await adminClient.from('notifications').insert(notifications)
+      }
+    }
+  } catch (notifErr) {
+    console.error("Failed to notify admins of new registration:", notifErr)
+  }
+
+  const queryParams = new URLSearchParams({
+    name: full_name || "",
+    phone: normalizedPhone,
+    role: role || "guest"
+  })
+
+  return redirect(`/awaiting-approval?${queryParams.toString()}`)
 }

@@ -246,3 +246,139 @@ export async function getAdminUserDetails(targetUserId: string) {
     return { error: error.message || "حدث خطأ في جلب التفاصيل" }
   }
 }
+
+/**
+ * تفعيل حساب مستخدم معلق من قبل الأدمن
+ */
+export async function approveUser(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "غير مصرح لك بإجراء هذه العملية" }
+
+  const { data: adminProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (adminProfile?.role !== 'admin') {
+    return { error: "صلاحيات غير كافية" }
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return { error: "خطأ في الاتصال بالخادم" }
+  }
+
+  try {
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey)
+
+    // 1. تحديث حالة الحساب إلى approved
+    const { error: updateError } = await adminClient
+      .from('profiles')
+      .update({ approval_status: 'approved' })
+      .eq('id', targetUserId)
+
+    if (updateError) throw updateError
+
+    // 2. إرسال إشعار تفعيل للمستخدم في جدول الإشعارات
+    await adminClient
+      .from('notifications')
+      .insert({
+        user_id: targetUserId,
+        title: "تم تفعيل حسابك بنجاح! 🎉",
+        message: "أهلاً بك في منصة جملتي! تمت موافقة الإدارة على تفعيل حسابك، ويمكنك الآن استخدام التطبيق بالكامل.",
+      })
+
+    // 3. محاولة إرسال إشعار Push عبر OneSignal
+    try {
+      const { sendNotificationToUser } = await import("@/utils/onesignal")
+      await sendNotificationToUser(
+        targetUserId,
+        "تم تفعيل حسابك بنجاح! 🎉",
+        "أهلاً بك في جملتي! تمت الموافقة على تفعيل حسابك، ويمكنك الآن استخدام التطبيق."
+      )
+    } catch (pushErr) {
+      console.error("Failed to send push notification:", pushErr)
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Approve user error:", error)
+    return { error: error.message || "حدث خطأ أثناء تفعيل الحساب" }
+  }
+}
+
+/**
+ * رفض حساب مستخدم معلق من قبل الأدمن
+ */
+export async function rejectUser(targetUserId: string, reason?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "غير مصرح لك بإجراء هذه العملية" }
+
+  const { data: adminProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (adminProfile?.role !== 'admin') {
+    return { error: "صلاحيات غير كافية" }
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return { error: "خطأ في الاتصال بالخادم" }
+  }
+
+  try {
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js")
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey)
+
+    // 1. تحديث حالة الحساب إلى rejected
+    const { error: updateError } = await adminClient
+      .from('profiles')
+      .update({ approval_status: 'rejected' })
+      .eq('id', targetUserId)
+
+    if (updateError) throw updateError
+
+    // 2. إرسال إشعار توضيحي للمستخدم
+    const rejectMessage = reason?.trim()
+      ? `نعتذر، لم تتم الموافقة على تفعيل حسابك للسبب التالي: ${reason.trim()}`
+      : "نعتذر، لم تتم الموافقة على تفعيل حسابك من قبل الإدارة. يرجى التواصل مع الدعم الفني للاستفسار."
+
+    await adminClient
+      .from('notifications')
+      .insert({
+        user_id: targetUserId,
+        title: "إشعار بشأن تفعيل الحساب ⚠️",
+        message: rejectMessage,
+      })
+
+    // 3. محاولة إرسال إشعار Push عبر OneSignal
+    try {
+      const { sendNotificationToUser } = await import("@/utils/onesignal")
+      await sendNotificationToUser(
+        targetUserId,
+        "إشعار بشأن تفعيل الحساب ⚠️",
+        rejectMessage
+      )
+    } catch (pushErr) {
+      console.error("Failed to send push notification:", pushErr)
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Reject user error:", error)
+    return { error: error.message || "حدث خطأ أثناء رفض الحساب" }
+  }
+}
