@@ -38,15 +38,21 @@ export async function updateSession(request: NextRequest) {
   const isMaterialsPath = pathname.startsWith("/materials")
   const isProtectedPath = isAdminPath || isSupportPath || isMerchantPath || isMaterialsPath
 
-  // Protected routes logic: redirect to login when unauthenticated
+  // 1. توجيه غير المسجلين عند محاولة دخول المسارات المحمية
   if (!user && isProtectedPath) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // Role-based and approval protection: read from profiles (the trusted source)
-  if (user && isProtectedPath) {
+  // 2. فحص الحسابات المسجلة: قفل أي حساب معلق أو مرفوض تماماً عن كامل التطبيق
+  if (user) {
+    const isExcludedFromApprovalCheck = 
+      pathname.startsWith("/awaiting-approval") ||
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes(".")
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, approval_status')
@@ -56,23 +62,29 @@ export async function updateSession(request: NextRequest) {
     const role = profile?.role
     const approvalStatus = profile?.approval_status
 
-    // منع الحسابات غير المفعلة من دخول لوحات التحكم أو المسارات المحمية
+    // حظر الحسابات غير المفعلة (pending / rejected) من تصفح التطبيق بما فيه الرئيسية والسلة والمتاجر
     if (role !== 'admin' && (approvalStatus === 'pending' || approvalStatus === 'rejected')) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/awaiting-approval"
-      return NextResponse.redirect(url)
+      if (!isExcludedFromApprovalCheck) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/awaiting-approval"
+        return NextResponse.redirect(url)
+      }
+      return supabaseResponse
     }
 
-    const unauthorized =
-      (isMerchantPath && role !== 'merchant') ||
-      (isAdminPath && role !== 'admin') ||
-      (isSupportPath && role !== 'support' && role !== 'call_center' && role !== 'admin') ||
-      (isMaterialsPath && role !== 'materials' && role !== 'admin')
+    // التحقق من صلاحيات الأدوار للمسارات المحمية
+    if (isProtectedPath) {
+      const unauthorized =
+        (isMerchantPath && role !== 'merchant') ||
+        (isAdminPath && role !== 'admin') ||
+        (isSupportPath && role !== 'support' && role !== 'call_center' && role !== 'admin') ||
+        (isMaterialsPath && role !== 'materials' && role !== 'admin')
 
-    if (unauthorized) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/"
-      return NextResponse.redirect(url)
+      if (unauthorized) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/"
+        return NextResponse.redirect(url)
+      }
     }
   }
 

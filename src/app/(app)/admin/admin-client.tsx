@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useTransition, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { 
   BarChart3, 
@@ -136,9 +136,23 @@ export function AdminClient({
   initialUnpaidRevenue
 }: AdminClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isRefreshing, startTransition] = useTransition()
   
-  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling">("overview")
+  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling">(
+    searchParams.get("tab") === "users" ? "users" : "overview"
+  )
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">(
+    searchParams.get("approval") === "pending" ? "pending" : "all"
+  )
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    const approval = searchParams.get("approval")
+    if (tab === "users") setActiveTab("users")
+    if (approval === "pending") setApprovalFilter("pending")
+  }, [searchParams])
+
   const [showContactSettings, setShowContactSettings] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
   
@@ -156,7 +170,6 @@ export function AdminClient({
   // Users Tab States
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
-  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [processingUserId, setProcessingUserId] = useState<string | null>(null)
   const [rejectModalUser, setRejectModalUser] = useState<{ id: string; name: string } | null>(null)
@@ -1214,9 +1227,20 @@ export function AdminClient({
               </div>
             </div>
 
+            {approvalFilter === "pending" && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <p className="leading-relaxed">
+                  هذه قائمة <strong>طلبات التسجيل الجديدة</strong> بانتظار موافقة الإدارة. يرجى مراجعة اسم المتقدم والمتجر ورقم هاتفه ثم النقر على <strong>تفعيل الحساب</strong> أو <strong>رفض</strong>.
+                </p>
+              </div>
+            )}
+
             {filteredProfiles.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">
-                لم يتم العثور على مستخدمين يطابقون بحثك.
+                {approvalFilter === "pending" 
+                  ? "رائع! لا توجد طلبات تسجيل معلقة بانتظار الموافقة حالياً." 
+                  : "لم يتم العثور على مستخدمين يطابقون بحثك."}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1259,15 +1283,21 @@ export function AdminClient({
                           </td>
                           <td className="p-3 text-muted-foreground">{new Date(profile.created_at).toLocaleDateString("ar-IQ")}</td>
                           <td className="p-3 text-center">
-                            <select
-                              value={profile.role || "guest"}
-                              onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
-                              className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none w-[130px]"
-                            >
-                              {Object.entries(ROLE_LABELS).map(([val, label]) => (
-                                <option key={val} value={val}>{label}</option>
-                              ))}
-                            </select>
+                            {isPending ? (
+                              <span className="inline-block px-2.5 py-1 rounded-md bg-muted text-foreground text-xs font-bold border border-border/60">
+                                {ROLE_LABELS[profile.role || "guest"] || "مشتري"}
+                              </span>
+                            ) : (
+                              <select
+                                value={profile.role || "guest"}
+                                onChange={(e) => handleUpdateRole(profile.id, e.target.value)}
+                                className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-brand-orange outline-none w-[130px]"
+                              >
+                                {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                                  <option key={val} value={val}>{label}</option>
+                                ))}
+                              </select>
+                            )}
                           </td>
                           <td className="p-3 text-center">
                             {isPending ? (
@@ -1289,18 +1319,18 @@ export function AdminClient({
                           </td>
                           <td className="p-3 text-center">
                             <div className="flex items-center justify-center gap-2 flex-wrap">
-                              {/* أزرار الموافقة والرفض السريعة */}
-                              {isPending && (
-                                <div className="flex items-center gap-1.5 bg-background/90 p-0.5 rounded-lg border border-border/60">
+                              {/* 1. الحسابات المعلقة بانتظار الموافقة: تفعيل أو رفض فقط لا غير (لا حظر ولا تفاصيل طلبات قديمة) */}
+                              {isPending ? (
+                                <div className="flex items-center gap-2">
                                   <Button 
                                     size="sm"
                                     disabled={isProcessing}
                                     onClick={() => handleApproveUser(profile.id)}
-                                    className="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1 cursor-pointer"
+                                    className="h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black gap-1.5 shadow-sm cursor-pointer"
                                     title="الموافقة وتفعيل الحساب"
                                   >
-                                    {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                                    تفعيل
+                                    {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                                    تفعيل الحساب
                                   </Button>
                                   <Button 
                                     size="sm"
@@ -1310,16 +1340,15 @@ export function AdminClient({
                                       setRejectModalUser({ id: profile.id, name: profile.full_name || "المستخدم" })
                                       setRejectReason("")
                                     }}
-                                    className="h-7 px-2 text-xs font-bold gap-1 cursor-pointer"
-                                    title="رفض الحساب"
+                                    className="h-8 px-3 text-xs font-bold gap-1 cursor-pointer"
+                                    title="رفض الطلب"
                                   >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-3.5 h-3.5" />
                                     رفض
                                   </Button>
                                 </div>
-                              )}
-
-                              {isRejected && (
+                              ) : isRejected ? (
+                                /* 2. الحسابات المرفوضة: إعادة تفعيل */
                                 <Button 
                                   size="sm"
                                   variant="outline"
@@ -1328,82 +1357,85 @@ export function AdminClient({
                                   className="h-7 px-2.5 border-emerald-500/50 text-emerald-700 hover:bg-emerald-50 text-xs font-bold gap-1 cursor-pointer"
                                   title="إعادة تفعيل الحساب"
                                 >
-                                  {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                  {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                                   إعادة تفعيل
                                 </Button>
-                              )}
-
-                              {/* أجور التوصيل للتجار */}
-                              {profile.role === "merchant" && (
-                                <div className="flex items-center gap-1 min-w-max">
-                                  <span className="text-[10px] text-muted-foreground">أجور توصيل:</span>
-                                  <Input 
-                                    type="number" 
-                                    value={profile.delivery_fee || 0} 
-                                    onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
-                                    className="h-7 w-16 text-center text-xs font-bold p-1"
-                                    dir="ltr"
-                                  />
-                                </div>
-                              )}
-
-                              {/* زر التفاصيل */}
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-7 px-2 text-xs cursor-pointer"
-                                onClick={() => setSelectedUserId(profile.id)}
-                              >
-                                التفاصيل
-                              </Button>
-
-                              {/* الحظر */}
-                              {isUserBanned(profile.banned_until) ? (
-                                <div className="flex items-center gap-1.5 min-w-max">
-                                  <span className="inline-block px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-black">
-                                    {isPermanentBan(profile.banned_until) ? "محظور نهائياً" : "محظور مؤقتاً"}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUnbanUser(profile.id)}
-                                    className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                                  >
-                                    فك
-                                  </button>
-                                </div>
-                              ) : banningId === profile.id ? (
-                                <div className="flex items-center gap-1 min-w-max">
-                                  <select
-                                    value={banPeriod}
-                                    onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
-                                    className="bg-card border border-border/80 rounded p-0.5 text-[10px] cursor-pointer outline-none"
-                                  >
-                                    <option value="day">يوم</option>
-                                    <option value="week">أسبوع</option>
-                                    <option value="month">شهر</option>
-                                    <option value="forever">للأبد</option>
-                                  </select>
-                                  <button
-                                    onClick={() => handleBanUser(profile.id)}
-                                    className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] cursor-pointer"
-                                  >
-                                    تأكيد
-                                  </button>
-                                  <button
-                                    onClick={() => setBanningId(null)}
-                                    className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px] cursor-pointer"
-                                  >
-                                    إلغاء
-                                  </button>
-                                </div>
                               ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setBanningId(profile.id)}
-                                  className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
-                                >
-                                  حظر
-                                </button>
+                                /* 3. الحسابات المعتمدة والمفعلة فقط: أجور التوصيل، تفاصيل السجل، والحظر */
+                                <>
+                                  {/* أجور التوصيل للتجار */}
+                                  {profile.role === "merchant" && (
+                                    <div className="flex items-center gap-1 min-w-max">
+                                      <span className="text-[10px] text-muted-foreground">أجور توصيل:</span>
+                                      <Input 
+                                        type="number" 
+                                        value={profile.delivery_fee || 0} 
+                                        onChange={(e) => handleUpdateDeliveryFee(profile.id, parseInt(e.target.value) || 0)}
+                                        className="h-7 w-16 text-center text-xs font-bold p-1"
+                                        dir="ltr"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* زر التفاصيل للحسابات المفعلة */}
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-7 px-2 text-xs cursor-pointer"
+                                    onClick={() => setSelectedUserId(profile.id)}
+                                  >
+                                    التفاصيل
+                                  </Button>
+
+                                  {/* الحظر للحسابات المفعلة */}
+                                  {isUserBanned(profile.banned_until) ? (
+                                    <div className="flex items-center gap-1.5 min-w-max">
+                                      <span className="inline-block px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive text-[10px] font-black">
+                                        {isPermanentBan(profile.banned_until) ? "محظور نهائياً" : "محظور مؤقتاً"}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUnbanUser(profile.id)}
+                                        className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                                      >
+                                        فك
+                                      </button>
+                                    </div>
+                                  ) : banningId === profile.id ? (
+                                    <div className="flex items-center gap-1 min-w-max">
+                                      <select
+                                        value={banPeriod}
+                                        onChange={(e) => setBanPeriod(e.target.value as BanPeriod)}
+                                        className="bg-card border border-border/80 rounded p-0.5 text-[10px] cursor-pointer outline-none"
+                                      >
+                                        <option value="day">يوم</option>
+                                        <option value="week">أسبوع</option>
+                                        <option value="month">شهر</option>
+                                        <option value="forever">للأبد</option>
+                                      </select>
+                                      <button
+                                        onClick={() => handleBanUser(profile.id)}
+                                        className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] cursor-pointer"
+                                      >
+                                        تأكيد
+                                      </button>
+                                      <button
+                                        onClick={() => setBanningId(null)}
+                                        className="px-1.5 py-0.5 rounded bg-muted text-foreground text-[10px] cursor-pointer"
+                                      >
+                                        إلغاء
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setBanningId(profile.id)}
+                                      className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+                                    >
+                                      حظر
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>

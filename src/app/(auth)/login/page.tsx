@@ -8,6 +8,16 @@ export default async function LoginPage(props: { searchParams: Promise<{ message
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, approval_status')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin' && (profile?.approval_status === 'pending' || profile?.approval_status === 'rejected')) {
+      return redirect("/awaiting-approval")
+    }
+
     return redirect("/")
   }
 

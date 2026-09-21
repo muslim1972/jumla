@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Bell, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
@@ -20,6 +21,7 @@ function timeAgo(dateStr: string) {
 }
 
 export function NotificationCenter() {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [items, setItems] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -52,7 +54,14 @@ export function NotificationCenter() {
     }
     init()
 
+    // استماع للتحديث عند استعادة تركيز النافذة وتحديث دوري
+    const onFocus = () => load()
+    window.addEventListener("focus", onFocus)
+    const interval = setInterval(load, 15000)
+
     return () => {
+      window.removeEventListener("focus", onFocus)
+      clearInterval(interval)
       if (channel) supabase.removeChannel(channel)
     }
   }, [load])
@@ -81,6 +90,28 @@ export function NotificationCenter() {
       await markAllNotificationsAsRead()
       setUnreadCount(0)
       markedRef.current = false
+    }
+  }
+
+  const handleItemClick = (n: any) => {
+    setIsOpen(false)
+    const title = n.title || ""
+    const message = n.message || ""
+    
+    // توجيه ذكي حسب نوع الإشعار
+    if (title.includes("تسجيل") || title.includes("تفعيل") || message.includes("بانتظار موافقتك")) {
+      router.push("/admin?tab=users&approval=pending")
+      return
+    }
+
+    if (title.includes("فاتورة") || message.includes("فاتورة")) {
+      router.push("/dashboard/billing")
+      return
+    }
+
+    if (title.includes("طلب") || message.includes("طلب")) {
+      router.push("/dashboard/orders")
+      return
     }
   }
 
@@ -139,8 +170,12 @@ export function NotificationCenter() {
             {items.map((n) => (
               <div
                 key={n.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleItemClick(n)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleItemClick(n) }}
                 className={cn(
-                  "px-4 py-3 flex flex-col gap-1 hover:bg-muted/40 transition-colors",
+                  "px-4 py-3 flex flex-col gap-1 hover:bg-muted/70 transition-colors cursor-pointer text-right outline-none focus-visible:bg-muted",
                   !n.is_read && "bg-brand-orange/5"
                 )}
               >

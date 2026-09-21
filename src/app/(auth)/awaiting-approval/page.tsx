@@ -101,12 +101,19 @@ export default async function AwaitingApprovalPage({
             </Button>
           </a>
 
-          <Link href="/login" className="w-full">
-            <Button variant="outline" className="w-full font-bold text-xs sm:text-sm h-10 rounded-xl gap-1.5 border-border/60">
+          <form action={async () => {
+            "use server"
+            const { createClient } = await import("@/utils/supabase/server")
+            const supabase = await createClient()
+            await supabase.auth.signOut()
+            const { redirect } = await import("next/navigation")
+            redirect("/login")
+          }} className="w-full">
+            <Button type="submit" variant="outline" className="w-full font-bold text-xs sm:text-sm h-10 rounded-xl gap-1.5 border-border/60 cursor-pointer hover:bg-muted">
               <ArrowRight className="w-4 h-4" />
-              الذهاب إلى صفحة تسجيل الدخول
+              تسجيل الخروج والعودة لشاشة الدخول
             </Button>
-          </Link>
+          </form>
         </CardFooter>
       </Card>
     </div>

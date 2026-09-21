@@ -61,3 +61,18 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- 5. تفعيل الاستماع اللحظي (Realtime) لجدول الإشعارات notifications
+-- لضمان وصول شارة الإشعار لجرس الأدمن فوراً بدون الحاجة لتسجيل الخروج
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
+
