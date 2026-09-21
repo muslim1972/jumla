@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-import { CheckCircle, Clock, AlertTriangle, FileText } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CheckCircle, Clock, AlertTriangle, FileText, Star, CheckCircle2, Loader2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { upsertAppRating, getMerchantAppRating } from "@/features/orders/actions/rating-actions"
 
 export function BillingListClient({ billings }: { billings: any[] }) {
   const paidBillings = billings.filter(b => b.status === 'paid')
@@ -123,12 +125,75 @@ function BillingDialog({ bill, open, onOpenChange }: { bill: any | null, open: b
 
   const isPaid = bill.status === 'paid'
 
+  // حالة تقييم التطبيق من التاجر
+  const [appRating, setAppRating] = useState(0)
+  const [hoverAppRating, setHoverAppRating] = useState(0)
+  const [appComment, setAppComment] = useState("")
+  const [isSubmittingAppRating, setIsSubmittingAppRating] = useState(false)
+  const [appRatingSuccess, setAppRatingSuccess] = useState(false)
+  const [appRatingError, setAppRatingError] = useState<string | null>(null)
+  const [hasPreviousRating, setHasPreviousRating] = useState(false)
+
+  // جلب تقييم التاجر السابق لهذا التحاسب أو للتطبيق إن وجد
+  useEffect(() => {
+    if (open && bill && isPaid) {
+      setAppRatingSuccess(false)
+      setAppRatingError(null)
+      getMerchantAppRating(bill.id).then(res => {
+        if (res?.rating) {
+          setAppRating(res.rating.rating)
+          setAppComment(res.rating.comment || "")
+          setHasPreviousRating(true)
+        } else {
+          setAppRating(0)
+          setAppComment("")
+          setHasPreviousRating(false)
+        }
+      })
+    }
+  }, [open, bill, isPaid])
+
+  // إخفاء تنبيه النجاح بعد ثانية ونصف
+  useEffect(() => {
+    if (!appRatingSuccess) return
+    const timer = setTimeout(() => {
+      setAppRatingSuccess(false)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [appRatingSuccess])
+
+  const handleSaveAppRating = async () => {
+    if (appRating === 0) {
+      setAppRatingError("الرجاء تحديد عدد النجوم لتقييم التطبيق")
+      return
+    }
+    setAppRatingError(null)
+    setIsSubmittingAppRating(true)
+    try {
+      const res = await upsertAppRating({
+        rating: appRating,
+        comment: appComment,
+        billingId: bill.id
+      })
+      if (res.error) {
+        setAppRatingError(res.error)
+      } else {
+        setAppRatingSuccess(true)
+        setHasPreviousRating(true)
+      }
+    } catch {
+      setAppRatingError("حدث خطأ أثناء حفظ تقييم التطبيق")
+    } finally {
+      setIsSubmittingAppRating(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none" showCloseButton={false}>
         <div className="bg-card rounded-xl border border-border/40 shadow-premium overflow-hidden">
           <DialogHeader className={cn(
-            "p-4 sm:p-6 border-b",
+            "p-4 sm:p-6 border-b flex flex-row items-center justify-between",
             isPaid ? "bg-emerald-500/10" : "bg-amber-500/10"
           )}>
             <DialogTitle className={cn(
@@ -138,6 +203,14 @@ function BillingDialog({ bill, open, onOpenChange }: { bill: any | null, open: b
               <FileText className="w-5 h-5" />
               تفاصيل فاتورة التحاسب
             </DialogTitle>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onOpenChange(false)}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </DialogHeader>
 
           <div className="p-4 sm:p-6 space-y-6 text-right max-h-[80vh] overflow-y-auto custom-scrollbar">
@@ -202,6 +275,93 @@ function BillingDialog({ bill, open, onOpenChange }: { bill: any | null, open: b
                   تم تأكيد استلام هذا المبلغ من قبل الإدارة بتاريخ {new Date(bill.paid_at).toLocaleString('ar-IQ')}
                 </div>
               ) : null
+            )}
+
+            {/* تقييم التاجر لتجربة التطبيق بعد إتمام التسديد */}
+            {isPaid && (
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 sm:p-5 space-y-3.5 text-center">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    {hasPreviousRating ? "تعديل تقييمك لتجربة التطبيق:" : "تقييمك لتجربة التعامل مع التطبيق:"}
+                  </span>
+                  {appRating > 0 && (
+                    <span className="text-[10px] text-amber-700 bg-amber-200/50 px-2 py-0.5 rounded-full font-bold">
+                      {appRating} من 5 نجوم
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground text-right leading-relaxed">
+                  بما أنك أتممت التحاسب مع التطبيق، رأيك وملاحظاتك تهم إدارة جملتي جداً لتطوير الخدمة وتسهيل عملك كشريك نجاح.
+                </p>
+
+                {/* النجوم التفاعلية */}
+                <div className="flex items-center justify-center gap-2 py-1 flex-row-reverse">
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className="p-1.5 transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+                      onMouseEnter={() => setHoverAppRating(star)}
+                      onMouseLeave={() => setHoverAppRating(0)}
+                      onClick={() => {
+                        setAppRating(star)
+                        setAppRatingError(null)
+                      }}
+                    >
+                      <Star
+                        className={`w-8 h-8 sm:w-9 sm:h-9 ${
+                          (hoverAppRating ? star <= hoverAppRating : star <= appRating)
+                            ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                            : "text-muted-foreground/30"
+                        } transition-colors`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* حقل الملاحظات */}
+                <div className="space-y-1 text-right">
+                  <label className="text-[11px] font-bold text-muted-foreground">
+                    ملاحظاتك أو مقترحاتك للإدارة (اختياري)
+                  </label>
+                  <textarea
+                    placeholder="اكتب رأيك بصراحة عن دقة الحسابات، دعم التطبيق، أو مقترحات للتطوير..."
+                    value={appComment}
+                    onChange={(e) => setAppComment(e.target.value)}
+                    className="flex min-h-[70px] w-full rounded-xl border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-50 resize-none text-right"
+                  />
+                </div>
+
+                {appRatingError && (
+                  <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 p-2 rounded-lg border border-red-200 text-center font-bold">
+                    {appRatingError}
+                  </p>
+                )}
+
+                {appRatingSuccess ? (
+                  <div className="p-2.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 animate-in fade-in duration-200">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>شكراً لتقييمكم! تم حفظ رأيك بنجاح ووصل للإدارة</span>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full font-bold text-xs h-9 sm:h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-xl gap-1.5 shadow-sm"
+                    onClick={handleSaveAppRating}
+                    disabled={isSubmittingAppRating || appRating === 0}
+                  >
+                    {isSubmittingAppRating ? (
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    ) : (
+                      <>
+                        <Star className="w-3.5 h-3.5 fill-white text-white" />
+                        {hasPreviousRating ? "تعديل وحفظ التقييم ⭐" : "حفظ تقييم التطبيق ⭐"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>

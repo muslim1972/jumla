@@ -158,3 +158,137 @@ export async function getUserRatingForMerchant(merchantId: string) {
 
   return { rating: rating || null }
 }
+
+/**
+ * إضافة أو تحديث تقييم التاجر لتجربة التطبيق (بعد تسديد فاتورة التحاسب)
+ */
+export async function upsertAppRating(data: {
+  rating: number
+  comment?: string
+  billingId?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: "يجب تسجيل الدخول أولاً" }
+  if (data.rating < 1 || data.rating > 5) {
+    return { error: "التقييم يجب أن يكون بين 1 و 5 نجوم" }
+  }
+
+  // البحث عن حساب الإدارة ليكون المُقيَّم (rated_id)
+  let adminId: string | null = null
+  const { data: adminProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'admin')
+    .limit(1)
+    .maybeSingle()
+
+  if (adminProfile) {
+    adminId = adminProfile.id
+  } else {
+    // في حال عدم وجود حساب أدمن صريح، جلب أي حساب مختلف لإرضاء قيد المفتاح الأجنبي
+    const { data: anyProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .neq('id', user.id)
+      .limit(1)
+      .maybeSingle()
+    adminId = anyProfile?.id || null
+  }
+
+  if (!adminId) {
+    return { error: "تعذر حفظ التقييم: حساب الإدارة غير متوفر" }
+  }
+
+  const billingTag = data.billingId ? `[تحاسب #${data.billingId.slice(0, 8)}] ` : ""
+  const formattedComment = data.comment?.trim() ? `${billingTag}${data.comment.trim()}` : (billingTag ? `${billingTag}تقييم بدون تعليق` : null)
+
+  try {
+    // البحث عن تقييم سابق للتطبيق من هذا التاجر لنفس التحاسب أو بشكل عام
+    let existingQuery = supabase
+      .from('user_ratings')
+      .select('id')
+      .eq('rater_id', user.id)
+      .eq('rated_role', 'app')
+
+    if (data.billingId) {
+      existingQuery = existingQuery.ilike('comment', `%${data.billingId.slice(0, 8)}%`)
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle()
+
+    if (existing) {
+      const { error } = await supabase
+        .from('user_ratings')
+        .update({
+          rating: data.rating,
+          comment: formattedComment,
+        })
+        .eq('id', existing.id)
+
+      if (error) throw error
+    } else {
+      const { error } = await supabase
+        .from('user_ratings')
+        .insert({
+          order_id: null,
+          rater_id: user.id,
+          rated_id: adminId,
+          rater_role: 'merchant',
+          rated_role: 'app',
+          rating: data.rating,
+          comment: formattedComment,
+        })
+
+      if (error) throw error
+    }
+
+    revalidatePath('/dashboard/billing')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Upsert app rating error:", error)
+    return { error: error.message || "حدث خطأ أثناء حفظ تقييم التطبيق" }
+  }
+}
+
+/**
+ * جلب تقييم التاجر الحالي للتطبيق (إن وجد)
+ */
+export async function getMerchantAppRating(billingId?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { rating: null }
+
+  let query = supabase
+    .from('user_ratings')
+    .select('id, rating, comment, created_at')
+    .eq('rater_id', user.id)
+    .eq('rated_role', 'app')
+
+  if (billingId) {
+    query = query.ilike('comment', `%${billingId.slice(0, 8)}%`)
+  }
+
+  const { data: rating } = await query
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (rating) {
+    // تنظيف وسم التحاسب من التعليق المعروض للتاجر
+    let cleanComment = rating.comment || ""
+    if (cleanComment.startsWith('[تحاسب #')) {
+      cleanComment = cleanComment.replace(/^\[تحاسب #[^\]]+\]\s*/, '').replace(/^تقييم بدون تعليق$/, '')
+    }
+    return {
+      rating: {
+        ...rating,
+        comment: cleanComment
+      }
+    }
+  }
+
+  return { rating: null }
+}

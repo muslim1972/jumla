@@ -79,8 +79,15 @@ export function StoreClient({
   const [ratingSuccess, setRatingSuccess] = useState(false)
   const [ratingError, setRatingError] = useState<string | null>(null)
   const [reviewsList, setReviewsList] = useState<any[]>(reviews)
-  const [currentAvg, setCurrentAvg] = useState<number>(averageRating)
-  const [currentCount, setCurrentCount] = useState<number>(ratingCount)
+
+  // حساب المتوسط وعدد التقييمات تلقائياً من قائمة التقييمات المعروضة
+  const calculatedAvg = useMemo(() => {
+    if (!reviewsList || reviewsList.length === 0) return 0
+    const sum = reviewsList.reduce((acc, curr) => acc + (Number(curr.rating) || 0), 0)
+    return Math.round((sum / reviewsList.length) * 10) / 10
+  }, [reviewsList])
+
+  const calculatedCount = reviewsList?.length || 0
 
   // جلب تقييم المستخدم الحالي لهذا المتجر عند فتح النافذة
   useEffect(() => {
@@ -94,11 +101,12 @@ export function StoreClient({
     }
   }, [showReviewsModal, clientUser, merchant.id])
 
-  // إخفاء تنبيه النجاح تلقائياً بعد 1.5 ثانية
+  // إخفاء تنبيه النجاح وإغلاق النافذة العائمة تلقائياً بعد 1.5 ثانية
   useEffect(() => {
     if (!ratingSuccess) return
     const timer = setTimeout(() => {
       setRatingSuccess(false)
+      setShowReviewsModal(false)
     }, 1500)
     return () => clearTimeout(timer)
   }, [ratingSuccess])
@@ -122,7 +130,7 @@ export function StoreClient({
         setRatingError(res.error)
       } else {
         setRatingSuccess(true)
-        // تحديث القائمة محلياً فوراً
+        // تحديث القائمة محلياً فوراً لتنعكس النجوم والمتوسط بدون انتظار
         const newReview = {
           id: 'temp-' + Date.now(),
           rating: myRating,
@@ -131,7 +139,6 @@ export function StoreClient({
           reviewerName: clientUser?.user_metadata?.store_name || clientUser?.user_metadata?.full_name || 'أنت (تقييمك)'
         }
         setReviewsList(prev => [newReview, ...prev.filter(r => r.reviewerName !== 'أنت (تقييمك)')])
-        setCurrentCount(prev => prev > 0 ? prev : 1)
         startTransition(() => {
           router.refresh()
         })
@@ -281,7 +288,7 @@ export function StoreClient({
                 title="اضغط لعرض التقييمات وآراء العملاء"
               >
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span>{ratingCount > 0 ? `${averageRating.toFixed(1)} (${ratingCount} تقييم)` : "متجر جديد (0 تقييم)"}</span>
+                <span>{calculatedCount > 0 ? `${calculatedAvg.toFixed(1)} (${calculatedCount} تقييم)` : "متجر جديد (0 تقييم)"}</span>
                 <span className="text-[10px] underline font-bold mr-0.5 text-amber-600 dark:text-amber-300">الآراء ⭐</span>
               </button>
               <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
@@ -450,7 +457,7 @@ export function StoreClient({
                 {/* ملخص التقييم */}
                 <div className="bg-muted/40 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-border/50 text-center">
                   <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                    <span>{currentCount > 0 ? currentAvg.toFixed(1) : "0.0"}</span>
+                    <span>{calculatedCount > 0 ? calculatedAvg.toFixed(1) : "0.0"}</span>
                     <span className="text-base text-muted-foreground font-normal">/ 5.0</span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -458,7 +465,7 @@ export function StoreClient({
                       <Star
                         key={s}
                         className={`w-5 h-5 ${
-                          s <= Math.round(currentAvg)
+                          s <= Math.round(calculatedAvg)
                             ? "fill-amber-400 text-amber-400"
                             : "text-muted-foreground/30"
                         }`}
@@ -466,7 +473,7 @@ export function StoreClient({
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium">
-                    {currentCount > 0 ? `مبني على ${currentCount} تقييم من أصحاب الماركت` : "لا توجد تقييمات سابقة حتى الآن"}
+                    {calculatedCount > 0 ? `مبني على ${calculatedCount} تقييم من أصحاب الماركت` : "لا توجد تقييمات سابقة حتى الآن"}
                   </p>
                 </div>
 
