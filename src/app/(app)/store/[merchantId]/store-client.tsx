@@ -4,12 +4,14 @@ import { useState, useMemo, useRef, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List, MessageSquare } from "lucide-react"
+import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RatingDialog } from "@/features/orders/components/rating-dialog"
+import { createClient } from "@/utils/supabase/client"
+import { upsertRating, getUserRatingForMerchant } from "@/features/orders/actions/rating-actions"
 import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
 
@@ -57,7 +59,89 @@ export function StoreClient({
 
   // نوافذ التقييم والمراجعات
   const [showReviewsModal, setShowReviewsModal] = useState(false)
-  const [showRateModal, setShowRateModal] = useState(false)
+
+  // المستخدم الحالي (فحص من جانب العميل إن لم يكن متوفراً من السيرفر)
+  const [clientUser, setClientUser] = useState<any>(user)
+  useEffect(() => {
+    if (!user) {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data }) => {
+        if (data.user) setClientUser(data.user)
+      })
+    }
+  }, [user])
+
+  // حالة التقييم المباشر داخل نافذة المتجر
+  const [myRating, setMyRating] = useState(0)
+  const [myHoverRating, setMyHoverRating] = useState(0)
+  const [myComment, setMyComment] = useState("")
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false)
+  const [ratingSuccess, setRatingSuccess] = useState(false)
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [reviewsList, setReviewsList] = useState<any[]>(reviews)
+  const [currentAvg, setCurrentAvg] = useState<number>(averageRating)
+  const [currentCount, setCurrentCount] = useState<number>(ratingCount)
+
+  // جلب تقييم المستخدم الحالي لهذا المتجر عند فتح النافذة
+  useEffect(() => {
+    if (showReviewsModal && clientUser) {
+      getUserRatingForMerchant(merchant.id).then(res => {
+        if (res?.rating) {
+          setMyRating(res.rating.rating)
+          setMyComment(res.rating.comment || "")
+        }
+      })
+    }
+  }, [showReviewsModal, clientUser, merchant.id])
+
+  // إخفاء تنبيه النجاح تلقائياً بعد 1.5 ثانية
+  useEffect(() => {
+    if (!ratingSuccess) return
+    const timer = setTimeout(() => {
+      setRatingSuccess(false)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [ratingSuccess])
+
+  const handleSaveStoreRating = async () => {
+    if (myRating === 0) {
+      setRatingError("الرجاء تحديد عدد النجوم للتقييم")
+      return
+    }
+    setRatingError(null)
+    setIsSubmittingRating(true)
+    try {
+      const res = await upsertRating({
+        orderId: userCompletedOrderId,
+        ratedId: merchant.id,
+        ratedRole: 'merchant',
+        rating: myRating,
+        comment: myComment
+      })
+      if (res.error) {
+        setRatingError(res.error)
+      } else {
+        setRatingSuccess(true)
+        // تحديث القائمة محلياً فوراً
+        const newReview = {
+          id: 'temp-' + Date.now(),
+          rating: myRating,
+          comment: myComment,
+          created_at: new Date().toISOString(),
+          reviewerName: clientUser?.user_metadata?.store_name || clientUser?.user_metadata?.full_name || 'أنت (تقييمك)'
+        }
+        setReviewsList(prev => [newReview, ...prev.filter(r => r.reviewerName !== 'أنت (تقييمك)')])
+        setCurrentCount(prev => prev > 0 ? prev : 1)
+        startTransition(() => {
+          router.refresh()
+        })
+      }
+    } catch {
+      setRatingError("حدث خطأ في حفظ التقييم")
+    } finally {
+      setIsSubmittingRating(false)
+    }
+  }
 
   // Group products by categories based on keywords
   const groupedProducts = useMemo(() => {
@@ -340,130 +424,183 @@ export function StoreClient({
         </div>
       )}
 
-      {/* نافذة تقييمات المتجر والآراء */}
+      {/* نافذة تقييمات المتجر والآراء والتقييم المباشر */}
       <Dialog open={showReviewsModal} onOpenChange={setShowReviewsModal}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
-              <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600">
-                <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+        <DialogContent className="sm:max-w-md max-h-[88vh] overflow-y-auto" dir="rtl">
+          {ratingSuccess ? (
+            <div className="flex flex-col items-center justify-center py-10 px-4 gap-3 text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 bg-emerald-500/15 text-emerald-600 rounded-full flex items-center justify-center mb-1 shadow-inner">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 animate-in zoom-in-50 duration-300" />
               </div>
-              تقييمات وآراء العملاء عن {merchant.full_name}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* ملخص التقييم */}
-            <div className="bg-muted/40 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-border/50 text-center">
-              <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                <span>{ratingCount > 0 ? averageRating.toFixed(1) : "0.0"}</span>
-                <span className="text-base text-muted-foreground font-normal">/ 5.0</span>
-              </div>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    className={`w-5 h-5 ${
-                      s <= Math.round(averageRating)
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-muted-foreground/30"
-                    }`}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground font-medium">
-                {ratingCount > 0 ? `مبني على ${ratingCount} تقييم حقيقي من أصحاب الماركت` : "لا توجد تقييمات حتى الآن"}
-              </p>
+              <h3 className="text-2xl font-black text-foreground">شكراً لتقييمكم!</h3>
+              <p className="text-xs text-muted-foreground">تم حفظ تقييمك ورأيك للمتجر بنجاح</p>
             </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                  <div className="bg-amber-500/10 p-2 rounded-xl text-amber-600">
+                    <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                  </div>
+                  تقييمات وآراء العملاء عن {merchant.full_name}
+                </DialogTitle>
+              </DialogHeader>
 
-            {/* إمكانية التقييم المباشر إن كان للمشتري طلب سابق */}
-            {userCompletedOrderId ? (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between gap-2">
-                <div className="text-xs text-amber-800 dark:text-amber-300 font-bold">
-                  لديك طلب سابق من هذا المتجر! شاركنا تجربتك:
+              <div className="space-y-4 py-2">
+                {/* ملخص التقييم */}
+                <div className="bg-muted/40 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-border/50 text-center">
+                  <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                    <span>{currentCount > 0 ? currentAvg.toFixed(1) : "0.0"}</span>
+                    <span className="text-base text-muted-foreground font-normal">/ 5.0</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-5 h-5 ${
+                          s <= Math.round(currentAvg)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    {currentCount > 0 ? `مبني على ${currentCount} تقييم من أصحاب الماركت` : "لا توجد تقييمات سابقة حتى الآن"}
+                  </p>
                 </div>
-                <Button 
-                  size="sm" 
-                  className="h-8 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-sm"
-                  onClick={() => {
-                    setShowReviewsModal(false)
-                    setShowRateModal(true)
-                  }}
-                >
-                  <Star className="w-3.5 h-3.5 fill-white text-white" />
-                  تقييم المتجر ⭐
-                </Button>
-              </div>
-            ) : user ? (
-              <p className="text-[11px] text-muted-foreground bg-muted/20 p-2.5 rounded-lg border text-center">
-                ℹ️ يمكنك إضافة تقييمك ورأيك في هذا المتجر فور إتمام واستلام أول طلب منه.
-              </p>
-            ) : (
-              <p className="text-[11px] text-muted-foreground bg-muted/20 p-2.5 rounded-lg border text-center">
-                ℹ️ سجّل الدخول لإمكانية الطلب وتقييم المتجر.
-              </p>
-            )}
 
-            {/* قائمة التعليقات والآراء */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5" />
-                آراء أصحاب الماركت ({reviews.length})
-              </h4>
-
-              {reviews.length === 0 ? (
-                <div className="text-center py-8 bg-muted/10 rounded-xl border border-dashed border-border/60">
-                  <Star className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
-                  <p className="text-xs text-muted-foreground">كن أول من يقيّم هذا المتجر بعد استلام طلبك!</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5 max-h-60 overflow-y-auto pl-1 pr-1 custom-scrollbar">
-                  {reviews.map((rev: any) => (
-                    <div key={rev.id} className="p-3 rounded-xl bg-card border border-border/60 space-y-1.5 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-foreground">{rev.reviewerName}</span>
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`w-3 h-3 ${
-                                s <= rev.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      {rev.comment ? (
-                        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{rev.comment}</p>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground/60 italic">بدون تعليق كتابي</p>
+                {/* قسم التقييم المباشر للمتجر */}
+                {clientUser ? (
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        {myRating > 0 ? "تعديل تقييمك للمتجر:" : "أضف تقييمك ورأيك في المتجر:"}
+                      </span>
+                      {myRating > 0 && (
+                        <span className="text-[10px] text-amber-700 bg-amber-200/50 px-2 py-0.5 rounded-full font-bold">
+                          {myRating} من 5 نجوم
+                        </span>
                       )}
-                      <div className="text-[9px] text-muted-foreground/50 text-left" dir="ltr">
-                        {new Date(rev.created_at).toLocaleDateString('ar-IQ', { dateStyle: 'short' })}
-                      </div>
                     </div>
-                  ))}
+
+                    {/* النجوم القابلة للنقر */}
+                    <div className="flex items-center justify-center gap-2 py-1 flex-row-reverse">
+                      {[5, 4, 3, 2, 1].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          className="p-1.5 transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+                          onMouseEnter={() => setMyHoverRating(star)}
+                          onMouseLeave={() => setMyHoverRating(0)}
+                          onClick={() => {
+                            setMyRating(star)
+                            setRatingError(null)
+                          }}
+                        >
+                          <Star
+                            className={`w-8 h-8 sm:w-9 sm:h-9 ${
+                              (myHoverRating ? star <= myHoverRating : star <= myRating)
+                                ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                                : "text-muted-foreground/30"
+                            } transition-colors`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* حقل التعليق */}
+                    <div className="space-y-1">
+                      <textarea
+                        placeholder="اكتب تجربتك ورأيك عن تعامل هذا المتجر (اختياري)..."
+                        value={myComment}
+                        onChange={(e) => setMyComment(e.target.value)}
+                        className="flex min-h-[70px] w-full rounded-xl border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-50 resize-none"
+                      />
+                    </div>
+
+                    {ratingError && (
+                      <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 p-2 rounded-lg border border-red-200 text-center font-bold">
+                        {ratingError}
+                      </p>
+                    )}
+
+                    <Button
+                      className="w-full font-bold text-xs h-9 bg-amber-600 hover:bg-amber-700 text-white rounded-xl gap-1.5 shadow-sm"
+                      onClick={handleSaveStoreRating}
+                      disabled={isSubmittingRating || myRating === 0}
+                    >
+                      {isSubmittingRating ? (
+                        <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      ) : (
+                        <>
+                          <Star className="w-3.5 h-3.5 fill-white text-white" />
+                          {myRating > 0 ? "حفظ التقييم ⭐" : "حدد النجوم أولاً لحفظ التقييم"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-muted/40 border rounded-xl text-center space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      سجّل الدخول لتتمكن من تقييم هذا المتجر وإبداء رأيك
+                    </p>
+                    <Link href="/login">
+                      <Button size="sm" variant="outline" className="text-xs font-bold">
+                        تسجيل الدخول
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+
+                {/* قائمة التعليقات والآراء */}
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    آراء أصحاب الماركت ({reviewsList.length})
+                  </h4>
+
+                  {reviewsList.length === 0 ? (
+                    <div className="text-center py-6 bg-muted/10 rounded-xl border border-dashed border-border/60">
+                      <Star className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground/30" />
+                      <p className="text-xs text-muted-foreground">لا توجد آراء مسجلة بعد. كن أول من يقيّم هذا المتجر!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pl-1 pr-1 custom-scrollbar">
+                      {reviewsList.map((rev: any) => (
+                        <div key={rev.id} className="p-3 rounded-xl bg-card border border-border/60 space-y-1.5 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-foreground">{rev.reviewerName}</span>
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3 h-3 ${
+                                    s <= rev.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {rev.comment ? (
+                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{rev.comment}</p>
+                          ) : (
+                            <p className="text-[10px] text-muted-foreground/60 italic">بدون تعليق كتابي</p>
+                          )}
+                          <div className="text-[9px] text-muted-foreground/50 text-left" dir="ltr">
+                            {new Date(rev.created_at).toLocaleDateString('ar-IQ', { dateStyle: 'short' })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
-
-      {/* نافذة التقييم للمشتري في صفحة المتجر */}
-      {userCompletedOrderId && (
-        <RatingDialog
-          open={showRateModal}
-          onOpenChange={setShowRateModal}
-          orderId={userCompletedOrderId}
-          ratedId={merchant.id}
-          ratedName={merchant.full_name}
-          ratedRole="merchant"
-          onSuccess={() => {
-            router.refresh()
-          }}
-        />
-      )}
     </div>
   )
 }

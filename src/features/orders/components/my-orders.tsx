@@ -25,9 +25,11 @@ import {
   Loader2,
   Printer,
   Archive,
-  Edit3
+  Edit3,
+  Star
 } from "lucide-react"
 import { editOrder, archiveOrder, respondToOrderEdits } from "@/features/orders/actions"
+import { RatingDialog } from "@/features/orders/components/rating-dialog"
 import { roundTo250 } from "@/lib/round-to-250"
 
 export interface OrderData {
@@ -231,9 +233,6 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
   }
 }
 
-import { RatingDialog } from "@/features/orders/components/rating-dialog"
-import { Star } from "lucide-react"
-
 // مكون بطاقة الطلب الفردي
 function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null }) {
   const [expanded, setExpanded] = useState(false)
@@ -350,7 +349,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
             </p>
             {order.delivered_at && (
               <p className="text-[10px] text-emerald-600 mt-0.5 font-medium flex items-center gap-1 truncate">
-                تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+                تاريخ التسليم: {new Date(order.delivered_at).toLocaleString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
               </p>
             )}
           </div>
@@ -358,18 +357,18 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
 
         <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:justify-end border-t sm:border-0 border-border/50 pt-2 sm:pt-0">
           <div className="text-right sm:text-left flex flex-col items-start sm:items-end min-w-0">
-            {order.is_credit && order.amount_paid !== undefined && order.amount_paid < order.total_rounded ? (
+            {order.is_credit && order.amount_paid !== undefined && order.amount_paid < (order.total_rounded || 0) ? (
               <>
                 <p className="text-[10px] text-muted-foreground line-through truncate w-full">
-                  {order.total_rounded.toLocaleString('en-US')}
+                  {(order.total_rounded || 0).toLocaleString('en-US')}
                 </p>
                 <p className="font-black text-red-600 text-sm sm:text-base truncate w-full">
-                  الباقي {(order.total_rounded - order.amount_paid).toLocaleString('en-US')}
+                  الباقي {((order.total_rounded || 0) - (order.amount_paid || 0)).toLocaleString('en-US')}
                 </p>
               </>
             ) : (
               <p className="font-black text-primary text-sm sm:text-base truncate w-full">
-                {order.total_rounded.toLocaleString('en-US')}
+                {(order.total_rounded || 0).toLocaleString('en-US')}
               </p>
             )}
             <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${statusConfig.color} mt-1 w-max`}>
@@ -537,15 +536,15 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
           <div className="border-t border-dashed pt-3 space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>قيمة المنتجات</span>
-              <span>{(displayTotals ? displayTotals.subtotal : order.subtotal).toLocaleString('en-US')} د.ع</span>
+              <span>{((displayTotals ? displayTotals.subtotal : order.subtotal) || 0).toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground px-1">
               <span>أجور التوصيل</span>
-              <span>{order.delivery_fee.toLocaleString('en-US')} د.ع</span>
+              <span>{(order.delivery_fee || 0).toLocaleString('en-US')} د.ع</span>
             </div>
             <div className="flex justify-between text-base font-black text-primary pt-2 pb-1 px-1">
               <span>المجموع الكلي</span>
-              <span>{(displayTotals ? displayTotals.total : order.total_rounded).toLocaleString('en-US')} د.ع</span>
+              <span>{((displayTotals ? displayTotals.total : order.total_rounded) || 0).toLocaleString('en-US')} د.ع</span>
             </div>
 
             {/* تفاصيل الدين */}
@@ -568,7 +567,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                 className="w-full mt-2 border-primary/30 text-primary hover:bg-primary/5"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const deliveryDate = order.delivered_at ? new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' }) : undefined;
+                  const deliveryDate = order.delivered_at ? new Date(order.delivered_at).toLocaleString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' }) : undefined;
                   handlePrintOrder(order, dateStr, deliveryDate, appSupportPhone || undefined);
                 }}
               >

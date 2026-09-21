@@ -248,7 +248,7 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
             <p className="text-[10px] text-muted-foreground">تاريخ الطلب: {dateStr}</p>
             {order.delivered_at && (
               <p className="text-[10px] text-emerald-600 mt-0.5 font-medium">
-                تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+                تاريخ التسليم: {new Date(order.delivered_at).toLocaleString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
               </p>
             )}
           </div>
@@ -315,7 +315,7 @@ function ArchivedOrderCard({ order, onOpenChange }: { order: OrderData, onOpenCh
               <div className="flex items-center gap-2 pt-1 border-t border-muted-foreground/10">
                 <span className="text-emerald-600 text-xs">✅</span>
                 <span className="text-xs font-medium">
-                  تاريخ التسليم: {new Date(order.delivered_at).toLocaleDateString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
+                  تاريخ التسليم: {new Date(order.delivered_at).toLocaleString("ar-IQ", { dateStyle: 'short', timeStyle: 'short' })}
                 </span>
               </div>
             )}
