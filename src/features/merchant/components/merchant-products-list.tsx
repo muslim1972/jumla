@@ -76,8 +76,8 @@ export function MerchantProductsList({ products, categories }: { products: any[]
               {/* Product Content */}
               <div className="flex flex-col flex-1 min-w-0">
                 <CardHeader className={cn("pb-1", viewMode === 'grid' ? "p-3" : "p-3 pb-0")}>
-                  <CardTitle className="text-sm font-bold line-clamp-1 flex items-center gap-1.5 flex-wrap">
-                    <span className="truncate">{product.name}</span>
+                  <CardTitle className="text-xs sm:text-sm font-bold line-clamp-2 leading-snug flex items-center gap-1.5 flex-wrap">
+                    <span>{product.name}</span>
                     {product.master_product_id && (
                       <span className="bg-brand-blue/10 text-brand-blue border border-brand-blue/20 px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0">
                         مربوطة مركزياً

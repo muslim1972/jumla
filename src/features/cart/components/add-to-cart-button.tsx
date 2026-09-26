@@ -114,38 +114,38 @@ export function AddToCartButton({
   // Icon-only variant (used in list view)
   if (isIcon) {
     return (
-      <div className="flex flex-col items-end gap-2">
-        <div className="flex items-center gap-2">
-          {localQuantity > 0 && (
-            <div className="text-sm font-black text-emerald-600 dark:text-emerald-400 min-w-fit">
-              = {(productPrice * localQuantity).toLocaleString('en-US')}
-            </div>
-          )}
-          <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">
-            <button
-              onClick={() => handleUpdateQuantity(localQuantity + 1)}
-              disabled={isLoading || (maxQuantity !== undefined && localQuantity >= maxQuantity)}
-              className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
-            >
-              <Plus className="w-3 h-3" />
-            </button>
-            <span className="px-2 font-bold min-w-[24px] text-center border-x text-xs">
-              {localQuantity}
-            </span>
-            <button
-              onClick={() => handleUpdateQuantity(localQuantity - 1)}
-              disabled={isLoading || localQuantity <= 1}
-              className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
-            >
-              <Minus className="w-3 h-3" />
-            </button>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {localQuantity > 0 && (
+          <div className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 min-w-fit tabular-nums">
+            = {(productPrice * localQuantity).toLocaleString('en-US')}
           </div>
+        )}
+        <div className="flex items-center border rounded-md overflow-hidden h-7 bg-background shadow-sm border-border/50">
+          <button
+            onClick={() => handleUpdateQuantity(localQuantity + 1)}
+            disabled={isLoading || (maxQuantity !== undefined && localQuantity >= maxQuantity)}
+            className="px-1.5 sm:px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            title="زيادة الكمية"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+          <span className="px-1.5 sm:px-2 font-bold min-w-[20px] sm:min-w-[24px] text-center border-x text-xs tabular-nums">
+            {localQuantity}
+          </span>
+          <button
+            onClick={() => handleUpdateQuantity(localQuantity - 1)}
+            disabled={isLoading || localQuantity <= 1}
+            className="px-1.5 sm:px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full text-brand-orange"
+            title="تقليل الكمية"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
         </div>
 
         <Button 
           size="icon"
           className={cn(
-            "h-8 w-8 transition-all duration-300",
+            "h-7 w-7 sm:h-8 sm:w-8 transition-all duration-300 rounded-lg shrink-0",
             isOutOfStock ? "bg-muted text-muted-foreground" :
             inCartItem ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-brand-orange hover:bg-brand-orange/90 shadow-brand-orange/20"
           )} 
@@ -154,13 +154,13 @@ export function AddToCartButton({
           title={isOutOfStock ? "نفد من المخزون" : inCartItem ? "الذهاب للسلة" : "أضف للسلة"}
         >
           {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
+            <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-white" />
           ) : isOutOfStock ? (
             <span className="text-[10px] font-bold">نفد</span>
           ) : inCartItem ? (
-            <Check className="w-4 h-4 text-white" />
+            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           ) : (
-            <ShoppingCart className="w-4 h-4 text-white" />
+            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           )}
         </Button>
       </div>

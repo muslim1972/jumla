@@ -59,7 +59,7 @@ export function ProductCard({
         </div>
 
         <CardHeader className="p-3 pb-1 space-y-0.5">
-          <CardTitle className="text-sm font-bold line-clamp-1 group-hover:text-brand-orange transition-colors">
+          <CardTitle className="text-xs sm:text-sm font-bold line-clamp-2 min-h-[2.25rem] leading-snug group-hover:text-brand-orange transition-colors">
             {product.name}
           </CardTitle>
           {product.description && (
@@ -72,7 +72,7 @@ export function ProductCard({
         <CardContent className="p-3 pt-1 pb-2 flex-grow flex justify-between items-end gap-2">
           <div className="flex flex-col mt-0.5">
             <span className="text-[10px] text-muted-foreground mb-0.5 font-medium leading-none">السعر</span>
-            <span className="text-base font-black text-brand-blue dark:text-foreground leading-none">
+            <span className="text-base font-black text-brand-blue dark:text-foreground leading-none tabular-nums">
               {Number(currentPrice).toLocaleString('en-US')} <span className="text-[10px] font-normal">د.ع</span>
             </span>
           </div>
@@ -115,40 +115,50 @@ export function ProductCard({
     )
   }
 
-  /* List View - Ultra Compact */
+  /* List View - سطر مخصص كامل لاسم المنتج، ونقل الأسعار والعداد إلى سطر ثانٍ واسع ومستوعب */
   return (
-    <div className="flex items-center gap-3 p-2.5 glass rounded-xl hover:bg-muted/30 hover:border-brand-orange/30 border border-border/30 transition-all duration-300 group">
-      <div className="h-12 w-12 rounded-lg bg-muted/40 relative overflow-hidden shrink-0 shadow-sm border border-border/10">
-        {product.image_url ? (
-          <Image
-            src={product.image_url}
-            alt={product.name}
-            fill
-            sizes="48px"
-            className="object-contain group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="flex items-center justify-center w-full h-full">
-            <PackageOpen className="w-4 h-4 text-muted-foreground/20" />
-          </div>
-        )}
+    <div className="flex flex-col p-2.5 sm:p-3 glass rounded-xl hover:bg-muted/30 hover:border-brand-orange/30 border border-border/30 transition-all duration-300 group gap-1.5">
+      {/* السطر الأول: الصورة + اسم المنتج بكامل عرضه + الوصف إن وجد */}
+      <div className="flex items-start gap-2.5">
+        <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg bg-muted/40 relative overflow-hidden shrink-0 shadow-sm border border-border/10 mt-0.5">
+          {product.image_url ? (
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              sizes="48px"
+              className="object-contain group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="flex items-center justify-center w-full h-full">
+              <PackageOpen className="w-4 h-4 text-muted-foreground/20" />
+            </div>
+          )}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h4 className="text-xs sm:text-sm font-bold line-clamp-2 leading-snug group-hover:text-brand-orange transition-colors">
+            {product.name}
+          </h4>
+          {product.description && (
+            <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+              {product.description}
+            </p>
+          )}
+        </div>
       </div>
-      
-      <div className="flex-grow min-w-0 flex flex-col justify-center">
-        <h4 className="text-sm font-bold line-clamp-1 leading-tight group-hover:text-brand-orange transition-colors">{product.name}</h4>
-        {product.description && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
-            {product.description}
-          </p>
-        )}
-        <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
-          <span className="text-brand-blue dark:text-foreground font-black text-sm">
-            {Number(currentPrice).toLocaleString('en-US')} <span className="text-[10px] font-normal">د.ع</span>
+
+      {/* السطر الثاني: سطر الأسعار والتحكم بالكمية والسلة (الفراغ المستوعب) */}
+      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-border/25">
+        {/* اليمين: سعر المفرد ونوع الوحدة */}
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <span className="text-brand-blue dark:text-foreground font-black text-xs sm:text-sm tabular-nums">
+            {Number(currentPrice).toLocaleString('en-US')} <span className="text-[9px] font-normal">د.ع</span>
           </span>
           
           {hasMultipleUnits ? (
             <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
-              <SelectTrigger className="h-6 px-2 py-0 text-[10px] font-bold bg-muted/50 border-border/50 rounded-md" dir="rtl">
+              <SelectTrigger className="h-6 px-1.5 py-0 text-[10px] font-bold bg-muted/50 border-border/50 rounded-md" dir="rtl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent dir="rtl">
@@ -160,14 +170,14 @@ export function ProductCard({
               </SelectContent>
             </Select>
           ) : (
-            <div className="bg-muted/50 border border-border/50 text-foreground px-2 py-0.5 rounded-md text-[10px] font-bold">
+            <div className="bg-muted/50 border border-border/50 text-foreground px-1.5 py-0.5 rounded-md text-[10px] font-bold">
               {product.unit_type}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="shrink-0">
+        {/* اليسار: السعر الإجمالي + عداد الكمية + زر الإضافة للسلة */}
+        <div className="shrink-0">
           <AddToCartButton 
             key={`list-${product.id}-${selectedUnitType}`}
             user={user} 
@@ -178,6 +188,7 @@ export function ProductCard({
             variant="icon"
             maxQuantity={Math.floor((product.stock_quantity ?? 0) / (hasMultipleUnits ? (product.units.find((u: any) => u.type === selectedUnitType)?.multiplier_to_base || 1) : 1))}
           />
+        </div>
       </div>
     </div>
   )

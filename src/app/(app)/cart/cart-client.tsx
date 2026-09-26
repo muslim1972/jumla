@@ -591,33 +591,34 @@ export function CartClient({
                           )}
                         </div>
 
-                        <div className="flex-grow flex justify-between items-start">
-                          {/* Right Side: Product Info */}
+                        <div className="flex-grow min-w-0 flex flex-col justify-between gap-2">
+                          {/* Right Side: Product Info (Full Width) */}
                           <div className="text-right">
-                            <h3 className="font-bold text-sm line-clamp-1">{item.products.name}</h3>
+                            <h3 className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug text-foreground">{item.products.name}</h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
                                 لكل {item.unit_type || item.products.unit_type}
                               </span>
-                              <p className="text-xs font-bold text-primary">
+                              <p className="text-xs font-bold text-primary tabular-nums">
                                 {getItemPrice(item).toLocaleString('en-US')} د.ع
                               </p>
                             </div>
                           </div>
 
-                          {/* Left Side: Quantity & Total & Actions */}
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                          {/* Left/Bottom Side: Quantity & Total & Actions */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/20">
+                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                               المجموع: {(getItemPrice(item) * item.quantity).toLocaleString('en-US')} د.ع
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemove(item.id)}
                                 disabled={isUpdating === item.id}
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
+                                title="حذف من السلة"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -627,16 +628,18 @@ export function CartClient({
                                   onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.quantity)}
                                   disabled={isUpdating === item.id}
                                   className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                  title="زيادة"
                                 >
                                   <Plus className="w-3 h-3" />
                                 </button>
-                                <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm">
+                                <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm tabular-nums">
                                   {item.quantity}
-                               </span>
+                                </span>
                                 <button
                                   onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.quantity)}
                                   disabled={isUpdating === item.id || item.quantity <= 1}
                                   className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                  title="تقليل"
                                 >
                                   <Minus className="w-3 h-3" />
                                 </button>

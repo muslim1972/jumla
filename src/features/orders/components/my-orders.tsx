@@ -437,7 +437,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
               {(order.items || []).map(item => (
                 <div key={item.id} className="flex justify-between items-center text-sm bg-white dark:bg-card border rounded-lg p-2 sm:p-2.5 gap-2">
                   <div className="flex flex-col gap-0.5 overflow-hidden flex-1">
-                    <span className="font-semibold truncate">{item.product_name}</span>
+                    <span className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug">{item.product_name}</span>
                     <span className="text-[10px] text-muted-foreground bg-muted/50 w-max px-1.5 rounded truncate max-w-full">{item.unit_type}</span>
                   </div>
                   <div className="text-left shrink-0">
