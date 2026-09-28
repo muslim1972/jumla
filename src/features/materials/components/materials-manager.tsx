@@ -74,6 +74,7 @@ function MasterProductForm({
   onSubmit,
   onSuccess,
   onCategoryCreated,
+  onFieldHistoryClick,
 }: {
   categories: { id: string, name: string }[]
   initial?: MasterProduct
@@ -82,6 +83,7 @@ function MasterProductForm({
   onSubmit: (formData: FormData) => Promise<{ success: boolean, error?: string } | undefined>
   onSuccess?: () => void
   onCategoryCreated?: (category: { id: string, name: string }) => void
+  onFieldHistoryClick?: (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => void
 }) {
   const [name, setName] = useState(initial?.name || "")
   const [description, setDescription] = useState(initial?.description || "")
@@ -258,17 +260,26 @@ function MasterProductForm({
   return (
     <form id={formId} action={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={`${formId}-name`}>اسم المادة</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor={`${formId}-name`}>اسم المادة</Label>
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "name", "اسم المادة")} />}
+        </div>
         <Input id={`${formId}-name`} name="name" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${formId}-description`}>وصف المادة</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor={`${formId}-description`}>وصف المادة</Label>
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "description", "وصف المادة")} />}
+        </div>
         <Input id={`${formId}-description`} name="description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="space-y-2 flex-1">
-          <Label htmlFor={`${formId}-category`}>القسم (اختياري)</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`${formId}-category`}>القسم (اختياري)</Label>
+            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "category_id", "القسم")} />}
+          </div>
           <div className="flex gap-2">
             <div className="flex-1">
               <Select name="category_id" value={categoryId} onValueChange={(val) => setCategoryId(val || "none")}>
@@ -329,7 +340,10 @@ function MasterProductForm({
         </div>
 
         <div className="space-y-2 flex-1">
-          <Label htmlFor={`${formId}-barcode`}>الباركود (اختياري)</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor={`${formId}-barcode`}>الباركود (اختياري)</Label>
+            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "barcode", "الباركود")} />}
+          </div>
           <Input
             id={`${formId}-barcode`}
             name="barcode"
@@ -348,7 +362,10 @@ function MasterProductForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`${formId}-base-price`}>السعر الأساسي للمادة (اختياري)</Label>
+        <div className="flex items-center justify-between sm:w-[200px]">
+          <Label htmlFor={`${formId}-base-price`}>السعر الأساسي (اختياري)</Label>
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "base_price", "السعر الأساسي")} />}
+        </div>
         <Input
           id={`${formId}-base-price`}
           name="base_price"
@@ -796,6 +813,7 @@ export function MaterialsManager({ initialProducts, categories, loadError }: {
                 setEditing(null)
                 router.refresh()
               }}
+              onFieldHistoryClick={openFieldHistory}
             />
           )}
         </DialogContent>
