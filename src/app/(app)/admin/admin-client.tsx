@@ -18,7 +18,6 @@ import {
   Megaphone,
   Clock,
   Phone,
-  History,
   MessageCircle,
   Ban,
   Check,
@@ -33,7 +32,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
 import { ContactSettingsModal } from "@/features/admin/components/contact-settings-modal"
 import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billing-admin"
 import { AdminActiveOrders } from "./admin-active-orders"
@@ -154,7 +152,6 @@ export function AdminClient({
   }, [searchParams])
 
   const [showContactSettings, setShowContactSettings] = useState(false)
-  const [showAuditLogs, setShowAuditLogs] = useState(false)
   
   // Data States initialized directly from server
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles)
@@ -458,15 +455,6 @@ export function AdminClient({
               >
                 <RefreshCw className={cn("w-3 h-3 sm:w-3.5 sm:h-3.5", isRefreshing && "animate-spin")} />
                 <span className="hidden sm:inline">تحديث</span>
-              </Button>
-              <Button 
-                onClick={() => setShowAuditLogs(true)}
-                variant="outline"
-                size="sm"
-                className="rounded-full shadow-sm gap-1 sm:gap-2 border-slate-500/30 text-slate-700 hover:text-slate-800 hover:bg-slate-500/10 text-xs sm:text-sm"
-              >
-                <History className="w-3 h-3 sm:w-4 sm:h-4" />
-                سجل الحركات
               </Button>
               <Button 
                 onClick={() => setShowContactSettings(true)}
@@ -1513,12 +1501,6 @@ export function AdminClient({
           <MerchantBillingAdmin />
         </div>
       )}
-
-      {/* حوار سجل الحركات */}
-      <AuditLogViewer 
-        open={showAuditLogs} 
-        onOpenChange={setShowAuditLogs} 
-      />
 
       {/* حوار إعدادات التواصل */}
       <ContactSettingsModal 

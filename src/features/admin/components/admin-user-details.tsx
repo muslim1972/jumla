@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getAdminUserDetails } from "@/features/admin/actions"
 import { Loader2, User, Phone, Mail, Clock, ShieldAlert, Star, ShoppingBag, DollarSign, Store, Truck, Calendar } from "lucide-react"
+import { FieldHistoryPopover, FieldHistoryButton } from "@/features/admin/components/field-history-popover"
 
 interface AdminUserDetailsProps {
   open: boolean
@@ -11,10 +12,32 @@ interface AdminUserDetailsProps {
   userId: string | null
 }
 
+/** حالة النافذة العائمة لسجل تعديلات الحقل */
+interface FieldHistoryState {
+  open: boolean
+  fieldName: string
+  fieldLabel: string
+}
+
+const INITIAL_FIELD_HISTORY: FieldHistoryState = {
+  open: false,
+  fieldName: "",
+  fieldLabel: "",
+}
+
 export function AdminUserDetails({ open, onOpenChange, userId }: AdminUserDetailsProps) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fieldHistory, setFieldHistory] = useState<FieldHistoryState>(INITIAL_FIELD_HISTORY)
+
+  const openFieldHistory = useCallback((fieldName: string, fieldLabel: string) => {
+    setFieldHistory({ open: true, fieldName, fieldLabel })
+  }, [])
+
+  const closeFieldHistory = useCallback((isOpen: boolean) => {
+    if (!isOpen) setFieldHistory(INITIAL_FIELD_HISTORY)
+  }, [])
 
   useEffect(() => {
     if (open && userId) {
@@ -72,10 +95,13 @@ export function AdminUserDetails({ open, onOpenChange, userId }: AdminUserDetail
                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full mr-2">
                     {data.profile?.role}
                   </span>
+                  <FieldHistoryButton onClick={() => openFieldHistory("full_name", "الاسم")} />
+                  <FieldHistoryButton onClick={() => openFieldHistory("role", "الصلاحية")} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="font-mono text-sm">{data.phone || 'لا يوجد هاتف'}</span>
+                  <FieldHistoryButton onClick={() => openFieldHistory("phone", "الهاتف")} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -96,6 +122,7 @@ export function AdminUserDetails({ open, onOpenChange, userId }: AdminUserDetail
                   <div className="flex items-center gap-2 text-red-600">
                     <ShieldAlert className="w-4 h-4 shrink-0" />
                     <span className="text-sm font-bold truncate">محظور حتى: {new Date(data.profile.banned_until).toLocaleDateString("ar-IQ")}</span>
+                    <FieldHistoryButton onClick={() => openFieldHistory("banned_until", "حالة الحظر")} />
                   </div>
                 )}
               </div>
@@ -108,9 +135,9 @@ export function AdminUserDetails({ open, onOpenChange, userId }: AdminUserDetail
                   <Store className="w-4 h-4" /> معلومات المتجر
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <p><strong>اسم المتجر:</strong> {data.profile?.store_name || 'غير محدد'}</p>
-                  <p><strong>العنوان:</strong> {data.profile?.address || 'غير محدد'}</p>
-                  <p><strong>أجرة التوصيل:</strong> {data.profile?.delivery_fee ? `${data.profile.delivery_fee.toLocaleString()} د.ع` : 'غير محدد'}</p>
+                  <p className="flex items-center gap-1"><strong>اسم المتجر:</strong> {data.profile?.store_name || 'غير محدد'} <FieldHistoryButton onClick={() => openFieldHistory("store_name", "اسم المتجر")} /></p>
+                  <p className="flex items-center gap-1"><strong>العنوان:</strong> {data.profile?.address || 'غير محدد'} <FieldHistoryButton onClick={() => openFieldHistory("address", "العنوان")} /></p>
+                  <p className="flex items-center gap-1"><strong>أجرة التوصيل:</strong> {data.profile?.delivery_fee ? `${data.profile.delivery_fee.toLocaleString()} د.ع` : 'غير محدد'} <FieldHistoryButton onClick={() => openFieldHistory("delivery_fee", "أجرة التوصيل")} /></p>
                 </div>
               </div>
             )}
@@ -208,6 +235,18 @@ export function AdminUserDetails({ open, onOpenChange, userId }: AdminUserDetail
 
           </div>
         ) : null}
+
+        {/* نافذة سجل تعديلات الحقل */}
+        {userId && (
+          <FieldHistoryPopover
+            tableName="profiles"
+            recordId={userId}
+            fieldName={fieldHistory.fieldName}
+            fieldLabel={fieldHistory.fieldLabel}
+            open={fieldHistory.open}
+            onOpenChange={closeFieldHistory}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
