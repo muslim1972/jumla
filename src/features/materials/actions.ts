@@ -145,6 +145,19 @@ export async function createMasterProduct(formData: FormData) {
     image_url = upload.url
   }
 
+  // فحص حماية ضد التكرار: لا يجوز وجود مادة بنفس الاسم والباركود معاً
+  let duplicateQuery = supabase.from('master_products').select('id').eq('name', name)
+  if (barcodeRaw) {
+    duplicateQuery = duplicateQuery.eq('barcode', barcodeRaw)
+  } else {
+    duplicateQuery = duplicateQuery.is('barcode', null)
+  }
+  
+  const { data: duplicates } = await duplicateQuery.limit(1)
+  if (duplicates && duplicates.length > 0) {
+    return { success: false, error: "هذه المادة مسجلة مسبقاً بنفس الاسم والباركود." }
+  }
+
   const { error } = await supabase.from('master_products').insert({
     name,
     description: description || null,
@@ -208,6 +221,19 @@ export async function editMasterProduct(formData: FormData) {
   const base_price = basePriceRaw ? parseFloat(basePriceRaw) : null
   if (base_price !== null && (isNaN(base_price) || base_price < 0)) {
     return { success: false, error: "السعر الأساسي غير صحيح" }
+  }
+
+  // فحص حماية ضد التكرار (استثناء المادة الحالية)
+  let duplicateQuery = supabase.from('master_products').select('id').eq('name', name).neq('id', id)
+  if (barcodeRaw) {
+    duplicateQuery = duplicateQuery.eq('barcode', barcodeRaw)
+  } else {
+    duplicateQuery = duplicateQuery.is('barcode', null)
+  }
+  
+  const { data: duplicates } = await duplicateQuery.limit(1)
+  if (duplicates && duplicates.length > 0) {
+    return { success: false, error: "هذه المادة مسجلة مسبقاً بنفس الاسم والباركود." }
   }
 
   const updates: any = {
