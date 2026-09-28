@@ -533,9 +533,11 @@ function MasterProductForm({
         </div>
       )}
 
-      <Button type="submit" className="w-full bg-brand-blue hover:bg-brand-blue/90" disabled={isSubmitting}>
-        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : submitLabel}
-      </Button>
+      <div className="sticky bottom-0 pt-4 pb-2 bg-background z-10 border-t mt-4 shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)]">
+        <Button type="submit" className="w-full bg-brand-blue hover:bg-brand-blue/90" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : submitLabel}
+        </Button>
+      </div>
     </form>
   )
 }

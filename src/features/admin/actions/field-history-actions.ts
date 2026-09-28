@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 /**
  * نتيجة تعديل واحد لحقل معين
@@ -57,8 +58,14 @@ export async function getFieldHistory(
     return { current: null, previous: null, totalChanges: 0, error: "صلاحيات غير كافية" }
   }
 
+  // إنشاء عميل بصلاحيات تجاوز RLS لجلب السجلات لأن جدول audit_logs قد يكون محميّاً
+  const adminSupabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // --- جلب سجلات الحركات ---
-  const { data: logs, error: logsError } = await supabase
+  const { data: logs, error: logsError } = await adminSupabase
     .from("audit_logs")
     .select("id, old_data, new_data, changed_by, created_at")
     .eq("table_name", tableName)
@@ -87,6 +94,10 @@ export async function getFieldHistory(
     // نعتبره تغييراً فعلياً إذا اختلفت القيمتان
     return JSON.stringify(oldVal) !== JSON.stringify(newVal)
   })
+
+  console.log(`[getFieldHistory] tableName=${tableName} recordId=${recordId} fieldName=${fieldName}`)
+  console.log(`[getFieldHistory] fetched logs count=${logs.length} relevant=${relevantChanges.length}`)
+
 
   const totalChanges = relevantChanges.length
 
