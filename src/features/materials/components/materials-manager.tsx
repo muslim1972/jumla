@@ -262,14 +262,14 @@ function MasterProductForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor={`${formId}-name`}>اسم المادة</Label>
-          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "name", "اسم المادة")} />}
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", initial.id, "name", "اسم المادة")} />}
         </div>
         <Input id={`${formId}-name`} name="name" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor={`${formId}-description`}>وصف المادة</Label>
-          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "description", "وصف المادة")} />}
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", initial.id, "description", "وصف المادة")} />}
         </div>
         <Input id={`${formId}-description`} name="description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
@@ -278,7 +278,7 @@ function MasterProductForm({
         <div className="space-y-2 flex-1">
           <div className="flex items-center justify-between">
             <Label htmlFor={`${formId}-category`}>القسم (اختياري)</Label>
-            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "category_id", "القسم")} />}
+            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", initial.id, "category_id", "القسم")} />}
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
@@ -342,7 +342,7 @@ function MasterProductForm({
         <div className="space-y-2 flex-1">
           <div className="flex items-center justify-between">
             <Label htmlFor={`${formId}-barcode`}>الباركود (اختياري)</Label>
-            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "barcode", "الباركود")} />}
+            {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", initial.id, "barcode", "الباركود")} />}
           </div>
           <Input
             id={`${formId}-barcode`}
@@ -364,7 +364,7 @@ function MasterProductForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between sm:w-[200px]">
           <Label htmlFor={`${formId}-base-price`}>السعر الأساسي (اختياري)</Label>
-          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", initial.id, "base_price", "السعر الأساسي")} />}
+          {initial?.id && onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", initial.id, "base_price", "السعر الأساسي")} />}
         </div>
         <Input
           id={`${formId}-base-price`}
@@ -561,7 +561,7 @@ function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-bold text-sm truncate">{product.name}</span>
-          {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "name", "اسم المادة")} />}
+          {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", product.id, "name", "اسم المادة")} />}
           {product.category_name && (
             <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">
               {product.category_name}
@@ -573,7 +573,7 @@ function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
           {product.barcode && (
             <div className="flex items-center gap-1">
               <span className="font-mono bg-muted px-1.5 py-0.5 rounded" dir="ltr">{product.barcode}</span>
-              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "barcode", "الباركود")} />}
+              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", product.id, "barcode", "الباركود")} />}
             </div>
           )}
           {product.base_price != null && (
@@ -581,7 +581,7 @@ function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
               <span className="font-bold text-brand-blue" dir="rtl">
                 أساسي: {product.base_price.toLocaleString('en-US')} د.ع
               </span>
-              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "base_price", "السعر الأساسي")} />}
+              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("master_products", product.id, "base_price", "السعر الأساسي")} />}
             </div>
           )}
         </div>

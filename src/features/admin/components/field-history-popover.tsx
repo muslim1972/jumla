@@ -198,13 +198,14 @@ export function FieldHistoryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center justify-center w-5 h-5 rounded-full 
-        text-muted-foreground/50 hover:text-brand-orange hover:bg-brand-orange/10 
-        transition-colors cursor-pointer shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center w-6 h-6 rounded-full 
+        text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 
+        hover:bg-amber-100 dark:hover:bg-amber-900/50 hover:scale-110 
+        transition-all cursor-pointer shrink-0 shadow-sm border border-amber-200/50 dark:border-amber-700/50 ${className}`}
       title="سجل التعديلات"
       aria-label="عرض سجل تعديلات الحقل"
     >
-      <Clock className="w-3 h-3" />
+      <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
     </button>
   )
 }
