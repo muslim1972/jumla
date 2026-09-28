@@ -5,12 +5,31 @@ import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronDown, ChevronUp, Store, Package, MapPin, Phone, Clock, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FieldHistoryPopover, FieldHistoryButton } from "@/features/admin/components/field-history-popover"
 
 export function AdminActiveOrders() {
   const [groupedOrders, setGroupedOrders] = useState<Record<string, { merchantName: string, orders: any[] }>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [expandedMerchant, setExpandedMerchant] = useState<string | null>(null)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
+
+  // State للـ Field History العائم
+  const [fieldHistory, setFieldHistory] = useState({
+    open: false,
+    tableName: "",
+    recordId: "",
+    fieldName: "",
+    fieldLabel: ""
+  })
+
+  const openFieldHistory = (e: React.MouseEvent, tableName: string, recordId: string, fieldName: string, fieldLabel: string) => {
+    e.stopPropagation() // لمنع فتح/إغلاق البطاقة عند النقر على الأيقونة
+    setFieldHistory({ open: true, tableName, recordId, fieldName, fieldLabel })
+  }
+
+  const closeFieldHistory = (open: boolean) => {
+    if (!open) setFieldHistory(prev => ({ ...prev, open: false }))
+  }
 
   useEffect(() => {
     async function fetchOrders() {
@@ -139,13 +158,19 @@ export function AdminActiveOrders() {
                                 <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">#{order.invoice_number}</p>
                               </div>
                               <div className="flex items-center gap-3 text-right">
-                                <div className="text-left">
-                                  <p className="font-bold text-xs text-brand-blue dark:text-foreground">{order.total_rounded.toLocaleString('en-US')} د.ع</p>
-                                  {order.status === 'pending' ? (
-                                    <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-1.5 py-0.5 rounded inline-block mt-1">قيد الانتظار</span>
-                                  ) : (
-                                    <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-500 font-bold px-1.5 py-0.5 rounded inline-block mt-1">تمت الموافقة (جاهز)</span>
-                                  )}
+                                <div className="text-left flex flex-col items-end">
+                                  <div className="flex items-center gap-1">
+                                    <p className="font-bold text-xs text-brand-blue dark:text-foreground">{order.total_rounded.toLocaleString('en-US')} د.ع</p>
+                                    <FieldHistoryButton onClick={(e) => openFieldHistory(e, "orders", order.id, "total_rounded", "المبلغ")} />
+                                  </div>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    {order.status === 'pending' ? (
+                                      <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-1.5 py-0.5 rounded inline-block">قيد الانتظار</span>
+                                    ) : (
+                                      <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-500 font-bold px-1.5 py-0.5 rounded inline-block">تمت الموافقة (جاهز)</span>
+                                    )}
+                                    <FieldHistoryButton onClick={(e) => openFieldHistory(e, "orders", order.id, "status", "حالة الطلب")} />
+                                  </div>
                                 </div>
                                 {isOrderExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                               </div>
@@ -203,6 +228,17 @@ export function AdminActiveOrders() {
           </div>
         )}
       </CardContent>
+      {/* نافذة سجل تعديلات الحقل العائم */}
+      {fieldHistory.recordId && (
+        <FieldHistoryPopover
+          tableName={fieldHistory.tableName}
+          recordId={fieldHistory.recordId}
+          fieldName={fieldHistory.fieldName}
+          fieldLabel={fieldHistory.fieldLabel}
+          open={fieldHistory.open}
+          onOpenChange={closeFieldHistory}
+        />
+      )}
     </Card>
   )
 }

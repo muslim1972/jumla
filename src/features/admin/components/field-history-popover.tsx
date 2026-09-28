@@ -191,7 +191,7 @@ export function FieldHistoryButton({
   onClick,
   className = "",
 }: {
-  onClick: () => void
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   className?: string
 }) {
   return (

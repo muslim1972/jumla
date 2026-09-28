@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { AuditLogViewer } from "@/features/admin/components/audit-log-viewer"
+import { FieldHistoryPopover, FieldHistoryButton } from "@/features/admin/components/field-history-popover"
 
 interface Profile {
   id: string
@@ -61,6 +62,23 @@ export default function SupportPage() {
   const [isSupport, setIsSupport] = useState(false)
   const [showAuditLogs, setShowAuditLogs] = useState(false)
   const [auditLogRecordId, setAuditLogRecordId] = useState("")
+
+  // State للـ Field History العائم
+  const [fieldHistory, setFieldHistory] = useState({
+    open: false,
+    tableName: "",
+    recordId: "",
+    fieldName: "",
+    fieldLabel: ""
+  })
+
+  const openFieldHistory = (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => {
+    setFieldHistory({ open: true, tableName, recordId, fieldName, fieldLabel })
+  }
+
+  const closeFieldHistory = (open: boolean) => {
+    if (!open) setFieldHistory(prev => ({ ...prev, open: false }))
+  }
 
   const openAuditLogFor = (id: string) => {
     setAuditLogRecordId(id)
@@ -310,20 +328,26 @@ export default function SupportPage() {
                         {new Date(order.created_at).toLocaleString("ar-IQ")}
                       </td>
                       <td className="p-3 text-center font-bold tabular-nums">
-                        {order.total_rounded.toLocaleString('en-US')}
+                        <div className="flex items-center justify-center gap-1">
+                          {order.total_rounded.toLocaleString('en-US')}
+                          <FieldHistoryButton onClick={() => openFieldHistory("orders", order.id, "total_rounded", "المبلغ")} />
+                        </div>
                       </td>
                       <td className="p-3 text-center">
-                        <select 
-                          value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                          className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-violet-500 outline-none"
-                        >
-                          <option value="pending">قيد الانتظار</option>
-                          <option value="delivered">مكتمل / تم التوصيل</option>
-                          <option value="cancelled">ملغي</option>
-                          <option value="editing">قيد التعديل</option>
-                          <option value="archived">مؤرشف</option>
-                        </select>
+                        <div className="flex items-center justify-center gap-1">
+                          <select 
+                            value={order.status}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                            className="bg-card border border-border/80 rounded-lg p-1 text-xs font-bold text-center text-foreground cursor-pointer focus:border-violet-500 outline-none"
+                          >
+                            <option value="pending">قيد الانتظار</option>
+                            <option value="delivered">مكتمل / تم التوصيل</option>
+                            <option value="cancelled">ملغي</option>
+                            <option value="editing">قيد التعديل</option>
+                            <option value="archived">مؤرشف</option>
+                          </select>
+                          <FieldHistoryButton onClick={() => openFieldHistory("orders", order.id, "status", "حالة الطلب")} />
+                        </div>
                       </td>
                       <td className="p-3 text-center flex justify-center gap-1">
                         <Button 
@@ -402,29 +426,38 @@ export default function SupportPage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <Input 
-                          value={profile.store_name || ''} 
-                          onChange={(e) => handleUpdateUserProfile(profile.id, 'store_name', e.target.value)}
-                          placeholder="اسم المتجر"
-                          className="h-8 text-xs border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Input 
+                            value={profile.store_name || ''} 
+                            onChange={(e) => handleUpdateUserProfile(profile.id, 'store_name', e.target.value)}
+                            placeholder="اسم المتجر"
+                            className="h-8 text-xs border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
+                          />
+                          <FieldHistoryButton onClick={() => openFieldHistory("profiles", profile.id, "store_name", "اسم المتجر")} />
+                        </div>
                       </td>
                       <td className="p-3">
-                        <Input 
-                          value={profile.phone || ''} 
-                          onChange={(e) => handleUpdateUserProfile(profile.id, 'phone', e.target.value)}
-                          placeholder="رقم الهاتف"
-                          dir="ltr"
-                          className="h-8 text-xs text-right border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Input 
+                            value={profile.phone || ''} 
+                            onChange={(e) => handleUpdateUserProfile(profile.id, 'phone', e.target.value)}
+                            placeholder="رقم الهاتف"
+                            dir="ltr"
+                            className="h-8 text-xs text-right border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
+                          />
+                          <FieldHistoryButton onClick={() => openFieldHistory("profiles", profile.id, "phone", "الهاتف")} />
+                        </div>
                       </td>
                       <td className="p-3">
-                        <Input 
-                          value={profile.address || ''} 
-                          onChange={(e) => handleUpdateUserProfile(profile.id, 'address', e.target.value)}
-                          placeholder="العنوان"
-                          className="h-8 text-xs border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Input 
+                            value={profile.address || ''} 
+                            onChange={(e) => handleUpdateUserProfile(profile.id, 'address', e.target.value)}
+                            placeholder="العنوان"
+                            className="h-8 text-xs border-transparent hover:border-border focus:border-violet-500 bg-transparent hover:bg-background transition-all"
+                          />
+                          <FieldHistoryButton onClick={() => openFieldHistory("profiles", profile.id, "address", "العنوان")} />
+                        </div>
                       </td>
                       <td className="p-3 text-center flex justify-center">
                         <Button 
@@ -447,7 +480,7 @@ export default function SupportPage() {
         </Card>
       )}
 
-      {/* حوار سجل الحركات */}
+      {/* حوار سجل الحركات الكلي */}
       <AuditLogViewer 
         open={showAuditLogs} 
         onOpenChange={(open) => {
@@ -456,6 +489,18 @@ export default function SupportPage() {
         }} 
         initialRecordId={auditLogRecordId}
       />
+
+      {/* نافذة سجل تعديلات الحقل العائم */}
+      {fieldHistory.recordId && (
+        <FieldHistoryPopover
+          tableName={fieldHistory.tableName}
+          recordId={fieldHistory.recordId}
+          fieldName={fieldHistory.fieldName}
+          fieldLabel={fieldHistory.fieldLabel}
+          open={fieldHistory.open}
+          onOpenChange={closeFieldHistory}
+        />
+      )}
     </div>
   )
 }

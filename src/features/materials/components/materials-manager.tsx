@@ -13,6 +13,7 @@ import { createMasterProduct, editMasterProduct, deleteMasterProduct, createCate
 import { validateBarcode } from "@/features/materials/lib/barcode"
 import { Plus, X, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Search, Pencil, Trash2, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { FieldHistoryPopover, FieldHistoryButton } from "@/features/admin/components/field-history-popover"
 
 type MasterUnit = { type: string, multiplier_to_base: number }
 
@@ -522,10 +523,11 @@ function MasterProductForm({
   )
 }
 
-function MasterProductRow({ product, onEdit, onDelete }: {
+function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
   product: MasterProduct
   onEdit: () => void
   onDelete: () => void
+  onFieldHistoryClick?: (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => void
 }) {
   return (
     <div className="flex items-center gap-3 bg-background border rounded-xl p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -542,6 +544,7 @@ function MasterProductRow({ product, onEdit, onDelete }: {
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-bold text-sm truncate">{product.name}</span>
+          {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "name", "اسم المادة")} />}
           {product.category_name && (
             <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">
               {product.category_name}
@@ -551,12 +554,18 @@ function MasterProductRow({ product, onEdit, onDelete }: {
 
         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
           {product.barcode && (
-            <span className="font-mono bg-muted px-1.5 py-0.5 rounded" dir="ltr">{product.barcode}</span>
+            <div className="flex items-center gap-1">
+              <span className="font-mono bg-muted px-1.5 py-0.5 rounded" dir="ltr">{product.barcode}</span>
+              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "barcode", "الباركود")} />}
+            </div>
           )}
           {product.base_price != null && (
-            <span className="font-bold text-brand-blue" dir="rtl">
-              أساسي: {product.base_price.toLocaleString('en-US')} د.ع
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-brand-blue" dir="rtl">
+                أساسي: {product.base_price.toLocaleString('en-US')} د.ع
+              </span>
+              {onFieldHistoryClick && <FieldHistoryButton onClick={() => onFieldHistoryClick("products", product.id, "base_price", "السعر الأساسي")} />}
+            </div>
           )}
         </div>
 
@@ -619,6 +628,23 @@ export function MaterialsManager({ initialProducts, categories, loadError }: {
   const [deleting, setDeleting] = useState<MasterProduct | null>(null)
   const [deleteError, setDeleteError] = useState("")
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+
+  // State للـ Field History العائم
+  const [fieldHistory, setFieldHistory] = useState({
+    open: false,
+    tableName: "",
+    recordId: "",
+    fieldName: "",
+    fieldLabel: ""
+  })
+
+  const openFieldHistory = (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => {
+    setFieldHistory({ open: true, tableName, recordId, fieldName, fieldLabel })
+  }
+
+  const closeFieldHistory = (open: boolean) => {
+    if (!open) setFieldHistory(prev => ({ ...prev, open: false }))
+  }
 
   // مزامنة القوائم بعد router.refresh() من السيرفر
   useEffect(() => {
@@ -741,6 +767,7 @@ export function MaterialsManager({ initialProducts, categories, loadError }: {
                 product={p}
                 onEdit={() => setEditing(p)}
                 onDelete={() => { setDeleteError(""); setDeleting(p) }}
+                onFieldHistoryClick={openFieldHistory}
               />
             ))}
           </div>
@@ -802,6 +829,18 @@ export function MaterialsManager({ initialProducts, categories, loadError }: {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* نافذة سجل تعديلات الحقل العائم */}
+      {fieldHistory.recordId && (
+        <FieldHistoryPopover
+          tableName={fieldHistory.tableName}
+          recordId={fieldHistory.recordId}
+          fieldName={fieldHistory.fieldName}
+          fieldLabel={fieldHistory.fieldLabel}
+          open={fieldHistory.open}
+          onOpenChange={closeFieldHistory}
+        />
+      )}
     </div>
   )
 }

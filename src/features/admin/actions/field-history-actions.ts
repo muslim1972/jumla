@@ -52,7 +52,8 @@ export async function getFieldHistory(
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") {
+  const allowedRoles = ["admin", "support", "call_center", "materials"]
+  if (!allowedRoles.includes(profile?.role || "")) {
     return { current: null, previous: null, totalChanges: 0, error: "صلاحيات غير كافية" }
   }
 
