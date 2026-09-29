@@ -528,8 +528,18 @@ export function AdminClient({
           >
             <DollarSign className="w-3.5 h-3.5" />
             التحاسب والفواتير
-          </button>
-        </div>
+            </button>
+            <button 
+              onClick={() => setActiveTab("productivity")}
+              className={cn(
+                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+                activeTab === "productivity" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              أداء الموظفين
+            </button>
+          </div>
       </div>
 
       {/* OVERVIEW TAB */}
@@ -1500,8 +1510,15 @@ export function AdminClient({
       {activeTab === "merchantBilling" && (
         <div className="animate-in fade-in duration-300">
           <MerchantBillingAdmin />
-        </div>
-      )}
+          </div>
+        )}
+
+        {/* EMPLOYEE PRODUCTIVITY TAB */}
+        {activeTab === "productivity" && (
+          <div className="animate-in fade-in duration-300">
+            <MaterialsProductivity />
+          </div>
+        )}
 
       {/* حوار إعدادات التواصل */}
       <ContactSettingsModal 
