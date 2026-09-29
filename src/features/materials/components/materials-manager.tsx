@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { createClient } from "@/utils/supabase/client"
 import { createMasterProduct, editMasterProduct, deleteMasterProduct, createCategory } from "@/features/materials/actions"
 import { validateBarcode } from "@/features/materials/lib/barcode"
 import { Plus, X, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Search, Pencil, Trash2, Package } from "lucide-react"
@@ -90,6 +91,33 @@ function MasterProductForm({
   const [categoryId, setCategoryId] = useState(initial?.category_id || "none")
   const [barcode, setBarcode] = useState(initial?.barcode || "")
   const [barcodeError, setBarcodeError] = useState("")
+  
+  // -- خاصية كشف التشابه الذكي (الحد من التكرار) --
+  const [similarProducts, setSimilarProducts] = useState<{name: string, description: string | null, barcode: string | null}[]>([])
+  
+  useEffect(() => {
+    if (!name.trim() || name.length < 3) {
+      setSimilarProducts([])
+      return
+    }
+    // استخدام setTimeout هنا حصراً لغرض (Debounce API Calls) وليس لمزامنة واجهة المستخدم
+    const timer = setTimeout(async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('master_products')
+        .select('name, description, barcode')
+        .ilike('name', `%${name.trim()}%`)
+        .limit(6)
+      
+      let filtered = data || []
+      if (initial) {
+        filtered = filtered.filter(p => !(p.name === initial.name && p.description === initial.description))
+      }
+      setSimilarProducts(filtered)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [name, initial])
+
   const [basePrice, setBasePrice] = useState(initial?.base_price != null ? String(initial.base_price) : "")
   const [image, setImage] = useState<File | null>(null)
 
@@ -273,6 +301,27 @@ function MasterProductForm({
         </div>
         <Input id={`${formId}-description`} name="description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
+      
+      {/* نافذة التنبيه الذكية للمواد المتشابهة */}
+      {similarProducts.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 text-amber-700 font-bold mb-2">
+            <AlertCircle className="w-4 h-4" />
+            تنبيه: توجد مواد متشابهة بالاسم
+          </div>
+          <p className="text-xs text-amber-600 mb-2">
+            يرجى التأكد من أنك لا تقوم بإدخال مادة مكررة. هذه المواد مسجلة مسبقاً:
+          </p>
+          <ul className="space-y-1">
+            {similarProducts.map((p, i) => (
+              <li key={i} className="text-xs bg-white/50 p-1.5 rounded flex flex-col sm:flex-row sm:items-center justify-between border border-amber-100">
+                <span className="font-semibold text-gray-800">{p.name} <span className="font-normal text-gray-600">{p.description ? `- ${p.description}` : ''}</span></span>
+                {p.barcode && <span className="text-gray-500 text-[10px] bg-gray-100 px-1.5 rounded">باركود: {p.barcode}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="space-y-2 flex-1">

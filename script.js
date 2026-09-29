@@ -1,39 +1,12 @@
-const fs = require('fs');
-const file = 'd:/jumla/src/app/(app)/admin/admin-client.tsx';
-let content = fs.readFileSync(file, 'utf8');
+require('dotenv').config({path: '.env.local'});
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Inject the button
-content = content.replace(
-  /التحاسب والفواتير\s*<\/button>\s*<\/div>/,
-  `التحاسب والفواتير
-            </button>
-            <button 
-              onClick={() => setActiveTab("productivity")}
-              className={cn(
-                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
-                activeTab === "productivity" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              أداء الموظفين
-            </button>
-          </div>`
-);
-
-// Inject the tab content
-content = content.replace(
-  /<MerchantBillingAdmin \/>\s*<\/div>\s*\)}/,
-  `<MerchantBillingAdmin />
-          </div>
-        )}
-
-        {/* EMPLOYEE PRODUCTIVITY TAB */}
-        {activeTab === "productivity" && (
-          <div className="animate-in fade-in duration-300">
-            <MaterialsProductivity />
-          </div>
-        )}`
-);
-
-fs.writeFileSync(file, content, 'utf8');
-console.log('Fixed tabs!');
+async function run() {
+  const { data, error } = await supabase.from('audit_logs').select('id, old_data, created_at').eq('table_name', 'master_products').eq('action', 'DELETE');
+  console.log('Deleted master_products in audit_logs:', data?.length);
+  if (data && data.length > 0) {
+    console.log('Sample:', data[0].old_data.name, data[0].old_data.description);
+  }
+}
+run();
