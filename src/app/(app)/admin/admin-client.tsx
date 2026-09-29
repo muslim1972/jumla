@@ -37,6 +37,7 @@ import { MerchantBillingAdmin } from "@/features/admin/components/merchant-billi
 import { AdminActiveOrders } from "./admin-active-orders"
 import { AdminUserDetails } from "@/features/admin/components/admin-user-details"
 import { updateUserRoleWithSync, getAdminUserDetails, approveUser, rejectUser } from "@/features/admin/actions"
+import { MaterialsProductivity } from "@/features/admin/components/materials-productivity"
 
 export interface TopBanner {
   id: string
@@ -137,7 +138,7 @@ export function AdminClient({
   const searchParams = useSearchParams()
   const [isRefreshing, startTransition] = useTransition()
   
-  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling">(
+  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling" | "productivity">(
     searchParams.get("tab") === "users" ? "users" : "overview"
   )
   const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">(

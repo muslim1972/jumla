@@ -1,26 +1,67 @@
-require('dotenv').config({path: '.env.local'});
-const { createClient } = require('@supabase/supabase-js');
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const fs = require('fs');
+const file = 'd:/jumla/src/app/(app)/admin/admin-client.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-async function run() {
-  const { data: allMasters, error } = await supabase.from('master_products').select('id, name, barcode, created_at');
-  if (error) { console.error(error); return; }
+const target = `            <button 
+              onClick={() => setActiveTab("merchantBilling")}
+              className={cn(
+                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+                activeTab === "merchantBilling" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              التحاسب والفواتير
+            </button>
+          </div>
+        </div>`;
 
-  const groups = {};
-  for (const m of allMasters) {
-    const key = m.name + '|' + (m.barcode || '');
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(m);
-  }
+const replacement = `            <button 
+              onClick={() => setActiveTab("merchantBilling")}
+              className={cn(
+                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+                activeTab === "merchantBilling" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              التحاسب والفواتير
+            </button>
+            <button 
+              onClick={() => setActiveTab("productivity")}
+              className={cn(
+                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+                activeTab === "productivity" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              أداء الموظفين
+            </button>
+          </div>
+        </div>`;
 
-  const duplicates = Object.values(groups).filter(g => g.length > 1);
-  console.log('Duplicate groups found:', duplicates.length);
-  for (const g of duplicates) {
-    console.log('Group:', g[0].name, '- Barcode:', g[0].barcode || 'NULL', '=> Count:', g.length);
-    g.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-    // Keep the first one, delete the rest
-    // console.log('Keep:', g[0].id);
-    // console.log('Delete:', g.slice(1).map(x => x.id).join(', '));
-  }
-}
-run();
+content = content.replace(target, replacement);
+
+const targetTabContent = `        {/* MERCHANT BILLING TAB */}
+        {activeTab === "merchantBilling" && (
+          <div className="animate-in fade-in duration-300">
+            <MerchantBillingAdmin />
+          </div>
+        )}`;
+
+const replacementTabContent = `        {/* MERCHANT BILLING TAB */}
+        {activeTab === "merchantBilling" && (
+          <div className="animate-in fade-in duration-300">
+            <MerchantBillingAdmin />
+          </div>
+        )}
+
+        {/* EMPLOYEE PRODUCTIVITY TAB */}
+        {activeTab === "productivity" && (
+          <div className="animate-in fade-in duration-300">
+            <MaterialsProductivity />
+          </div>
+        )}`;
+
+content = content.replace(targetTabContent, replacementTabContent);
+
+fs.writeFileSync(file, content, 'utf8');
+console.log('Tabs updated!');
