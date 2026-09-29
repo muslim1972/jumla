@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { linkMasterProduct } from "@/app/(merchant)/dashboard/actions"
-import { Search, X, Loader2, AlertCircle, ChevronDown, ChevronUp, Package, Link2 } from "lucide-react"
+import { Search, X, Loader2, AlertCircle, ChevronDown, ChevronUp, Package, Link2, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 import { EditProductModal } from "@/features/merchant/components/edit-product-modal"
@@ -43,6 +43,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProduct
   const [stockUnit, setStockUnit] = useState("")
   const [minStockAlert, setMinStockAlert] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCreateMasterModal, setShowCreateMasterModal] = useState(false)
   const [error, setError] = useState("")
 
   // البحث الفوري: بالاسم أو رمز الباركود
@@ -165,7 +166,11 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProduct
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 border border-dashed rounded-xl">
-              <p className="text-muted-foreground text-sm">لا توجد مواد مطابقة لبحثك.</p>
+              <p className="text-muted-foreground text-sm mb-4">لا توجد مواد مطابقة لبحثك.</p>
+              <Button type="button" variant="outline" className="w-full text-brand-blue border-brand-blue/30 hover:bg-brand-blue/10" onClick={() => setShowCreateMasterModal(true)}>
+                <Plus className="w-4 h-4 ml-1" />
+                المادة غير موجودة؟ أضف مادة جديدة للكتالوج المركزي
+              </Button>
             </div>
           ) : (
             <div className="space-y-2 max-h-[420px] overflow-y-auto pl-1">

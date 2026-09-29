@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { validateBarcode } from "@/features/materials/lib/barcode"
 import { calculateUnitMultipliers } from "@/features/materials/lib/units"
 
-async function assertMaterialsRole() {
+async function assertMaterialsRole(allowMerchant: boolean = false) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -19,7 +19,8 @@ async function assertMaterialsRole() {
     .single()
 
   const role = profile?.role || ""
-  if (!['materials', 'admin'].includes(role)) {
+  const allowed = allowMerchant ? ['materials', 'admin', 'merchant'] : ['materials', 'admin']
+  if (!allowed.includes(role)) {
     return { supabase, user: null, error: "غير مصرح لك بإدارة المواد" as const }
   }
 
@@ -65,7 +66,7 @@ function translateMasterError(error: any): string {
  * يرجع { success, error?, category? } حيث category هو القسم المُنشأ { id, name }.
  */
 export async function createCategory(name: string) {
-  const { supabase, error: roleError } = await assertMaterialsRole()
+  const { supabase, error: roleError } = await assertMaterialsRole(true)
   if (roleError) return { success: false, error: roleError }
 
   const trimmed = (name || "").trim()
@@ -96,7 +97,7 @@ export async function createCategory(name: string) {
 }
 
 export async function createMasterProduct(formData: FormData) {
-  const { supabase, user, error: roleError } = await assertMaterialsRole()
+  const { supabase, user, error: roleError } = await assertMaterialsRole(true)
   if (roleError || !user) return { success: false, error: roleError || "Unauthorized" }
 
   const name = (formData.get("name") as string || "").trim()

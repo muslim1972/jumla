@@ -67,7 +67,7 @@ function buildConversionsFromInitial(initial?: MasterProduct): Conversion[] {
 }
 
 // نموذج موحد يُستخدم للإضافة وللتعديل (Dialog)
-function MasterProductForm({
+export function MasterProductForm({
   categories,
   initial,
   formId,
