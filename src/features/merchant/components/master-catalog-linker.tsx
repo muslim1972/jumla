@@ -211,7 +211,7 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProduct
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm truncate">{p.name}</span>
+                          <span className="font-bold text-sm whitespace-normal break-words leading-tight flex-1">{p.name}</span>
                           {isLinked && (
                             <div className="flex items-center gap-1.5 ml-auto">
                               <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
