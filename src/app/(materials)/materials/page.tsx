@@ -8,8 +8,7 @@ export default async function MaterialsPage() {
     supabase
       .from('master_products')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500),
+      .order('created_at', { ascending: false }),
     supabase.from('categories').select('id, name'),
   ])
 

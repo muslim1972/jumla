@@ -38,8 +38,7 @@ export default async function DashboardPage() {
     supabase
       .from('master_products')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500),
+      .order('created_at', { ascending: false }),
   ])
 
   const { data: profile } = profileResponse
