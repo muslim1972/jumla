@@ -122,11 +122,34 @@ export async function getMerchantPendingOrders(merchantId: string) {
       )
     `)
     .eq("merchant_id", merchantId)
-    .eq("status", "approved")
+    .in("status", ["approved", "preparing"])
     .order("created_at", { ascending: false })
 
   if (error) {
     return { error: error.message }
+  }
+
+  // طلبات «قيد التجهيز» لا تظهر للمندوب إلا إذا اكتمل جمع قائمتها (جاهزة للاستلام من المخزن)
+  type MerchantPendingOrder = {
+    id: string; status: string; ready_for_pickup?: boolean; picking_picker_name?: string | null
+    buyer_is_trusted?: boolean; profile_address?: string | null
+    [key: string]: unknown
+  }
+  let resultOrders: MerchantPendingOrder[] = ((orders as unknown) as MerchantPendingOrder[]) || []
+  const preparingIds = resultOrders.filter(o => o.status === "preparing").map(o => o.id)
+  if (preparingIds.length > 0) {
+    const { data: pickedLists } = await supabase
+      .from("picking_lists")
+      .select("order_id, picker_name")
+      .in("order_id", preparingIds)
+      .eq("status", "picked")
+
+    const readyMap = new Map((pickedLists || []).map(l => [l.order_id, l]))
+    resultOrders = resultOrders
+      .filter(o => o.status !== "preparing" || readyMap.has(o.id))
+      .map(o => o.status === "preparing"
+        ? { ...o, ready_for_pickup: true, picking_picker_name: readyMap.get(o.id)?.picker_name ?? null }
+        : o)
   }
 
   // تحديد مشتريي الثقة لدى التاجر (يُسمح لهم بالدفع الجزئي عند التسليم)
@@ -167,7 +190,7 @@ export async function getMerchantPendingOrders(merchantId: string) {
     }
   }
 
-  return { orders }
+  return { orders: resultOrders }
 }
 
 // 3. تأكيد الكود السري وتسليم الطلب

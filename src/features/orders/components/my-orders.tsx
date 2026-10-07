@@ -97,8 +97,9 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
     </tr>
   `).join('');
 
-  const statusLabel = 
+  const statusLabel =
     order.status === 'pending' ? 'بإنتظار تأكيد التاجر'
+    : order.status === 'preparing' ? 'قيد التجهيز في مخازن التاجر'
     : order.status === 'approved' ? 'مجهز للمندوب'
     : order.status === 'delivered' ? 'تم التسليم'
     : order.status === 'completed' ? 'مكتمل'
@@ -270,6 +271,11 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
       } : {
         label: "بإنتظار تأكيد التاجر",
         color: "text-amber-600 bg-amber-500/10 border-amber-500/30",
+        icon: <Clock className="w-3.5 h-3.5" />,
+      },
+      preparing: {
+        label: "قيد التجهيز في المخازن",
+        color: "text-brand-orange bg-brand-orange/10 border-brand-orange/30",
         icon: <Clock className="w-3.5 h-3.5" />,
       },
       approved: {
@@ -777,7 +783,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
   }, [open])
 
   const pendingOrders = useMemo(() =>
-    orders.filter(o => ['pending', 'approved', 'editing'].includes(o.status)),
+    orders.filter(o => ['pending', 'approved', 'editing', 'preparing'].includes(o.status)),
     [orders]
   )
 

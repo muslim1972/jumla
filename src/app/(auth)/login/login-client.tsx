@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { signIn, checkUserRole } from "./actions"
+import { staffSignIn, checkStaffUsername } from "@/features/staff/staff-signin"
 import { isPhoneIdentity } from "@/utils/phone"
 import { useState, useRef, useTransition } from "react"
 import { Loader2, UserCircle, Eye, EyeOff } from "lucide-react"
@@ -24,8 +25,9 @@ const roleLabels: Record<string, { label: string, color: string }> = {
 
 export function LoginClient({ message }: { message?: string }) {
   const [identity, setIdentity] = useState("")
-  const [mode, setMode] = useState<"phone" | "email">("phone")
+  const [mode, setMode] = useState<"phone" | "email" | "staff">("phone")
   const [roleInfo, setRoleInfo] = useState<{ role: string, name: string | null } | null>(null)
+  const [staffInfo, setStaffInfo] = useState<{ name: string | null, storeName: string | null } | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState(message || "")
@@ -34,6 +36,17 @@ export function LoginClient({ message }: { message?: string }) {
 
   const checkIdentityRole = async (value: string) => {
     const trimmed = value.trim()
+    // في بوابة الموظفين: اسم مستخدم لاتيني — نتحقق من وجوده لعرض ترحيب حي فقط
+    if (mode === "staff") {
+      if (!trimmed) { setStaffInfo(null); return }
+      if (trimmed === lastCheckedIdentityRef.current) return
+      lastCheckedIdentityRef.current = trimmed
+      setIsChecking(true)
+      try {
+        setStaffInfo(await checkStaffUsername(trimmed))
+      } catch (e) { console.error(e) } finally { setIsChecking(false) }
+      return
+    }
     // رقم هاتف صالح (11 رقماً تبدأ بـ07) أو بريد إلكتروني صالح (للحسابات القديمة)
     const isValid = isPhoneIdentity(trimmed) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
     if (!trimmed || !isValid) {
@@ -56,18 +69,26 @@ export function LoginClient({ message }: { message?: string }) {
   }
 
   const handleIdentityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // في وضع الهاتف: أرقام فقط بحد أقصى 11 رقماً
-    const value = mode === "phone" ? e.target.value.replace(/\D/g, "").slice(0, 11) : e.target.value
+    // في وضع الهاتف: أرقام فقط بحد أقصى 11 رقماً — وفي بوابة الموظفين: أسماء لاتينية
+    const value = mode === "phone"
+      ? e.target.value.replace(/\D/g, "").slice(0, 11)
+      : mode === "staff"
+        ? e.target.value.replace(/[^a-zA-Z0-9._-]/g, "").slice(0, 20)
+        : e.target.value
     setIdentity(value)
 
     if (!value) {
       setRoleInfo(null)
+      setStaffInfo(null)
       lastCheckedIdentityRef.current = ""
       return
     }
 
     // فحص دوري مباشر عند اكتمال الصيغة (رقم هاتف كامل أو بريد صالح)
-    if (isPhoneIdentity(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+    if (mode === "staff") {
+      if (/^[a-zA-Z0-9._-]{3,20}$/.test(value)) checkIdentityRole(value)
+      else setStaffInfo(null)
+    } else if (isPhoneIdentity(value) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
       checkIdentityRole(value)
     } else if (mode === "phone") {
       setRoleInfo(null)
@@ -79,10 +100,11 @@ export function LoginClient({ message }: { message?: string }) {
     checkIdentityRole(identity)
   }
 
-  const switchMode = (newMode: "phone" | "email") => {
+  const switchMode = (newMode: "phone" | "email" | "staff") => {
     setMode(newMode)
     setIdentity("")
     setRoleInfo(null)
+    setStaffInfo(null)
     lastCheckedIdentityRef.current = ""
     setErrorMsg("")
   }
@@ -90,9 +112,14 @@ export function LoginClient({ message }: { message?: string }) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    
+
     startTransition(async () => {
       setErrorMsg("")
+      if (mode === "staff") {
+        const result = await staffSignIn(identity.trim().toLowerCase(), formData.get("password") as string)
+        if (result?.error) setErrorMsg(result.error)
+        return
+      }
       const result = await signIn(formData)
       if (result?.error) {
         setErrorMsg(result.error)
@@ -104,9 +131,11 @@ export function LoginClient({ message }: { message?: string }) {
     <div className="w-full max-w-md p-4">
       <Card className="shadow-lg border-muted">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">تسجيل الدخول</CardTitle>
+          <CardTitle className="text-2xl font-bold">{mode === "staff" ? "دخول الموظفين" : "تسجيل الدخول"}</CardTitle>
           <CardDescription>
-            {mode === "phone"
+            {mode === "staff"
+              ? "باسم المستخدم وكلمة المرور الداخلية — لصفحة متجر صاحبك فقط"
+              : mode === "phone"
               ? "أدخل رقم هاتفك وكلمة المرور للدخول إلى حسابك"
               : "الدخول بالبريد الإلكتروني — للحسابات القديمة المسجلة ببريد"}
           </CardDescription>
@@ -120,7 +149,25 @@ export function LoginClient({ message }: { message?: string }) {
             )}
             
             <div className="space-y-2 relative">
-              {mode === "phone" ? (
+              {mode === "staff" ? (
+                <>
+                  <Label htmlFor="identity">اسم المستخدم الداخلي</Label>
+                  <Input
+                    id="identity"
+                    name="identity"
+                    type="text"
+                    autoComplete="off"
+                    placeholder="username"
+                    required
+                    dir="ltr"
+                    maxLength={20}
+                    className="tracking-wider text-left"
+                    value={identity}
+                    onChange={handleIdentityChange}
+                    onBlur={handleIdentityBlur}
+                  />
+                </>
+              ) : mode === "phone" ? (
                 <>
                   <Label htmlFor="identity">رقم الهاتف</Label>
                   <div className="flex items-stretch gap-2" dir="ltr">
@@ -170,11 +217,15 @@ export function LoginClient({ message }: { message?: string }) {
               {/* مؤشر الدور أسفل حقل الهوية */}
               <div className="h-6 flex items-center justify-between">
                 <div className="text-sm font-bold text-brand-blue flex-1 text-right">
-                   {roleInfo?.name ? <span className="animate-in fade-in slide-in-from-right-2">أهلاً بك، {roleInfo.name} 👋</span> : null}
+                  {mode === "staff" && staffInfo?.name ? (
+                    <span className="animate-in fade-in slide-in-from-right-2">
+                      أهلاً {staffInfo.name} — موظف عند {staffInfo.storeName || "متجر"} 👋
+                    </span>
+                  ) : roleInfo?.name ? <span className="animate-in fade-in slide-in-from-right-2">أهلاً بك، {roleInfo.name} 👋</span> : null}
                 </div>
                 {isChecking ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                ) : roleInfo?.role && roleLabels[roleInfo.role] ? (
+                ) : mode !== "staff" && roleInfo?.role && roleLabels[roleInfo.role] ? (
                   <div className={`flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full ${roleLabels[roleInfo.role].color}`}>
                     <UserCircle className="w-3.5 h-3.5" />
                     {roleLabels[roleInfo.role].label}
@@ -183,13 +234,24 @@ export function LoginClient({ message }: { message?: string }) {
               </div>
               <button
                 type="button"
-                onClick={() => switchMode(mode === "phone" ? "email" : "phone")}
+                onClick={() => switchMode(mode === "staff" ? "phone" : mode === "phone" ? "email" : "phone")}
                 className="text-xs text-muted-foreground hover:text-brand-orange underline underline-offset-2"
               >
-                {mode === "phone"
+                {mode === "staff"
+                  ? "العودة لتسجيل دخول الحسابات"
+                  : mode === "phone"
                   ? "تسجيل الدخول بالبريد الإلكتروني (حسابات قديمة)"
                   : "تسجيل الدخول برقم الهاتف"}
               </button>
+              {mode !== "staff" && (
+                <button
+                  type="button"
+                  onClick={() => switchMode("staff")}
+                  className="block text-xs text-muted-foreground/70 hover:text-brand-blue underline underline-offset-2"
+                >
+                  👤 دخول الموظفين (بوابة داخلية)
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">

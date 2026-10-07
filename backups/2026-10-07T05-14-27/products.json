@@ -1,0 +1,571 @@
+[
+ {
+  "id": "0fed24f7-67cd-4d02-a60b-e7a4da4c1be6",
+  "name": "سكائر  ماستر",
+  "price": 144000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/6e1f681f-964a-4097-85ef-2558ee02e25f/0.4450448531137313.jpeg",
+  "unit_type": "كارتون",
+  "description": "اجنبي",
+  "merchant_id": "6e1f681f-964a-4097-85ef-2558ee02e25f",
+  "created_at": "2026-06-15T08:38:37.560069+00:00",
+  "units": [
+   {
+    "type": "كارتون",
+    "price": 144000
+   },
+   {
+    "type": "تكة",
+    "price": 6000
+   },
+   {
+    "type": "باكيت",
+    "price": 600
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 0,
+  "stock_unit": "كارتون",
+  "unit_conversions": [],
+  "min_stock_alert": 0,
+  "master_product_id": null
+ },
+ {
+  "id": "b6265715-a6a3-491b-bb9b-7aa18ba2573f",
+  "name": "فاصوليا معلبات",
+  "price": 5500,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.40029192324454.jpg",
+  "unit_type": "نصف درزن",
+  "description": "معلبات",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-16T20:15:12.154065+00:00",
+  "units": [
+   {
+    "type": "نصف درزن",
+    "price": 5500,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "درزن",
+    "price": 11000,
+    "multiplier_to_base": 12
+   }
+  ],
+  "category_id": "57d67a92-af66-4dcf-a6e0-097b42bb07e2",
+  "stock_quantity": 600,
+  "stock_unit": "درزن",
+  "unit_conversions": [
+   {
+    "to": "علبة",
+    "from": "درزن",
+    "multiplier": 12
+   }
+  ],
+  "min_stock_alert": 5,
+  "master_product_id": null
+ },
+ {
+  "id": "96de6b52-6356-4f13-b6b5-882a38eaee48",
+  "name": "شاي جوكر دبه 900غ",
+  "price": 7000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.9599060784403868.jpg",
+  "unit_type": "علبة",
+  "description": "غذائيه",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-16T20:12:01.544206+00:00",
+  "units": [
+   {
+    "type": "علبة",
+    "price": 7000
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 0,
+  "stock_unit": "كارتون",
+  "unit_conversions": [],
+  "min_stock_alert": 0,
+  "master_product_id": null
+ },
+ {
+  "id": "728e8e14-44eb-4644-99f2-c4571199ccea",
+  "name": "عصير رنا",
+  "price": 4800,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.4102746526203477.jpeg",
+  "unit_type": "كارتون",
+  "description": "عصير عراقي",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-07-15T17:00:48.362505+00:00",
+  "units": [
+   {
+    "type": "كارتون",
+    "price": 4800,
+    "multiplier_to_base": 24
+   }
+  ],
+  "category_id": "61a92f48-7944-4f67-a97a-5b4b22c2c54b",
+  "stock_quantity": 4656,
+  "stock_unit": "كارتون",
+  "unit_conversions": [
+   {
+    "to": "مفرد",
+    "from": "كارتون",
+    "multiplier": 24
+   }
+  ],
+  "min_stock_alert": 5,
+  "master_product_id": null
+ },
+ {
+  "id": "026fe1f7-a759-4763-ad7a-8d0e63975248",
+  "name": "جبس لورنز الاصلي  50",
+  "price": 10500,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.09733234332374496.jpg",
+  "unit_type": "كارتون",
+  "description": "اجباس عراقية",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-16T20:25:05.894377+00:00",
+  "units": [
+   {
+    "type": "كارتون",
+    "price": 10500,
+    "multiplier_to_base": 50
+   }
+  ],
+  "category_id": "a5b46c2b-a2d9-4f3c-93d7-79d3d08584a1",
+  "stock_quantity": 3700,
+  "stock_unit": "كارتون",
+  "unit_conversions": [
+   {
+    "to": "مفرد",
+    "from": "كارتون",
+    "multiplier": 50
+   }
+  ],
+  "min_stock_alert": 10,
+  "master_product_id": null
+ },
+ {
+  "id": "ccf35a23-a584-49c8-a68d-f4dbcf4e23ea",
+  "name": "مربى زجاجي 12",
+  "price": 7500,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.9967260627694002.jpg",
+  "unit_type": "نصف درزن",
+  "description": "معلبات / مربى",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-16T20:19:56.739137+00:00",
+  "units": [
+   {
+    "type": "نصف درزن",
+    "price": 7500,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "درزن",
+    "price": 15000,
+    "multiplier_to_base": 12
+   }
+  ],
+  "category_id": "57d67a92-af66-4dcf-a6e0-097b42bb07e2",
+  "stock_quantity": 583,
+  "stock_unit": "درزن",
+  "unit_conversions": [
+   {
+    "to": "علبة",
+    "from": "درزن",
+    "multiplier": 12
+   }
+  ],
+  "min_stock_alert": 5,
+  "master_product_id": null
+ },
+ {
+  "id": "3304147d-7c52-4357-92c5-92e798e1e939",
+  "name": "روبه",
+  "price": 18000,
+  "image_url": null,
+  "unit_type": "درزن",
+  "description": "البان",
+  "merchant_id": "9a748f7a-c969-4dc0-a5a2-734dded42192",
+  "created_at": "2026-07-22T19:10:09.705155+00:00",
+  "units": [
+   {
+    "type": "درزن",
+    "price": 18000,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "نصف درزن",
+    "price": 9000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": "be18f06a-ebcb-4dfd-93ee-5423a71cea91",
+  "stock_quantity": 1100000888,
+  "stock_unit": "درزن",
+  "unit_conversions": [],
+  "min_stock_alert": 2,
+  "master_product_id": null
+ },
+ {
+  "id": "fe423ecd-c12a-4b12-9f79-de716a1519ef",
+  "name": "جبن مثلثات دلال",
+  "price": 450,
+  "image_url": null,
+  "unit_type": "مفرد",
+  "description": "البان",
+  "merchant_id": "9a748f7a-c969-4dc0-a5a2-734dded42192",
+  "created_at": "2026-07-22T19:20:02.272175+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 450,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "كارتون",
+    "price": 300,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": "be18f06a-ebcb-4dfd-93ee-5423a71cea91",
+  "stock_quantity": 78,
+  "stock_unit": "باكيت",
+  "unit_conversions": [],
+  "min_stock_alert": 10,
+  "master_product_id": null
+ },
+ {
+  "id": "81b07dce-4fa1-4a37-8ff0-bf4f386c2b79",
+  "name": "انكور صغير",
+  "price": 200000,
+  "image_url": null,
+  "unit_type": "كارتون",
+  "description": "البان",
+  "merchant_id": "9a748f7a-c969-4dc0-a5a2-734dded42192",
+  "created_at": "2026-08-05T20:43:22.255735+00:00",
+  "units": [
+   {
+    "type": "كارتون",
+    "price": 200000,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "مفرد",
+    "price": 1750,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": "be18f06a-ebcb-4dfd-93ee-5423a71cea91",
+  "stock_quantity": 1977,
+  "stock_unit": "كارتون",
+  "unit_conversions": [],
+  "min_stock_alert": 50,
+  "master_product_id": null
+ },
+ {
+  "id": "d047e1a8-1389-4971-820a-dfdaa8d2bce6",
+  "name": "كرسي",
+  "price": 15000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "602a323c-72b3-4d31-a23d-4bb156a18122",
+  "created_at": "2026-09-05T12:25:59.235161+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 15000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 1500,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 50,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ },
+ {
+  "id": "7dafe098-1ad1-47aa-ab93-b01d6aa64606",
+  "name": "حمص ليوبارد 400غ",
+  "price": 5500,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.04345877137844911.jpg",
+  "unit_type": "نصف درزن",
+  "description": "معلبات",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-16T20:16:36.076643+00:00",
+  "units": [
+   {
+    "type": "نصف درزن",
+    "price": 5500,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "درزن",
+    "price": 11000,
+    "multiplier_to_base": 12
+   }
+  ],
+  "category_id": "57d67a92-af66-4dcf-a6e0-097b42bb07e2",
+  "stock_quantity": 580,
+  "stock_unit": "درزن",
+  "unit_conversions": [
+   {
+    "to": "علبة",
+    "from": "درزن",
+    "multiplier": 12
+   }
+  ],
+  "min_stock_alert": 5,
+  "master_product_id": null
+ },
+ {
+  "id": "1b521f3a-cc25-44a4-9095-e92974918f01",
+  "name": "كرسي",
+  "price": 6000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "65fde2ad-9fd8-4a97-9b29-7bb67cf03540",
+  "created_at": "2026-09-03T18:29:57.506075+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 6000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 200,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 30,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ },
+ {
+  "id": "175750d9-5c79-4246-8be3-27c81c8ee1ed",
+  "name": "كرسي",
+  "price": 7000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "68712dc6-502a-441d-85eb-1e9de04cebdf",
+  "created_at": "2026-09-05T12:37:50.962216+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 7000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 0,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 0,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ },
+ {
+  "id": "379fbc76-6476-4f79-8027-9fcdf0cf377a",
+  "name": "تمن جوكر 5ك",
+  "price": 900000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/3258a2e1-6997-4562-ac46-cb1683bbe93a/master-0.595024292359261.jpg",
+  "unit_type": "كيس",
+  "description": "غذائيه",
+  "merchant_id": "f9a9d346-4669-435a-8466-d6afeb002e4f",
+  "created_at": "2026-09-07T17:23:23.944818+00:00",
+  "units": [
+   {
+    "type": "كيس",
+    "price": 900000,
+    "multiplier_to_base": 10
+   }
+  ],
+  "category_id": "e1ea8c27-efde-4cb2-a299-f9b5b33658a6",
+  "stock_quantity": 48200,
+  "stock_unit": "كارتون",
+  "unit_conversions": [
+   {
+    "to": "كيس",
+    "from": "كارتون",
+    "multiplier": 10
+   },
+   {
+    "to": "كارتون",
+    "from": "كيس",
+    "multiplier": 10
+   }
+  ],
+  "min_stock_alert": 20,
+  "master_product_id": "17be10fe-95d1-4fcf-9d23-596c15cc7f67"
+ },
+ {
+  "id": "5cfcb247-1f4f-4409-8f4f-322d083e61c6",
+  "name": "كرسي",
+  "price": 20000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "b95ce67f-ec9d-434f-b17e-b54ce3aecc71",
+  "created_at": "2026-09-05T12:39:35.599123+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 20000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 100,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 50,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ },
+ {
+  "id": "d6724c52-9a88-41b0-b371-926eeec7a6aa",
+  "name": "سكائر اوسكار",
+  "price": 600,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/9d60ef15-f0f7-42d3-9def-e168b2a9e373/0.9891316090526282.jpeg",
+  "unit_type": "باكيت",
+  "description": "اجنبي",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-06-24T22:15:11.434616+00:00",
+  "units": [
+   {
+    "type": "باكيت",
+    "price": 600,
+    "multiplier_to_base": 1
+   },
+   {
+    "type": "تكة",
+    "price": 6000,
+    "multiplier_to_base": 10
+   },
+   {
+    "type": "كارتون",
+    "price": 300000,
+    "multiplier_to_base": 500
+   }
+  ],
+  "category_id": "76c20d2b-9c01-4c20-97e7-857eb3185867",
+  "stock_quantity": 14895,
+  "stock_unit": "كارتون",
+  "unit_conversions": [
+   {
+    "to": "تكة",
+    "from": "كارتون",
+    "multiplier": 50
+   },
+   {
+    "to": "باكيت",
+    "from": "تكة",
+    "multiplier": 10
+   }
+  ],
+  "min_stock_alert": 0,
+  "master_product_id": null
+ },
+ {
+  "id": "fd4eb6eb-6095-488c-b52b-e840d726a3e0",
+  "name": "تمن جوكر 5ك",
+  "price": 100000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/3258a2e1-6997-4562-ac46-cb1683bbe93a/master-0.595024292359261.jpg",
+  "unit_type": "كيس",
+  "description": "غذائيه",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-09-20T12:08:40.207581+00:00",
+  "units": [
+   {
+    "type": "كيس",
+    "price": 100000,
+    "multiplier_to_base": 10
+   }
+  ],
+  "category_id": "e1ea8c27-efde-4cb2-a299-f9b5b33658a6",
+  "stock_quantity": 2980,
+  "stock_unit": "كيس",
+  "unit_conversions": [
+   {
+    "to": "كيس",
+    "from": "كارتون",
+    "multiplier": 10
+   },
+   {
+    "to": "كارتون",
+    "from": "كيس",
+    "multiplier": 10
+   }
+  ],
+  "min_stock_alert": 20,
+  "master_product_id": "17be10fe-95d1-4fcf-9d23-596c15cc7f67"
+ },
+ {
+  "id": "7532ea90-74b6-4f37-8cc0-8f0d8a69335a",
+  "name": "حليب نيدو",
+  "price": 3000,
+  "image_url": null,
+  "unit_type": "مفرد",
+  "description": "250 غم",
+  "merchant_id": "f9a9d346-4669-435a-8466-d6afeb002e4f",
+  "created_at": "2026-09-11T10:33:05.585477+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 3000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": "e1ea8c27-efde-4cb2-a299-f9b5b33658a6",
+  "stock_quantity": 1484,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 50,
+  "master_product_id": "f1cf7989-2f2e-4357-8af8-bfb1b7318091"
+ },
+ {
+  "id": "4b5c46ef-89c5-4c58-a323-37d175afab82",
+  "name": "كرسي",
+  "price": 5000,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "f9a9d346-4669-435a-8466-d6afeb002e4f",
+  "created_at": "2026-09-05T12:41:21.32774+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 5000,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 2814,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 50,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ },
+ {
+  "id": "ef9f0e04-68bf-4785-9212-ab18b04463cc",
+  "name": "كرسي",
+  "price": 6900,
+  "image_url": "https://hslpavldgvlpkvqgogcc.supabase.co/storage/v1/object/public/products/db479dcc-aa2e-43d1-838d-b7971286d850/master-0.25508853111434937.jpeg",
+  "unit_type": "مفرد",
+  "description": "بلاستك",
+  "merchant_id": "9d60ef15-f0f7-42d3-9def-e168b2a9e373",
+  "created_at": "2026-09-03T13:58:31.249821+00:00",
+  "units": [
+   {
+    "type": "مفرد",
+    "price": 6900,
+    "multiplier_to_base": 1
+   }
+  ],
+  "category_id": null,
+  "stock_quantity": 91,
+  "stock_unit": "مفرد",
+  "unit_conversions": [],
+  "min_stock_alert": 30,
+  "master_product_id": "b5cd57fd-333f-497d-95dc-1e89d2f6b404"
+ }
+]

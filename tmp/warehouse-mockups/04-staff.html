@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>فريق العمل — حساب التاجر</title>
+</head>
+<body>
+
+<div class="tabstrip">
+  <div class="brand"><span class="dot">ج</span> جملتي — حساب التاجر</div>
+  <div class="tab">📦 المنتجات والإعدادات</div>
+  <div class="tab">📥 الطلبات الواردة <span class="badge">3</span></div>
+  <div class="tab active">🏬 المخازن</div>
+  <div class="tab">🧾 التحاسب مع التطبيق</div>
+  <div class="tab">🤝 قائمة الثقات</div>
+  <div class="tab">💰 الديون والتسديد</div>
+  <div class="tab">🗄️ الأرشيف</div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <div>
+      <h1><span class="ico">👥</span> فريق العمل الداخلي</h1>
+      <div class="sub">موظفون بأسماء وكلمات مرور داخلية — يدخلون لصفحة متجرك فقط، وكل حركة تُسجَّل باسمهم ووقتها</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn primary">＋ إضافة موظف</button>
+    </div>
+  </div>
+
+  <div class="staff-grid">
+
+    <div class="card staff-card">
+      <div class="row1">
+        <div class="avatar o">أ</div>
+        <div style="flex:1;">
+          <div class="nm">أحمد حسن الموسوي</div>
+          <div class="un">ahmad.m · آخر دخول: اليوم 11:30 ص</div>
+        </div>
+        <span class="badge b-green">نشط</span>
+      </div>
+      <div class="perm-tags">
+        <span class="badge b-orange">🏬 العمل على المخازن</span>
+        <span class="badge b-blue">📋 اعتماد قوائم التجهيز</span>
+        <span class="badge b-gray">🚫 لا يعامل مالياً</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v">23</div><div class="l">حركة اليوم</div></div>
+        <div class="stat"><div class="v">9</div><div class="l">قائمة تجهيز أسبوعياً</div></div>
+        <div class="stat"><div class="v" style="color:var(--green);">0.4%</div><div class="l">معدل النقص</div></div>
+      </div>
+      <div class="acts">
+        <button class="btn sm ghost">✏️ الصلاحيات</button>
+        <button class="btn sm ghost">🔑 كلمة المرور</button>
+        <button class="btn sm ghost" style="color:var(--red);">⏸️ تعطيل</button>
+      </div>
+    </div>
+
+    <div class="card staff-card">
+      <div class="row1">
+        <div class="avatar g">س</div>
+        <div style="flex:1;">
+          <div class="nm">سجى عبد الرحمن</div>
+          <div class="un">saja.s · آخر دخول: أمس 4:05 م</div>
+        </div>
+        <span class="badge b-green">نشط</span>
+      </div>
+      <div class="perm-tags">
+        <span class="badge b-blue">🧾 المبيعات وإصدار الفواتير</span>
+        <span class="badge b-blue">📥 متابعة الطلبات الواردة</span>
+        <span class="badge b-gray">🚫 لا تعدّل الأسعار</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="v">17</div><div class="l">فاتورة اليوم</div></div>
+        <div class="stat"><div class="v">6</div><div class="l">طلب اعتمدته</div></div>
+        <div class="stat"><div class="v">94%</div><div class="l">سرعة الاستجابة</div></div>
+      </div>
+      <div class="acts">
+        <button class="btn sm ghost">✏️ الصلاحيات</button>
+        <button class="btn sm ghost">🔑 كلمة المرور</button>
+        <button class="btn sm ghost" style="color:var(--red);">⏸️ تعطيل</button>
+      </div>
+    </div>
+
+    <div class="card staff-card" style="border-style:dashed;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;">
+      <div style="font-size:30px;">＋</div>
+      <div style="font-weight:800;font-size:13.5px;">إضافة موظف جديد</div>
+      <div style="font-size:11px;text-align:center;line-height:1.8;">اسم مستخدم وكلمة مرور داخلية<br>لا تدخل للتطبيق العام — لصفحة التاجر فقط</div>
+    </div>
+
+  </div>
+
+  <div class="note-card">
+    <span class="i">🛡️</span>
+    <span><b style="color:#fff;">الحماية:</b> كلمات المرور مشفّرة ولا يمكن لأحد — حتى التاجر — قراءتها، ويمكن إعادة تعيينها فقط. الموظف المعطّل يُمنع فوراً من الدخول وتُسجَّل محاولاته الفاشلة. ترتيب الصلاحيات من صلاحية التاجر الأم، ولا يمكن للموظف إنشاء موظفين أو حذف بيانات المتجر أو رؤية التحاسب مع إدارة التطبيق.</span>
+  </div>
+
+  <!-- نافذة إضافة موظف -->
+  <div class="overlay" style="align-items:flex-start;padding-top:40px;background:rgba(5,8,13,.55);">
+    <div class="dialog" style="width:640px;">
+      <div class="dialog-head">
+        <div class="thumb">＋</div>
+        <div><h2>إضافة موظف جديد</h2><div class="sub">سيظهر هذا الموظف ضمن فريق متجر «مخازن علي الجبوري» فقط</div></div>
+        <div class="x">✕</div>
+      </div>
+      <div class="dialog-body">
+        <div class="grid2">
+          <div class="field"><label>اسم الموظف (يظهر في السجلات)</label><input class="input" placeholder="مثال: حسين علي جواد"></div>
+          <div class="field"><label>اسم المستخدم الداخلي</label><input class="input" value="hussein.ali" style="direction:ltr;text-align:left;"><div class="hint">يدخل به الموظف من صفحة «دخول الموظفين»</div></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>كلمة المرور الداخلية</label><input class="input" value="••••••••••" style="direction:ltr;text-align:left;"><div class="hint">🔑 توليد كلمة مرور قوية · يمكن إعادة تعيينها لاحقاً</div></div>
+          <div class="field"><label>المخزن المعني</label><input class="input" value="المخزن الرئيسي (الافتراضي)"></div>
+        </div>
+        <div class="field">
+          <label>صلاحيات الموظف</label>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px;">
+            <div class="toggle" style="background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:10px 13px;"><div class="sw"></div><div><div class="t-lbl">🧾 المبيعات وإصدار الفواتير</div><div class="t-sub">معالجة الطلبات الواردة، الطباعة، تسليم للمندوب</div></div></div>
+            <div class="toggle" style="background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:10px 13px;"><div class="sw"></div><div><div class="t-lbl">🏬 العمل على المخازن</div><div class="t-sub">إدخال وإخراج الكميات، الجرد، إصدار قوائم التجهيز</div></div></div>
+            <div class="toggle off" style="background:var(--bg-soft);border:1px solid var(--border);border-radius:12px;padding:10px 13px;"><div class="sw"></div><div><div class="t-lbl">💲 تعديل الأسعار وحدود التنبيه</div><div class="t-sub">غير مفعّلة — التعديل متاح لصاحب المتجر أو من يفوّضه</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button class="btn primary">＋ إنشاء حساب الموظف</button>
+        <button class="btn ghost">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

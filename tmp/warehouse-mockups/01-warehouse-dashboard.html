@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>المخازن — لوحة الرئيسية</title>
+</head>
+<body>
+
+<div class="tabstrip">
+  <div class="brand"><span class="dot">ج</span> جملتي — حساب التاجر</div>
+  <div class="tab">📦 المنتجات والإعدادات</div>
+  <div class="tab">📥 الطلبات الواردة <span class="badge">3</span></div>
+  <div class="tab active">🏬 المخازن</div>
+  <div class="tab">🧾 التحاسب مع التطبيق</div>
+  <div class="tab">🤝 قائمة الثقات</div>
+  <div class="tab">💰 الديون والتسديد</div>
+  <div class="tab">🗄️ الأرشيف</div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <div>
+      <h1><span class="ico">🏬</span> مخازن علي الجبوري</h1>
+      <div class="sub">إدارة كاملة لمخزونك: الكميات، الأسعار، حدود التنبيه، وقوائم التجهيز — كل حركة مسجّلة باسم صاحبها ووقتها</div>
+    </div>
+    <div class="head-actions">
+      <div class="select-chip">🏷️ <span class="lbl">المخزن:</span> المخزن الرئيسي ▾</div>
+      <button class="btn ghost">📥 جرد المخزن</button>
+      <button class="btn primary">＋ إضافة مادة للمخزن</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="card kpi">
+      <div class="ico" style="background:var(--orange-soft);color:var(--orange);">💎</div>
+      <div><div class="val">48,750,000 <span style="font-size:11px;color:var(--muted);">د.ع</span></div><div class="lbl">القيمة التقديرية للمخزون</div><div class="trend">▲ 4.2% عن الأسبوع الماضي</div></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:var(--blue-soft);color:var(--blue);">📦</div>
+      <div><div class="val">214</div><div class="lbl">صنف في المخزن</div><div class="trend" style="color:var(--muted);">18 صنفاً أُضيف هذا الشهر</div></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:var(--red-soft);color:var(--red);">⚠️</div>
+      <div><div class="val">7</div><div class="lbl">أصناف وصلت حد التنبيه</div><div class="trend" style="color:var(--red);">تتطلب إعادة تعبئة</div></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:var(--green-soft);color:var(--green);">🔄</div>
+      <div><div class="val">32</div><div class="lbl">حركة مخزنية اليوم</div><div class="trend">12 إدخال · 20 إخراج</div></div>
+    </div>
+  </div>
+
+  <div class="alert-strip">
+    <div class="pulse">🚨</div>
+    <div style="min-width:170px;">
+      <div style="font-weight:800;font-size:13.5px;">تنبيه النقص — 7 أصناف</div>
+      <div style="color:var(--muted);font-size:11.5px;">وصلت للحد الأدنى أو دونه</div>
+    </div>
+    <div class="items">
+      <div class="alert-chip">🛢️ زيت دوار الشمس 1.8ل — بقي <b>12 كارتون</b> (الحد 20)</div>
+      <div class="alert-chip">🍚 سكر أبيض 50كغ — بقي <b>4 أكياس</b> (الحد 10)</div>
+      <div class="alert-chip">🍅 معجون طماطم 800غ — بقي <b>9 كتنة</b> (الحد 15)</div>
+      <div class="alert-chip" style="color:var(--muted);">+4 أصناف أخرى</div>
+    </div>
+    <button class="btn primary sm">معالجة التنبيهات ←</button>
+  </div>
+
+  <div class="card table-card">
+    <div class="toolbar">
+      <div class="search">🔍 ابحث بالاسم أو الباركود… (8504060012345)</div>
+      <div class="chips">
+        <div class="chip on">الكل 214</div>
+        <div class="chip">متوفر 187</div>
+        <div class="chip" style="color:var(--amber);">منخفض 7</div>
+        <div class="chip" style="color:var(--red);">نافد 3</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chips">
+        <div class="chip">🔽 الأحدث حركة</div>
+        <div class="chip">🖨️ طباعة كشف الجرد</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32%;">المادة</th>
+          <th>أسعار البيع (حسب الوحدة)</th>
+          <th>الكمية الحالية</th>
+          <th>حد التنبيه</th>
+          <th>الحالة</th>
+          <th>آخر تعديل</th>
+          <th style="text-align:left;">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="prod"><div class="thumb">🛢️</div><div><div class="name">زيت دوار الشمس 1.8 لتر</div><div class="meta">مربوطة مركزياً · باركود 8504060012345 · قسم: الزيوت</div></div></div></td>
+          <td><div class="num">4,000 <span style="font-size:10px;color:var(--muted);">/تكة</span></div><div class="units">كارتون ×24 = 96,000</div></td>
+          <td><div class="num">288 <span style="font-size:10px;color:var(--muted);">تكة</span></div><div class="bar"><i style="width:22%;background:var(--red);"></i></div></td>
+          <td class="num">480 <span style="font-size:10px;color:var(--muted);">تكة</span></td>
+          <td><span class="badge b-red">⚠ تحت الحد</span></td>
+          <td><div class="meta" style="margin:0;">أحمد (موظف مخازن)<br>قبل 25 دقيقة</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🍚</div><div><div class="name">أرز بسمتي فاخر 5 كغ</div><div class="meta">مربوطة مركزياً · باركود 8504060022341 · قسم: الأرز والحبوب</div></div></div></td>
+          <td><div class="num">9,500 <span style="font-size:10px;color:var(--muted);">/كيس</span></div><div class="units">شكرمة ×10 = 95,000</div></td>
+          <td><div class="num">1,240 <span style="font-size:10px;color:var(--muted);">كيس</span></div><div class="bar"><i style="width:78%;background:var(--green);"></i></div></td>
+          <td class="num">150</td>
+          <td><span class="badge b-green">✓ متوفر</span></td>
+          <td><div class="meta" style="margin:0;">أمين المتجر (التاجر)<br>أمس 6:40 م</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🧼</div><div><div class="name">صابون غسيل برتقالي 900غ</div><div class="meta">مادة خاصة (إدخال التاجر) · قسم: المنظفات</div></div></div></td>
+          <td><div class="num">2,250 <span style="font-size:10px;color:var(--muted);">/تكة</span></div><div class="units">كتنة ×12 = 27,000</div></td>
+          <td><div class="num">0</div><div class="bar"><i style="width:0%;background:var(--red);"></i></div></td>
+          <td class="num">30</td>
+          <td><span class="badge b-red">✖ نافد</span></td>
+          <td><div class="meta" style="margin:0;">حسين (عامل تجهيز)<br>اليوم 9:15 ص</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🍵</div><div><div class="name">شاي سيلان 450 غ</div><div class="meta">مربوطة مركزياً · باركود 8504060034567 · قسم: الشاي والمشروبات</div></div></div></td>
+          <td><div class="num">5,750 <span style="font-size:10px;color:var(--muted);">/تكة</span></div><div class="units">كتنة ×24 = 138,000</div></td>
+          <td><div class="num">356 <span style="font-size:10px;color:var(--muted);">تكة</span></div><div class="bar"><i style="width:45%;background:var(--amber);"></i></div></td>
+          <td class="num">400 <span style="font-size:10px;color:var(--muted);">تكة</span></td>
+          <td><span class="badge b-amber">◔ يقترب من الحد</span></td>
+          <td><div class="meta" style="margin:0;">أحمد (موظف مخازن)<br>اليوم 10:02 ص</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🍝</div><div><div class="name">مكرونة سباغيتي 400 غ</div><div class="meta">مربوطة مركزياً · باركود 8504060045678 · قسم: المعجنات</div></div></div></td>
+          <td><div class="num">1,100 <span style="font-size:10px;color:var(--muted);">/تكة</span></div><div class="units">كتنة ×24 = 26,400</div></td>
+          <td><div class="num">2,150 <span style="font-size:10px;color:var(--muted);">تكة</span></div><div class="bar"><i style="width:88%;background:var(--green);"></i></div></td>
+          <td class="num">200</td>
+          <td><span class="badge b-green">✓ متوفر</span></td>
+          <td><div class="meta" style="margin:0;">سجى (موظفة مبيعات)<br>اليوم 8:30 ص</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🥛</div><div><div class="name">حليب بودرة 2.25 كغ</div><div class="meta">مربوطة مركزياً · باركود 8504060056789 · قسم: الألبان</div></div></div></td>
+          <td><div class="num">16,500 <span style="font-size:10px;color:var(--muted);">/علبة</span></div><div class="units">كارتون ×12 = 198,000</div></td>
+          <td><div class="num">42 <span style="font-size:10px;color:var(--muted);">علبة</span></div><div class="bar"><i style="width:18%;background:var(--red);"></i></div></td>
+          <td class="num">60</td>
+          <td><span class="badge b-red">⚠ تحت الحد</span></td>
+          <td><div class="meta" style="margin:0;">أمين المتجر (التاجر)<br>اليوم 7:50 ص</div></td>
+          <td><div class="row-actions"><div class="icon-btn">🕒</div><div class="icon-btn">✏️</div><div class="icon-btn">➕</div></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

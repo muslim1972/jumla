@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+import { getActorContext, resolveStaffHome } from "@/features/staff/lib/guard"
 import Image from "next/image"
 import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
 import { AlertCircle, TrendingUp, PackageX, DollarSign, Target, Award, ArrowLeft } from "lucide-react"
@@ -15,6 +17,12 @@ import { MerchantProductsList } from "@/features/merchant/components/merchant-pr
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // موظفو المتجر لا يدخلون صفحة منتجات/إعدادات التاجر — يوجَّهون لصفحاتهم المصرح بها
+  const actorCtx = await getActorContext()
+  if (actorCtx?.role === "merchant_staff") {
+    redirect(resolveStaffHome(actorCtx.permissions))
+  }
 
   const [profileResponse, productsResponse, ordersResponse, categoriesResponse, masterResponse] = await Promise.all([
     supabase

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>قائمة التجهيز</title>
+</head>
+<body>
+
+<div class="tabstrip">
+  <div class="brand"><span class="dot">ج</span> جملتي — حساب التاجر</div>
+  <div class="tab">📦 المنتجات والإعدادات</div>
+  <div class="tab">📥 الطلبات الواردة <span class="badge">3</span></div>
+  <div class="tab active">🏬 المخازن</div>
+  <div class="tab">🧾 التحاسب مع التطبيق</div>
+  <div class="tab">🤝 قائمة الثقات</div>
+  <div class="tab">💰 الديون والتسديد</div>
+  <div class="tab">🗄️ الأرشيف</div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <div>
+      <h1><span class="ico" style="color:var(--orange);">📋</span> قائمة تجهيز <span style="color:var(--orange);">#P-00182</span> <span class="badge b-amber">⏳ بانتظار تأكيد الجمع</span></h1>
+      <div class="sub">صادرة من أمر البيع #12345 · متجر النور للبقالة · صباح اليوم 9:40 ص · المخزن الرئيسي</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn ghost">🖨️ طباعة القائمة</button>
+      <button class="btn ghost">📷 إرفاق صورة التجهيز</button>
+      <button class="btn primary">✅ تأكيد اكتمال الجمع</button>
+    </div>
+  </div>
+
+  <!-- خط سير القائمة -->
+  <div class="card card-pad" style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="steps">
+      <div class="step done"><div class="n">✓</div><div class="s-lbl">صدرت القائمة<br><span style="font-size:10px;color:var(--muted);">أحمد (موظف مخازن) 9:40 ص</span></div></div>
+      <div class="step-arrow done"></div>
+      <div class="step done"><div class="n">✓</div><div class="s-lbl">عُيّن عامل التجهيز<br><span style="font-size:10px;color:var(--muted);">حسين علي 9:42 ص</span></div></div>
+      <div class="step-arrow"></div>
+      <div class="step current"><div class="n">3</div><div class="s-lbl">جمع المواد<br><span style="font-size:10px;color:var(--muted);">قيد التنفيذ…</span></div></div>
+      <div class="step-arrow"></div>
+      <div class="step"><div class="n">4</div><div class="s-lbl">تسليم للمندوب<br><span style="font-size:10px;color:var(--muted);">المندوب: مصطفى كريم</span></div></div>
+    </div>
+    <div class="note-card" style="max-width:420px;padding:9px 13px;">
+      <span class="i">⚖️</span>
+      <span>اسم عامل التجهيز مثبّت على القائمة وفي النظام — <b style="color:#fff;">يُحمَّل مسؤولية أي نقص يُكتشف عند التسليم للمندوب</b>.</span>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="toolbar" style="justify-content:space-between;">
+      <div style="font-weight:800;font-size:13.5px;">مواد القائمة — 5 أصناف</div>
+      <div class="chips">
+        <div class="chip">المطلوب: 68 وحدة</div>
+        <div class="chip" style="color:var(--green);border-color:rgba(47,191,143,.35);">مؤكد: 65</div>
+        <div class="chip" style="color:var(--red);border-color:rgba(240,92,92,.35);">ناقص: 3</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30%;">المادة</th>
+          <th>المطلوب (بالوحدة)</th>
+          <th>المؤكد جمعه العامل</th>
+          <th>النقص</th>
+          <th>سبب النقص</th>
+          <th style="text-align:left;">حالة الصنف</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="prod"><div class="thumb">🛢️</div><div><div class="name">زيت دوار الشمس 1.8 لتر</div><div class="meta">من الرف A3</div></div></div></td>
+          <td class="num">5 كارتون</td>
+          <td class="num" style="color:var(--green);">5 كارتون ✓</td>
+          <td class="num">0</td>
+          <td class="meta">—</td>
+          <td style="text-align:left;"><span class="badge b-green">مكتمل</span></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🍚</div><div><div class="name">سكر أبيض ناعم 50 كغ</div><div class="meta">من الرف B1</div></div></div></td>
+          <td class="num">3 أكياس</td>
+          <td class="num" style="color:var(--green);">3 أكياس ✓</td>
+          <td class="num">0</td>
+          <td class="meta">—</td>
+          <td style="text-align:left;"><span class="badge b-green">مكتمل</span></td>
+        </tr>
+        <tr style="background:rgba(240,92,92,.05);">
+          <td><div class="prod"><div class="thumb">🍵</div><div><div class="name">شاي سيلان 450 غ</div><div class="meta">من الرف A7</div></div></div></td>
+          <td class="num">10 كتنة</td>
+          <td class="num" style="color:var(--red);">8 كتنة</td>
+          <td class="num" style="color:var(--red);">2 كتنة ⚠</td>
+          <td><span class="badge b-amber">الكمية غير متوفرة في المخزن</span></td>
+          <td style="text-align:left;"><span class="badge b-red">نقص مسجل</span></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🍅</div><div><div class="name">معجون طماطم 800 غ</div><div class="meta">من الرف C2</div></div></div></td>
+          <td class="num">20 تكة</td>
+          <td class="num" style="color:var(--green);">20 تكة ✓</td>
+          <td class="num">0</td>
+          <td class="meta">—</td>
+          <td style="text-align:left;"><span class="badge b-green">مكتمل</span></td>
+        </tr>
+        <tr>
+          <td><div class="prod"><div class="thumb">🧴</div><div><div class="name">سائل جلي 3.5 لتر</div><div class="meta">من الرف D4</div></div></div></td>
+          <td class="num">6 كتنة</td>
+          <td class="num" style="color:var(--green);">6 كتنة ✓</td>
+          <td class="num">0</td>
+          <td class="meta">—</td>
+          <td style="text-align:left;"><span class="badge b-green">مكتمل</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card card-pad" style="display:flex;align-items:center;gap:14px;">
+    <div style="flex:1;display:flex;gap:12px;align-items:center;">
+      <div class="avatar" style="width:42px;height:42px;">ح</div>
+      <div>
+        <div style="font-weight:800;font-size:13.5px;">عامل التجهيز: حسين علي <span class="badge b-blue" style="margin-right:4px;">موظف داخلية</span></div>
+        <div style="color:var(--muted);font-size:11.5px;">أكمل 14 قائمة هذا الأسبوع · معدل النقص 0.8% · اعتماد الجمع يتم بصوته في التطبيق</div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;gap:12px;align-items:center;border-right:1px dashed var(--border-strong);padding-right:14px;">
+      <div class="avatar o" style="width:42px;height:42px;">م</div>
+      <div>
+        <div style="font-weight:800;font-size:13.5px;">المندوب المستلم: مصطفى كريم</div>
+        <div style="color:var(--muted);font-size:11.5px;">سيظهر له زر «استلام القائمة» للتأكيد اليدوي عند التحميل — وبده رمز التسليم عند المشتري كالمعتاد</div>
+      </div>
+    </div>
+    <button class="btn primary">✅ تأكيد اكتمال الجمع (بصمة حسين)</button>
+  </div>
+
+</div>
+</body>
+</html>

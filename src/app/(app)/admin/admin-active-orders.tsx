@@ -58,7 +58,7 @@ export function AdminActiveOrders() {
             unit_type
           )
         `)
-        .in("status", ["pending", "approved"])
+        .in("status", ["pending", "preparing", "approved"])
         .order("created_at", { ascending: false })
 
       if (orders && orders.length > 0) {
@@ -166,6 +166,8 @@ export function AdminActiveOrders() {
                                   <div className="flex items-center gap-1 mt-1">
                                     {order.status === 'pending' ? (
                                       <span className="text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-500 font-bold px-1.5 py-0.5 rounded inline-block">قيد الانتظار</span>
+                                    ) : order.status === 'preparing' ? (
+                                      <span className="text-[9px] bg-brand-orange/10 text-brand-orange font-bold px-1.5 py-0.5 rounded inline-block">قيد التجهيز في المخازن</span>
                                     ) : (
                                       <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-500 font-bold px-1.5 py-0.5 rounded inline-block">تمت الموافقة (جاهز)</span>
                                     )}

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>سجل الحركات</title>
+</head>
+<body>
+
+<div class="tabstrip">
+  <div class="brand"><span class="dot">ج</span> جملتي — حساب التاجر</div>
+  <div class="tab">📦 المنتجات والإعدادات</div>
+  <div class="tab">📥 الطلبات الواردة <span class="badge">3</span></div>
+  <div class="tab active">🏬 المخازن</div>
+  <div class="tab">🧾 التحاسب مع التطبيق</div>
+  <div class="tab">🤝 قائمة الثقات</div>
+  <div class="tab">💰 الديون والتسديد</div>
+  <div class="tab">🗄️ الأرشيف</div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <div>
+      <h1><span class="ico">🛰️</span> سجل الحركات — من غيّر ماذا ومتى</h1>
+      <div class="sub">كل تعديل على أي حقل: القيمة السابقة واللاحقة، اسم من نفّذها، والتوقيت — سجل غير قابل للتعديل أو الحذف</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn ghost">📆 آخر 7 أيام ▾</button>
+      <button class="btn ghost">👤 جميع المستخدمين ▾</button>
+      <button class="btn ghost">🖨️ تصدير</button>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="chips">
+      <div class="chip on">الكل 128</div>
+      <div class="chip">💲 الأسعار (14)</div>
+      <div class="chip">📦 الكميات والحركات (61)</div>
+      <div class="chip">📋 قوائم التجهيز (23)</div>
+      <div class="chip">👥 الفريق والصلاحيات (6)</div>
+      <div class="chip">⚠️ تنبيهات (24)</div>
+    </div>
+    <div class="spacer" style="flex:1;"></div>
+    <div class="search" style="flex:0 0 280px;">🔍 ابحث في السجل…</div>
+  </div>
+
+  <div class="card" style="flex:1;overflow:hidden;">
+    <div style="height:100%;overflow:hidden;">
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--orange-soft);color:var(--orange);">💲</div>
+        <div class="body">
+          <div class="line1"><b>أحمد حسن</b> (موظف مخازن) عدّل سعر «تكة» في مادة <b>شاي سيلان 450غ</b></div>
+          <div class="line2">القيمة السابقة: <span class="val-old">5,750</span> ← الجديدة: <span class="val-new">5,950 د.ع</span> · من شاشة المخازن ← بطاقة الصنف</div>
+        </div>
+        <div class="when">اليوم 11:42 ص</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--red-soft);color:var(--red);">📤</div>
+        <div class="body">
+          <div class="line1">خصم مخزني تلقائي — أمر بيع <b>#12341</b> (متجر النور للبقالة)</div>
+          <div class="line2">زيت دوار الشمس 1.8ل: <span class="val-old">312</span> ← <span class="val-new">288 تكة</span> (−24) · المرجع: قائمة تجهيز #P-00179</div>
+        </div>
+        <div class="when">اليوم 10:15 ص</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--amber-soft);color:var(--amber);">⚠️</div>
+        <div class="body">
+          <div class="line1">إنذار حد الأدنى — <b>معجون طماطم 800غ</b> وصلت أقل من الحد المحدد</div>
+          <div class="line2">الكمية: 9 كتنة · حد التنبيه: 15 كتنة · أُرسل تنبيه فوري لهاتف التاجر</div>
+        </div>
+        <div class="when">اليوم 9:58 ص</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--blue-soft);color:var(--blue);">📋</div>
+        <div class="body">
+          <div class="line1"><b>حسين علي</b> (عامل تجهيز) أكمل جمع قائمة <b>#P-00181</b> — أمر بيع #12338</div>
+          <div class="line2">4 أصناف مكتملة · نقص مسجل: 1 كتنة معجون (سبب: كمية غير متوفرة) · سلّمها للمندوب مصطفى 9:20 ص</div>
+        </div>
+        <div class="when">اليوم 9:22 ص</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--green-soft);color:var(--green);">📥</div>
+        <div class="body">
+          <div class="line1"><b>أمين المتجر</b> (التاجر) أضاف وارداً جديد <b>10 كارتون</b> زيت دوار الشمس 1.8ل</div>
+          <div class="line2">الكمية: <span class="val-old">48</span> ← <span class="val-new">288 تكة</span> (+240) · ملاحظة: توريد شركة الزيتون</div>
+        </div>
+        <div class="when">أمس 5:30 م</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--blue-soft);color:var(--blue);">👥</div>
+        <div class="body">
+          <div class="line1"><b>أمين المتجر</b> (التاجر) أنشأ حساب موظف: <b>حسين علي</b> (hussein.ali)</div>
+          <div class="line2">الصلاحيات: العمل على المخازن + اعتماد قوائم التجهيز · بدون صلاحية تعديل الأسعار</div>
+        </div>
+        <div class="when">أمس 4:47 م</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--red-soft);color:var(--red);">🔐</div>
+        <div class="body">
+          <div class="line1">محاولة دخول فاشلة لحساب <b>saja.s</b> — كلمة مرور خاطئة (المحاولة 2/5)</div>
+          <div class="line2">الجهاز: Windows · يُقفل الحساب مؤقتاً بعد 5 محاولات فاشلة</div>
+        </div>
+        <div class="when">أمس 8:12 م</div>
+      </div>
+
+      <div class="log-row">
+        <div class="log-ico" style="background:var(--orange-soft);color:var(--orange);">💲</div>
+        <div class="body">
+          <div class="line1"><b>أمين المتجر</b> (التاجر) عدّل حد التنبيه في مادة <b>سكر أبيض 50كغ</b></div>
+          <div class="line2">القيمة السابقة: <span class="val-old">20</span> ← الجديدة: <span class="val-new">10 أكياس</span></div>
+        </div>
+        <div class="when">أمس 1:05 م</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

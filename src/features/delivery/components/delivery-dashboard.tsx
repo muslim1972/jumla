@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { createClient } from "@/utils/supabase/client"
 import { getDeliveryMerchants, getMerchantPendingOrders, confirmDelivery, getDeliveryHistory, getDeliveryPendingCount } from "@/features/delivery/actions"
+import { confirmPickupByRep } from "@/features/warehouse/picking/actions"
 import { Search, Store, Package, CheckCircle2, MapPin, Phone, Truck, ShieldCheck, ChevronDown, ChevronUp, Loader2, Clock, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -448,11 +449,27 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
   const [order, setOrder] = useState(initialOrder)
   const [isExpanded, setIsExpanded] = useState(false)
   const [secretCode, setSecretCode] = useState("")
-  
+
   // حالة نافذة التقييم
   const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
+
+  // استلام القائمة من مخزن التاجر (طلبات قيد التجهيز التي اكتمل جمعها)
+  const readyForPickup = !!order.ready_for_pickup && order.status === "preparing"
+  const [isConfirmingPickup, setIsConfirmingPickup] = useState(false)
+
+  const handleConfirmPickup = async () => {
+    setIsConfirmingPickup(true)
+    setErrorMsg("")
+    const result = await confirmPickupByRep(order.id)
+    setIsConfirmingPickup(false)
+    if (result.error) {
+      setErrorMsg(result.error)
+    } else {
+      setOrder({ ...order, status: "approved" })
+    }
+  }
 
   // المبلغ المطلوب تحصيله وحالة ثقة المشتري (حقلا المستلم/الباقي)
   const requiredAmount = order.amount_paid ?? order.total_rounded
@@ -488,7 +505,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
   }
 
   const isDelivered = order.status === "delivered" || order.status === "completed"
-  const showDeliveryForm = !isHistoryMode && !isSettlementMode && !isDelivered
+  const showDeliveryForm = !isHistoryMode && !isSettlementMode && !isDelivered && !readyForPickup
 
   return (
     <div className={cn(
@@ -644,6 +661,26 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* استلام القائمة من مخزن التاجر قبل انطلاق التوصيل */}
+          {readyForPickup && isExpanded && (
+            <div className="bg-brand-blue/5 border border-brand-blue/20 p-3 rounded-lg space-y-2.5">
+              <p className="text-xs sm:text-sm text-brand-blue dark:text-foreground font-bold leading-relaxed">
+                🏬 هذه القائمة جهّزها مخزن التاجر — عامل التجهيز: {order.picking_picker_name || "غير معيَّن"}.
+                أكّد استلامك لها عند التحميل، وإن وجدت نقصاً عند الفحص فأبلغ التاجر فوراً (يُحمَّل مسؤوليته عامل التجهيز المثبَّت اسمه في النظام).
+              </p>
+              {errorMsg && <p className="text-xs font-bold text-destructive">{errorMsg}</p>}
+              <Button
+                type="button"
+                onClick={handleConfirmPickup}
+                disabled={isConfirmingPickup}
+                className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+              >
+                {isConfirmingPickup ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 ml-2" />}
+                استلمت القائمة — جاهز للانطلاق
+              </Button>
             </div>
           )}
 

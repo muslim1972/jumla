@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>بطاقة صنف داخل المخزن</title>
+</head>
+<body>
+
+<div class="overlay">
+  <div class="dialog" style="width:880px;">
+
+    <div class="dialog-head">
+      <div class="thumb">🛢️</div>
+      <div>
+        <h2>زيت دوار الشمس 1.8 لتر <span class="badge b-blue" style="margin-right:6px;">🔗 مربوطة مركزياً</span></h2>
+        <div class="sub">باركود 8504060012345 · قسم: الزيوت · البيانات الأساسية تُدار من الكتالوج المركزي</div>
+      </div>
+      <div class="x">✕</div>
+    </div>
+
+    <div class="dialog-body" style="flex-direction:row;gap:20px;">
+
+      <!-- يمين: النموذج -->
+      <div style="flex:1.25;display:flex;flex-direction:column;gap:14px;">
+
+        <div class="section-title">💰 أسعار البيع حسب الوحدة</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="unit-row">
+            <div><div class="u">تكة</div><div class="m">الوحدة الأساسية</div></div>
+            <input class="input" value="4,000" style="text-align:center;font-weight:800;color:var(--orange);">
+            <input class="input" value="4,250" style="text-align:center;">
+            <div class="m" style="text-align:center;">الحالية ← الجديدة</div>
+          </div>
+          <div class="unit-row">
+            <div><div class="u">كارتون</div><div class="m">×24 تكة</div></div>
+            <input class="input" value="96,000" style="text-align:center;font-weight:800;color:var(--orange);">
+            <input class="input" value="99,500" style="text-align:center;">
+            <div class="m" style="text-align:center;">+3.6%</div>
+          </div>
+          <div class="hint">🧠 التطبيق سيحسب سعر الكارتون تلقائياً من سعر التكة إن تركته فارغاً. كل تغيير سعر يُسجَّل باسمك ووقته ويمكن لصاحب المتجر مراجعته من «سجل الحركات».</div>
+        </div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>الكمية الحالية (تكة)</label>
+            <input class="input" value="288">
+            <div class="hint">= 12 كارتون</div>
+          </div>
+          <div class="field">
+            <label>حد التنبيه — أقل كمية لإطلاق إنذار</label>
+            <input class="input" value="480">
+            <div class="hint">سيصلك تنبيه فوري عند الوصول لهذا الحد</div>
+          </div>
+        </div>
+
+        <div class="card card-pad" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="toggle"><div class="sw"></div><div><div class="t-lbl">معروضة للمشترين حالياً</div><div class="t-sub">عند الإيقاف تختفي من واجهة المشترين مع بقاءها في المخزن</div></div></div>
+          <div class="toggle off"><div class="sw"></div><div><div class="t-lbl">إيقاف البيع عند النفاد تلقائياً</div><div class="t-sub">مفعّل افتراضياً — يمنع الطلب فوق الكمية المتوفرة</div></div></div>
+        </div>
+
+      </div>
+
+      <!-- يسار: سجل حركات الصنف -->
+      <div style="flex:1;border-right:1px solid var(--border);padding-right:18px;">
+        <div class="section-title" style="margin-bottom:12px;">🕒 آخر الحركات على هذا الصنف</div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="dot" style="color:var(--orange);">💲</div>
+            <div class="t"><b>أحمد حسن</b> (موظف مخازن) عدّل سعر التكة <div class="val-diff" style="margin-top:4px;"><span class="val-old">4,000</span><span class="val-new">4,250 د.ع</span></div><div class="when">اليوم 11:42 ص</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="dot" style="color:var(--red);">📤</div>
+            <div class="t">خصم تلقائي <b>24 تكة</b> — أمر بيع <b>#12341</b> (قائمة تجهيز P-00179) <div class="when">اليوم 10:15 ص</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="dot" style="color:var(--green);">📥</div>
+            <div class="t"><b>أمين المتجر</b> أضاف <b>240 تكة</b> (10 كارتون) — وارد جديد <div class="when">أمس 5:30 م</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="dot" style="color:var(--amber);">⚠️</div>
+            <div class="t">أطلق النظام <b>إنذار حد الأدنى</b> (الكمية 460 ≤ الحد 480) <div class="when">أمس 2:10 م</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="dot" style="color:var(--blue);">🔗</div>
+            <div class="t">ربط بالمادة المركزية «زيت دوار الشمس 1.8 لتر» بواسطة <b>أمين المتجر</b> <div class="when">12/9/2025</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dialog-foot">
+      <button class="btn primary">💾 حفظ التعديلات</button>
+      <button class="btn ghost">➕ إضافة كمية (وارد)</button>
+      <button class="btn ghost">⏸️ إيقاف العرض مؤقتاً</button>
+      <div style="flex:1;"></div>
+      <button class="btn danger-ghost">إلغاء الربط</button>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { sendNotificationToUser } from "@/utils/onesignal"
 import { roundTo250 } from "@/lib/round-to-250"
+import { checkAndNotifyLowStock } from "@/features/warehouse/low-stock"
 
 /**
  * إنشاء طلب جديد لتاجر معين
@@ -69,6 +70,9 @@ export async function createOrder(data: {
     const orderId = (row as any)?.order_id as string
     const invoiceNumber = (row as any)?.invoice_number
 
+    // الخصم المخزني حدث — افحص بنود العابرة لحد التنبيه وأطلق إنذار التاجر (فشلها لا يلغي الطلب)
+    checkAndNotifyLowStock(data.merchantId).catch(() => {})
+
     // الإشعارات خارج المعاملة — فشلها لا يلغي الطلب
     try {
       // إرسال إشعار للتاجر
@@ -118,7 +122,7 @@ export async function getMyOrders() {
         merchant:profiles!merchant_id(full_name)
       `)
       .eq('user_id', user.id)
-      .in('status', ['pending', 'approved', 'editing', 'delivered', 'completed'])
+      .in('status', ['pending', 'preparing', 'approved', 'editing', 'delivered', 'completed'])
       .order('created_at', { ascending: false })
 
     if (error) throw error

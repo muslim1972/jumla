@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<title>الطلبات الواردة — مع مرحلة التجهيز</title>
+</head>
+<body>
+
+<div class="tabstrip">
+  <div class="brand"><span class="dot">ج</span> جملتي — حساب التاجر</div>
+  <div class="tab">📦 المنتجات والإعدادات</div>
+  <div class="tab active">📥 الطلبات الواردة <span class="badge">3</span></div>
+  <div class="tab">🏬 المخازن</div>
+  <div class="tab">🧾 التحاسب مع التطبيق</div>
+  <div class="tab">🤝 قائمة الثقات</div>
+  <div class="tab">💰 الديون والتسديد</div>
+  <div class="tab">🗄️ الأرشيف</div>
+</div>
+
+<div class="page">
+
+  <div class="page-head">
+    <div>
+      <h1><span class="ico">📥</span> الطلبات الواردة</h1>
+      <div class="sub">مرحلة جديدة: «قيد التجهيز» — عند موافقتك يتحول الطلب إلى قائمة تجهيز داخل مخزنك، ولا يظهر للمندوب إلا بعد اكتمال الجمع والتسليم</div>
+    </div>
+    <div class="head-actions">
+      <div class="select-chip">⚡ تحديث لحظي مفعّل</div>
+    </div>
+  </div>
+
+  <div class="board">
+
+    <div class="col">
+      <div class="col-head"><span class="dot" style="background:var(--amber);"></span> بانتظار الموافقة <span class="count">2</span></div>
+      <div class="col-body">
+        <div class="ocard">
+          <div class="top"><span class="inv">#12347</span><span class="badge b-amber">جديد</span></div>
+          <div class="store">متجر الجويني — حي الحسين</div>
+          <div class="meta">🧺 4 مواد · 12:05 ظهراً</div>
+          <div class="foot"><span class="total">315,000 د.ع</span><button class="btn sm primary">مراجعة واعتماد</button></div>
+        </div>
+        <div class="ocard">
+          <div class="top"><span class="inv">#12346</span><span class="badge b-amber">جديد</span></div>
+          <div class="store">بقالة السلام — شارع الصناعة</div>
+          <div class="meta">🧺 7 مواد · 11:50 ص</div>
+          <div class="foot"><span class="total">520,500 د.ع</span><button class="btn sm primary">مراجعة واعتماد</button></div>
+        </div>
+        <div class="note-card" style="padding:8px 11px;"><span class="i">💡</span><span>عند الاعتماد تُنشأ <b style="color:#fff;">قائمة تجهيز</b> تلقائياً في المخزن المحدد.</span></div>
+      </div>
+    </div>
+
+    <div class="col" style="border-color:rgba(249,122,27,.35);box-shadow:0 0 0 1px rgba(249,122,27,.12);">
+      <div class="col-head"><span class="dot" style="background:var(--orange);"></span> قيد التجهيز في المخزن <span class="count">2</span></div>
+      <div class="col-body">
+        <div class="ocard" style="border-color:rgba(249,122,27,.3);">
+          <div class="top"><span class="inv">#12345</span><span class="badge b-orange">📋 P-00182</span></div>
+          <div class="store">متجر النور للبقالة</div>
+          <div class="meta">👤 عامل التجهيز: حسين علي · 5 مواد</div>
+          <div class="meta" style="margin-top:4px;"><span class="badge b-amber" style="font-size:10px;">⏳ بانتظار تأكيد الجمع</span></div>
+          <div class="foot"><span class="total">182,750 د.ع</span><button class="btn sm ghost">متابعة القائمة ←</button></div>
+        </div>
+        <div class="ocard">
+          <div class="top"><span class="inv">#12344</span><span class="badge b-orange">📋 P-00181</span></div>
+          <div class="store">بقالة الحكمة — العتبة</div>
+          <div class="meta">👤 عامل التجهيز: أحمد حسن · 4 مواد</div>
+          <div class="meta" style="margin-top:4px;"><span class="badge b-blue" style="font-size:10px;">📦 جُمعت — بانتظار تسليم المندوب</span></div>
+          <div class="foot"><span class="total">96,000 د.ع</span><button class="btn sm ghost">متابعة القائمة ←</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="dot" style="background:var(--blue);"></span> بانتظار المندوب <span class="count">3</span></div>
+      <div class="col-body">
+        <div class="ocard">
+          <div class="top"><span class="inv">#12343</span><span class="badge b-blue">جاهزة</span></div>
+          <div class="store">سوبرماركت الربيع — حي الأطباء</div>
+          <div class="meta">👤 سلّمها حسين علي → المندوب مصطفى 9:20 ص</div>
+          <div class="meta">📋 P-00181 · نقص مسجل: 1 كتنة</div>
+          <div class="foot"><span class="total">240,250 د.ع</span><button class="btn sm ghost">التفاصيل</button></div>
+        </div>
+        <div class="ocard">
+          <div class="top"><span class="inv">#12342</span><span class="badge b-blue">جاهزة</span></div>
+          <div class="store">متجر البركة — سوق الكرادة</div>
+          <div class="meta">👤 سلّمها أحمد حسن → المندوب علي حسين 8:55 ص</div>
+          <div class="foot"><span class="total">410,000 د.ع</span><button class="btn sm ghost">التفاصيل</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="dot" style="background:var(--green);"></span> مسلّمة — بانتظار المبلغ <span class="count">2</span></div>
+      <div class="col-body">
+        <div class="ocard">
+          <div class="top"><span class="inv">#12340</span><span class="badge b-green">سُلّمت</span></div>
+          <div class="store">بقالة الفرات — حي الجامعة</div>
+          <div class="meta">المندوب: مصطفى كريم · 8:10 ص</div>
+          <div class="foot"><span class="total">158,500 د.ع</span><button class="btn sm primary">استلام المبلغ</button></div>
+        </div>
+        <div class="ocard">
+          <div class="top"><span class="inv">#12339</span><span class="badge b-green">سُلّمت</span></div>
+          <div class="store">متجر الهدى — الدورة</div>
+          <div class="meta">المندوب: علي حسين · 7:45 ص</div>
+          <div class="foot"><span class="total">97,250 د.ع</span><button class="btn sm primary">استلام المبلغ</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

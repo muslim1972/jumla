@@ -75,7 +75,7 @@ export async function updateSession(request: NextRequest) {
     // التحقق من صلاحيات الأدوار للمسارات المحمية
     if (isProtectedPath) {
       const unauthorized =
-        (isMerchantPath && role !== 'merchant') ||
+        (isMerchantPath && role !== 'merchant' && role !== 'merchant_staff') ||
         (isAdminPath && role !== 'admin') ||
         (isSupportPath && role !== 'support' && role !== 'call_center' && role !== 'admin') ||
         (isMaterialsPath && role !== 'materials' && role !== 'admin')

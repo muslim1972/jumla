@@ -4,13 +4,21 @@ import { createClient } from "@/utils/supabase/server"
 import { supabaseAdmin } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { sendNotificationToUser, sendNotificationToRole } from "@/utils/onesignal"
+import { getActorContext, hasPermission } from "@/features/staff/lib/guard"
+import { sendOrderToWarehouse } from "@/features/warehouse/picking/actions"
 
-// 1. جلب الطلبات الواردة (pending) و (approved) و (delivered) للتاجر
+// معرّف التاجر الفاعل: التاجر نفسه أو صاحب عمل الموظف الداخلي
+async function actingMerchantId() {
+  const ctx = await getActorContext()
+  return ctx // يُعيد null إن لم يكن المستخدم تاجراً أو موظف تاجر
+}
+
+// 1. جلب الطلبات الواردة (pending) و (preparing) و (approved) و (delivered) للتاجر
 export async function getMerchantOrders() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
   }
 
@@ -42,8 +50,8 @@ export async function getMerchantOrders() {
         unit_type
       )
     `)
-    .eq("merchant_id", user.id)
-    .in("status", ["pending", "approved", "delivered"])
+    .eq("merchant_id", ctx.merchantId)
+    .in("status", ["pending", "preparing", "approved", "delivered"])
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -53,12 +61,12 @@ export async function getMerchantOrders() {
   return { orders }
 }
 
-// 2. الموافقة على الطلب وتجهيزه
+// 2. الموافقة على الطلب وتجهيزه — ومع تفعيل وحدة المخازن: يُرسل للمخزن كقائمة تجهيز
 export async function approveOrder(orderId: string) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
   }
 
@@ -74,11 +82,20 @@ export async function approveOrder(orderId: string) {
     return { error: "لا يمكن التجهيز قبل موافقة المشتري على التعديلات المقترحة أو رفضها." }
   }
 
+  // وحدة المخازن مفعّلة؟ الاعتماد يعني «إرسال للمخزن»: قائمة تجهيز + حالة preparing
+  // ولا يظهر للمندوب إلا بعد اكتمال الجمع واستلامه للقائمة
+  if (ctx.warehouseEnabled) {
+    const result = await sendOrderToWarehouse(orderId)
+    if (result?.error) return { error: result.error }
+    revalidatePath("/dashboard/orders")
+    return { success: true, preparing: true }
+  }
+
   const { error } = await supabase
     .from("orders")
     .update({ status: "approved" })
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .eq("status", "pending") // للتأكد من أنه قيد الانتظار فقط
 
   if (error) {
@@ -92,7 +109,7 @@ export async function approveOrder(orderId: string) {
       "تم تجهيز طلبك!",
       `تم تجهيز فاتورتك رقم #${order.invoice_number} من قبل التاجر وهي بانتظار المندوب.`
     )
-    
+
     // إرسال إشعار للمناديب (لإعلامهم بوجود طلب جاهز للتوصيل)
     await sendNotificationToRole(
       "delivery",
@@ -116,9 +133,13 @@ export async function approveOrder(orderId: string) {
 export async function rejectOrder(orderId: string) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
+  }
+  // معالجة القائمة محصورة بالتاجر أو موظف بصلاحية مبيعات/مخازن
+  if (ctx.isStaff && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse")) {
+    return { error: "لا تملك صلاحية معالجة القوائم" }
   }
 
   // جلب تفاصيل الطلب لمعرفة المشتري
@@ -132,7 +153,7 @@ export async function rejectOrder(orderId: string) {
     .from("orders")
     .update({ status: "rejected" })
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .eq("status", "pending") // للتأكد من أنه قيد الانتظار فقط
 
   if (error) {
@@ -159,20 +180,23 @@ export async function rejectOrder(orderId: string) {
   return { success: true }
 }
 
-// 4. استلام المبلغ للطلب المُسلّم وإكماله
+// 4. استلام المبلغ للطلب المُسلّم وإكماله — لصاحب المتجر فقط (حماية مالية)
 export async function receiveOrderAmount(orderId: string) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
+  }
+  if (ctx.isStaff) {
+    return { error: "استلام المبالغ لصاحب المتجر فقط" }
   }
 
   const { data, error } = await supabase
     .from("orders")
     .update({ status: "completed" })
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .eq("status", "delivered")
     .select()
 
@@ -185,9 +209,9 @@ export async function receiveOrderAmount(orderId: string) {
     // حاول معرفة ما إذا كان الطلب موجوداً أصلاً لتشخيص سبب الفشل (RLS أو Enum)
     const { data: existing } = await supabase.from("orders").select("id, status, merchant_id").eq("id", orderId).single()
     if (!existing) return { error: "الطلب غير موجود في قاعدة البيانات." }
-    if (existing.merchant_id !== user.id) return { error: "ليس لديك صلاحية على هذا الطلب." }
+    if (existing.merchant_id !== ctx.merchantId) return { error: "ليس لديك صلاحية على هذا الطلب." }
     if (existing.status !== "delivered") return { error: `حالة الطلب الحالية هي ${existing.status} وليست delivered.` }
-    
+
     return { error: "فشل التحديث. الرجاء التأكد من أن حقل status في قاعدة البيانات (Supabase) يقبل القيمة 'completed' (ربما يحتاج لتعديل Enum)." }
   }
 
@@ -199,9 +223,12 @@ export async function receiveOrderAmount(orderId: string) {
 export async function approveOrderDeletion(orderId: string) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
+  }
+  if (ctx.isStaff && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse")) {
+    return { error: "لا تملك صلاحية معالجة القوائم" }
   }
 
   // نحذف الطلب مباشرة من قاعدة البيانات
@@ -209,7 +236,7 @@ export async function approveOrderDeletion(orderId: string) {
     .from("orders")
     .delete()
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .eq("cancel_requested", true) // تأكيد أن المشتري طلب الحذف
 
   if (error) {
@@ -225,9 +252,12 @@ export async function approveOrderDeletion(orderId: string) {
 export async function proposeOrderEdits(orderId: string, edits: { item_id: string, new_quantity: number }[]) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  const ctx = await actingMerchantId()
+  if (!ctx) {
     return { error: "يجب تسجيل الدخول" }
+  }
+  if (ctx.isStaff && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse")) {
+    return { error: "لا تملك صلاحية معالجة القوائم" }
   }
 
   // جلب الطلب والتأكد من ملكيته وحالته
@@ -235,7 +265,7 @@ export async function proposeOrderEdits(orderId: string, edits: { item_id: strin
     .from("orders")
     .select("id, user_id, invoice_number, status, pending_edits")
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .single()
 
   if (orderError || !order) {
@@ -289,7 +319,7 @@ export async function proposeOrderEdits(orderId: string, edits: { item_id: strin
     .from("orders")
     .update({ pending_edits: pendingEdits })
     .eq("id", orderId)
-    .eq("merchant_id", user.id)
+    .eq("merchant_id", ctx.merchantId)
     .eq("status", "pending")
 
   if (updateError) {

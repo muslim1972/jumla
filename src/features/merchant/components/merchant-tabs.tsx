@@ -1,12 +1,12 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft, UserCheck, Wallet } from "lucide-react"
+import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft, UserCheck, Wallet, Warehouse } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTransition, useState, useRef, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 
-export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBillsCount }: { merchantId?: string, initialPendingCount?: number, initialUnpaidBillsCount?: number }) {
+export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBillsCount, staffPermissions }: { merchantId?: string, initialPendingCount?: number, initialUnpaidBillsCount?: number, staffPermissions?: { sales: boolean, warehouse: boolean } | null }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -130,40 +130,51 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
     }
   }
 
-  const tabs = [
-    {
-      name: "المنتجات والإعدادات",
-      href: "/dashboard",
-      icon: Package
-    },
-    {
-      name: "الطلبات الواردة",
-      href: "/dashboard/orders",
-      icon: Inbox,
-      badge: pendingCount
-    },
-    {
-      name: "التحاسب مع التطبيق",
-      href: "/dashboard/billing",
-      icon: Receipt,
-      badge: unpaidBillsCount
-    },
-    {
-      name: "قائمة الثقات",
-      href: "/dashboard/trusted-buyers",
-      icon: UserCheck
-    },
-    {
-      name: "الديون والتسديد",
-      href: "/dashboard/debts",
-      icon: Wallet
-    },
-    {
-      name: "الأرشيف",
-      href: "/dashboard/archive",
-      icon: ArchiveIcon
-    }
-  ]
+  // تبويبات التاجر الكاملة — وعند وضع الموظف تُحصر بصفحاته المصرح بها فقط
+  const tabs = staffPermissions
+    ? [
+        ...(staffPermissions.sales ? [{ name: "الطلبات الواردة", href: "/dashboard/orders", icon: Inbox, badge: pendingCount }] : []),
+        ...(staffPermissions.warehouse ? [{ name: "المخازن", href: "/dashboard/warehouses", icon: Warehouse }] : []),
+      ]
+    : [
+        {
+          name: "المنتجات والإعدادات",
+          href: "/dashboard",
+          icon: Package
+        },
+        {
+          name: "الطلبات الواردة",
+          href: "/dashboard/orders",
+          icon: Inbox,
+          badge: pendingCount
+        },
+        {
+          name: "المخازن",
+          href: "/dashboard/warehouses",
+          icon: Warehouse
+        },
+        {
+          name: "التحاسب مع التطبيق",
+          href: "/dashboard/billing",
+          icon: Receipt,
+          badge: unpaidBillsCount
+        },
+        {
+          name: "قائمة الثقات",
+          href: "/dashboard/trusted-buyers",
+          icon: UserCheck
+        },
+        {
+          name: "الديون والتسديد",
+          href: "/dashboard/debts",
+          icon: Wallet
+        },
+        {
+          name: "الأرشيف",
+          href: "/dashboard/archive",
+          icon: ArchiveIcon
+        }
+      ]
 
   return (
     <div className="bg-background/90 backdrop-blur-md border-b border-border/40 sticky top-16 z-30 transition-all shadow-sm">

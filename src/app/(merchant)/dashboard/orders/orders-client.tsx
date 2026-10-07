@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion, proposeOrderEdits } from "./actions"
-import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing } from "lucide-react"
+import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -13,13 +13,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { PickingDialog } from "@/features/warehouse/components/picking-dialog"
+import type { StaffMember } from "@/features/warehouse/lib/types"
 
-export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) {
+interface OrdersClientProps {
+  initialOrders?: any[]
+  merchantId: string
+  currentUserId: string
+  warehouseEnabled: boolean
+  isStaff: boolean
+  canManagePicking: boolean
+  canPick: boolean
+  canReceiveMoney: boolean
+  pickers: StaffMember[]
+}
+
+export function OrdersClient({ initialOrders = [], merchantId, currentUserId, warehouseEnabled, isStaff, canManagePicking, canPick, canReceiveMoney, pickers }: OrdersClientProps) {
   const [orders, setOrders] = useState<any[]>(initialOrders)
   const [isLoading, setIsLoading] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
+  const [pickingOrderId, setPickingOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -31,10 +46,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         await loadOrders()
       }
 
-      // فلترة القناة بطلبات هذا التاجر فقط — بدل بث جدول orders كاملاً
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
+      // فلترة القناة بطلبات هذا التاجر (أو تاجر الموظف) — بدل بث جدول orders كاملاً
       channel = supabase
         .channel('merchant-orders-realtime')
         .on(
@@ -43,7 +55,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
             event: '*',
             schema: 'public',
             table: 'orders',
-            filter: `merchant_id=eq.${user.id}`,
+            filter: `merchant_id=eq.${merchantId}`,
           },
           () => {
             loadOrders()
@@ -61,24 +73,21 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
   const loadOrders = async () => {
     setIsLoading(true)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      const { data: fetchedOrders, error } = await supabase
-        .from("orders")
-        .select(`
-          id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
-          invoice_number, status, cancel_requested, pending_edits, created_at, delivery_worker_name,
-          is_credit, amount_paid, delivered_at,
-          items:order_items(id, product_name, product_price, quantity, unit_type)
-        `)
-        .eq("merchant_id", user.id)
-        .in("status", ["pending", "approved", "delivered"])
-        .order("created_at", { ascending: false })
 
-      if (fetchedOrders) setOrders(fetchedOrders)
-      if (error) setErrorMsg(error.message)
-    }
+    const { data: fetchedOrders, error } = await supabase
+      .from("orders")
+      .select(`
+        id, store_name, address, phone, total_rounded, subtotal, delivery_fee,
+        invoice_number, status, cancel_requested, pending_edits, created_at, delivery_worker_name,
+        is_credit, amount_paid, delivered_at,
+        items:order_items(id, product_name, product_price, quantity, unit_type)
+      `)
+      .eq("merchant_id", merchantId)
+      .in("status", ["pending", "preparing", "approved", "delivered"])
+      .order("created_at", { ascending: false })
+
+    if (fetchedOrders) setOrders(fetchedOrders)
+    if (error) setErrorMsg(error.message)
     setIsLoading(false)
   }
 
@@ -86,9 +95,13 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
     setProcessingId(orderId)
     const result = await approveOrder(orderId)
     if (result.success) {
-      const updatedOrder = { ...orders.find(o => o.id === orderId), status: "approved" };
+      const newStatus = result.preparing ? "preparing" : "approved"
+      const updatedOrder = { ...orders.find(o => o.id === orderId), status: newStatus };
       setOrders(orders.map(o => o.id === orderId ? updatedOrder : o))
       if (selectedOrder?.id === orderId) setSelectedOrder(updatedOrder)
+      if (result.preparing && warehouseEnabled) {
+        setPickingOrderId(orderId) // افتح قائمة التجهيز مباشرة لتعيين العامل
+      }
     } else if (result.error) {
       setErrorMsg(result.error)
     }
@@ -148,6 +161,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
   }
 
   const pendingOrders = orders.filter(o => o.status === "pending" && !o.cancel_requested)
+  const preparingOrders = orders.filter(o => o.status === "preparing" && !o.cancel_requested)
   const approvedOrders = orders.filter(o => o.status === "approved" && !o.cancel_requested)
   const deliveredOrders = orders.filter(o => o.status === "delivered" && !o.cancel_requested)
   const cancellationRequests = orders.filter(o => o.cancel_requested)
@@ -182,7 +196,7 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         </div>
       ) : (
         <div className="space-y-6 sm:space-y-8">
-          <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 items-start">
             {/* العمود الأيمن: بانتظار الموافقة */}
             <div className="space-y-3 sm:space-y-4">
               <h2 className="font-bold text-xs sm:text-lg text-amber-600 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
@@ -197,6 +211,25 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
                 ))
               )}
             </div>
+
+            {/* العمود الأوسط: قيد التجهيز في المخزن */}
+            {warehouseEnabled && (
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="font-bold text-xs sm:text-lg text-brand-orange flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                  <Warehouse className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                  قيد التجهيز في المخزن ({preparingOrders.length})
+                </h2>
+                {preparingOrders.length === 0 ? (
+                  <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
+                ) : (
+                  preparingOrders.map((order) => (
+                    <div key={order.id} className="relative">
+                      <OrderCard key={order.id} order={order} isPreparing={true} onClick={() => setPickingOrderId(order.id)} />
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {/* العمود الأيسر: مجهزة بانتظار المندوب */}
             <div className="space-y-3 sm:space-y-4">
@@ -246,38 +279,61 @@ export function OrdersClient({ initialOrders = [] }: { initialOrders?: any[] }) 
         </div>
       )}
 
-      <OrderDialog 
+      <OrderDialog
         order={selectedOrder}
         open={!!selectedOrder}
         onOpenChange={(isOpen: boolean) => !isOpen && setSelectedOrder(null)}
         isProcessing={processingId === selectedOrder?.id}
+        warehouseEnabled={warehouseEnabled}
+        canReceiveMoney={canReceiveMoney}
         onApprove={() => selectedOrder && handleApprove(selectedOrder.id)}
         onReject={() => selectedOrder && handleReject(selectedOrder.id)}
         onProposeEdits={(edits: { item_id: string, new_quantity: number }[]) => selectedOrder && handleProposeEdits(selectedOrder.id, edits)}
         onReceiveAmount={() => selectedOrder && handleReceiveAmount(selectedOrder.id)}
         onApproveDeletion={() => selectedOrder && handleApproveDeletion(selectedOrder.id)}
+        onOpenPicking={() => {
+          if (selectedOrder) {
+            setSelectedOrder(null)
+            setPickingOrderId(selectedOrder.id)
+          }
+        }}
+      />
+
+      {/* حوار قائمة التجهيز — قلب تدفق المخازن (يُعاد تركيبه لكل أمر بيع) */}
+      <PickingDialog
+        key={pickingOrderId ?? "none"}
+        orderId={pickingOrderId}
+        invoiceNumber={orders.find(o => o.id === pickingOrderId)?.invoice_number ?? null}
+        storeName={orders.find(o => o.id === pickingOrderId)?.store_name ?? null}
+        open={!!pickingOrderId}
+        onOpenChange={(open) => { if (!open) { setPickingOrderId(null); loadOrders() } }}
+        pickers={pickers}
+        canManage={canManagePicking}
+        canPick={canPick}
       />
     </div>
   )
 }
 
-function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: { order: any, isApproved?: boolean, isDelivered?: boolean, isCancellation?: boolean, onClick: () => void }) {
+function OrderCard({ order, isApproved, isDelivered, isCancellation, isPreparing, onClick }: { order: any, isApproved?: boolean, isDelivered?: boolean, isCancellation?: boolean, isPreparing?: boolean, onClick: () => void }) {
   return (
-    <Card 
+    <Card
       onClick={onClick}
       className={cn(
         "overflow-hidden border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
         isCancellation ? "border-purple-500/30 hover:border-purple-500/60" :
         isDelivered ? "border-red-500/30 hover:border-red-500/60" :
-        isApproved ? "border-emerald-500/30 hover:border-emerald-500/60" : "border-amber-500/30 hover:border-amber-500/60"
+        isApproved ? "border-emerald-500/30 hover:border-emerald-500/60" :
+        isPreparing ? "border-brand-orange/40 hover:border-brand-orange/70" : "border-amber-500/30 hover:border-amber-500/60"
       )}
     >
-      <div 
+      <div
         className={cn(
           "w-full text-right p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3 transition-colors",
           isCancellation ? "bg-purple-500/5" :
           isDelivered ? "bg-red-500/5" :
-          isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
+          isApproved ? "bg-emerald-500/5" :
+          isPreparing ? "bg-brand-orange/5" : "bg-amber-500/5"
         )}
       >
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
@@ -286,7 +342,8 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
               "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
               isCancellation ? "bg-purple-500/10 text-purple-600" :
               isDelivered ? "bg-red-500/10 text-red-600" :
-              isApproved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+              isApproved ? "bg-emerald-500/10 text-emerald-600" :
+              isPreparing ? "bg-brand-orange/10 text-brand-orange" : "bg-amber-500/10 text-amber-600"
             )}>
               <Package className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
@@ -295,7 +352,8 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
                 "font-bold text-xs sm:text-sm truncate",
                 isCancellation ? "text-purple-700 dark:text-purple-500" :
                 isDelivered ? "text-red-700 dark:text-red-500" :
-                isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
+                isApproved ? "text-emerald-700 dark:text-emerald-500" :
+                isPreparing ? "text-brand-orange" : "text-amber-700 dark:text-amber-500"
               )}>
                 {order.store_name}
               </h3>
@@ -325,6 +383,11 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 مجهز للمندوب
               </div>
+            ) : isPreparing ? (
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-brand-orange/10 text-brand-orange font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+                <ClipboardList className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                قائمة التجهيز ←
+              </div>
             ) : order.pending_edits ? (
               <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-blue-500/10 text-blue-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
                 <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
@@ -343,7 +406,7 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, onClick }: 
   )
 }
 
-function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onReject, onProposeEdits, onReceiveAmount, onApproveDeletion }: any) {
+function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled, canReceiveMoney, onApprove, onReject, onProposeEdits, onReceiveAmount, onApproveDeletion, onOpenPicking }: any) {
   // الكميات المتوفرة التي يدخلها التاجر لكل مادة — تُهيأ من الكميات المطلوبة عند فتح كل قائمة
   const [availableQty, setAvailableQty] = useState<Record<string, string>>({})
 
@@ -359,6 +422,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
 
   const isApproved = order.status === 'approved'
   const isDelivered = order.status === 'delivered'
+  const isPreparing = order.status === 'preparing'
   const isCancellation = order.cancel_requested
   // التعديل متاح فقط لقائمة بانتظار المراجعة وبدون تعديلات معلقة وبدون طلب إلغاء
   const isEditable = order.status === 'pending' && !isCancellation && !order.pending_edits
@@ -548,26 +612,46 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                   </div>
                 ) : (
                   <>
-                    {!isApproved && !isDelivered && (
+                    {isPreparing && (
+                      <div className="space-y-2">
+                        <div className="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 p-3 rounded-lg text-xs font-bold text-center">
+                          الطلب في المخزن الآن — تُدار تجهيزته عبر «قائمة التجهيز» (تعيين عامل التجهيز، تأكيد الجمع، النقص)
+                        </div>
+                        <Button
+                          onClick={onOpenPicking}
+                          className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
+                        >
+                          <ClipboardList className="w-4 h-4 ml-2" />
+                          متابعة قائمة التجهيز
+                        </Button>
+                      </div>
+                    )}
+
+                    {!isApproved && !isDelivered && !isPreparing && (
                       <>
                         {order.pending_edits ? (
                           <div className="bg-amber-500/10 text-amber-700 dark:text-amber-500 border border-amber-500/20 p-3 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-2">
                             <Clock className="w-4 h-4 shrink-0 animate-pulse" />
-                            بانتظار موافقة المشتري على التعديلات — يعود زر «تجهيز للمندوب» بعد موافقته
+                            بانتظار موافقة المشتري على التعديلات — يعود زر التجهيز بعد موافقته
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Button 
-                              onClick={onApprove} 
+                            <Button
+                              onClick={onApprove}
                               disabled={isProcessing || hasEdits}
                               title={hasEdits ? "يُتاح بعد إعلام المشتري بالتغيير وموافقه عليها" : undefined}
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs sm:text-sm h-9 sm:h-10"
+                              className={cn(
+                                "flex-1 shadow-sm text-xs sm:text-sm h-9 sm:h-10 font-bold",
+                                warehouseEnabled
+                                  ? "bg-brand-orange hover:bg-brand-orange/90 text-white"
+                                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              )}
                             >
                               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 ml-2" />}
-                              تجهيز للمندوب
+                              {warehouseEnabled ? "إرسال للمخزن (تجهيز)" : "تجهيز للمندوب"}
                             </Button>
-                            <Button 
-                              onClick={onReject} 
+                            <Button
+                              onClick={onReject}
                               disabled={isProcessing}
                               variant="destructive"
                               className="flex-[0.4] text-xs sm:text-sm h-9 sm:h-10"
@@ -580,8 +664,8 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
 
                         {/* يظهر بمجرد تعديل التاجر أي فقرة في القائمة */}
                         {hasEdits && (
-                          <Button 
-                            onClick={() => onProposeEdits(changedEdits)} 
+                          <Button
+                            onClick={() => onProposeEdits(changedEdits)}
                             disabled={isProcessing}
                             className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
                           >
@@ -592,7 +676,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, onApprove, onRej
                       </>
                     )}
 
-                    {isDelivered && (
+                    {isDelivered && canReceiveMoney && (
                       <div className="flex items-center gap-2">
                         <Button 
                           onClick={onReceiveAmount} 
@@ -639,7 +723,8 @@ function handlePrintOrder(order: any, dateStr: string, deliveryDateStr?: string)
     </tr>
   `).join('');
 
-  const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر' 
+  const statusLabel = order.status === 'pending' ? 'بإنتظار تأكيد التاجر'
+    : order.status === 'preparing' ? 'قيد التجهيز في المخازن'
     : order.status === 'approved' ? 'مجهز للمندوب'
     : order.status === 'delivered' ? 'تم التسليم'
     : order.status === 'rejected' ? 'مرفوض من التاجر'

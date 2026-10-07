@@ -57,6 +57,10 @@ export default async function Home() {
   if (userRole === "materials") {
     return redirect("/materials")
   }
+  // موظفو التجار الداخليون: وجهتهم صفحة التاجر الأم فقط — لا واجهة المشتري
+  if (userRole === "merchant_staff") {
+    return redirect("/dashboard")
+  }
 
   const rawProducts = (productsResponse.data as any) || []
   // لا نبتلع الأخطاء بصمت بعد الآن — تظهر في سجلات Vercel للتشخيص
