@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getActorContext, hasPermission } from "@/features/staff/lib/guard"
 import { displayToBase, multiplierToBase } from "@/features/warehouse/lib/helpers"
 import { checkAndNotifyLowStock } from "@/features/warehouse/low-stock"
+import { warehouseCatalogInsertErrorMessage } from "@/features/warehouse/lib/error-messages"
 
 // ============================================================================
 // إجراءات المخازن — ميزة معزولة. كل إجراء يتحقق من سياق الفاعل (تاجر/موظف بصلاحية)
@@ -187,8 +188,7 @@ export async function addOwnItemToWarehouse(formData: FormData) {
   const image = formData.get("image") as File | null
   const categoryId = formData.get("category_id") as string | null
   const barcode = ((formData.get("barcode") as string) || "").trim() || null
-  // «الكتالوج يعلم كل شيء»: المشاركة إجبارية — المادة تُربط بالكتالوج المركزي
-  // (بمطابقة قائمة أو برفع منسوب للتاجر) وأسعار التاجر ورصيده يبقيان خاصين به
+  const addAsNew = formData.get("add_as_new") === "true"
 
 
   if (!warehouseId) return { success: false, error: "حدد المخزن" }
@@ -226,18 +226,29 @@ export async function addOwnItemToWarehouse(formData: FormData) {
     }
   }
 
-  // خطوة الكتالوج أولاً (مشاركة إجبارية): مطابقة بالباركود ثم الاسم المطابق —
-  // وإلا رفع جديد منسوب للتاجر. فشلها يوقف الإضافة كي لا يُنشأ منتج يتيم خارج الكتالوج
+  // خطوة الكتالوج أولاً: الإدخال الجديد مستقل؛ المسار الاعتيادي يحاول الربط قبل الإنشاء.
   const esc = cleanName.replace(/[\\%_]/g, "\\$&")
+  if (addAsNew) {
+    const { data: sameName, error: duplicateCheckError } = await supabase
+      .from("master_products")
+      .select("name, description")
+      .ilike("name", esc)
+      .limit(100)
+    if (duplicateCheckError) return { success: false, error: "تعذّر التحقق من تكرار المادة. أعد المحاولة لاحقاً." }
+    const normalize = (value: string | null | undefined) => (value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("ar")
+    if (sameName?.some(item => normalize(item.name) === normalize(cleanName) && normalize(item.description) === normalize(description))) {
+      return { success: false, error: "توجد مادة مطابقة للاسم والوصف في الكتالوج. اخترها من البحث أو عدّل الاسم أو الوصف." }
+    }
+  }
   let masterId: string | null = null
   let pool: "created" | "linked" = "created"
 
-  if (barcode) {
+  if (!addAsNew && barcode) {
     const { data: byBarcode } = await supabase
       .from("master_products").select("id").eq("barcode", barcode).maybeSingle()
     masterId = byBarcode?.id ?? null
   }
-  if (!masterId) {
+  if (!addAsNew && !masterId) {
     const { data: byName } = await supabase
       .from("master_products").select("id").ilike("name", esc).maybeSingle()
     masterId = byName?.id ?? null
@@ -264,7 +275,7 @@ export async function addOwnItemToWarehouse(formData: FormData) {
       .single()
 
     if (masterError || !created) {
-      return { success: false, error: "تعذّر تسجيل المادة في الكتالوج المركزي: " + (masterError?.message || "خطأ غير معروف") }
+      return { success: false, error: warehouseCatalogInsertErrorMessage(masterError ?? {}) }
     }
     masterId = created.id
   }

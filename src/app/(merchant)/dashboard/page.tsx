@@ -1,17 +1,9 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
 import { createClient } from "@/utils/supabase/server"
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { getActorContext, resolveStaffHome } from "@/features/staff/lib/guard"
-import Image from "next/image"
 import { MerchantSettings } from "@/features/merchant/components/merchant-settings"
-import { AlertCircle, TrendingUp, PackageX, DollarSign, Target, Award, ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { MasterCatalogLinker } from "@/features/merchant/components/master-catalog-linker"
+import { AlertCircle, TrendingUp, PackageX, DollarSign, Target } from "lucide-react"
 import { MerchantProductsList } from "@/features/merchant/components/merchant-products-list"
 
 export default async function DashboardPage() {
@@ -24,7 +16,7 @@ export default async function DashboardPage() {
     redirect(resolveStaffHome(actorCtx.permissions))
   }
 
-  const [profileResponse, productsResponse, ordersResponse, categoriesResponse, masterResponse] = await Promise.all([
+  const [profileResponse, productsResponse, ordersResponse, categoriesResponse] = await Promise.all([
     supabase
       .from('profiles')
       .select('delivery_fee, support_phone')
@@ -42,22 +34,11 @@ export default async function DashboardPage() {
       .eq('merchant_id', user?.id)
       .in('status', ['delivered', 'completed']),
     supabase.from('categories').select('id, name'),
-    // الكتالوج المركزي للمواد
-    supabase
-      .from('master_products')
-      .select('*')
-      .order('created_at', { ascending: false }),
   ])
 
   const { data: profile } = profileResponse
   const { data: products } = productsResponse
   const { data: orders } = ordersResponse
-  const { data: masterProducts } = masterResponse
-
-  // المواد المرتبطة مسبقاً بمتجر التاجر
-  const linkedIds = (products || [])
-    .map((p: any) => p.master_product_id)
-    .filter(Boolean)
 
   // Analytics calculation
   const now = new Date()
@@ -71,7 +52,7 @@ export default async function DashboardPage() {
     if (!p.min_stock_alert || p.min_stock_alert <= 0) return false;
     let stockMultiplier = 1;
     if (p.units) {
-      const su = p.units.find((u: any) => u.type === (p.stock_unit || "كارتون"));
+      const su = (p.units as { type: string; multiplier_to_base: number }[]).find(u => u.type === (p.stock_unit || "كارتون"));
       if (su && su.multiplier_to_base) {
         stockMultiplier = su.multiplier_to_base;
       }
@@ -115,13 +96,6 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          <MasterCatalogLinker 
-            masterProducts={masterProducts || []} 
-            linkedIds={linkedIds} 
-            merchantProducts={products || []}
-            categories={categories}
-            disabled={!isProfileComplete} 
-          />
         </div>
 
         {/* Dashboard Content */}
@@ -176,7 +150,7 @@ export default async function DashboardPage() {
                     <div key={p.id} className="bg-background/80 px-3 py-2 rounded-md border border-rose-500/10 flex justify-between items-center text-sm">
                       <span className="font-semibold truncate">{p.name}</span>
                       <span className="text-rose-600 font-bold shrink-0 bg-rose-500/10 px-2 py-0.5 rounded">
-                        متبقي: {Math.floor((p.stock_quantity || 0) / (p.units?.find((u:any) => u.type === (p.stock_unit || 'كارتون'))?.multiplier_to_base || 1))} {p.stock_unit}
+                        متبقي: {Math.floor((p.stock_quantity || 0) / ((p.units as { type: string; multiplier_to_base: number }[] | null)?.find(u => u.type === (p.stock_unit || 'كارتون'))?.multiplier_to_base || 1))} {p.stock_unit}
                       </span>
                     </div>
                   ))}

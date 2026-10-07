@@ -16,14 +16,11 @@ interface Props {
   linkedMasterIds: Set<string>
 }
 
-type Mode = "pool" | "own"
-
 /**
- * تبويبة «إضافة مواد» — من الكتالوج المركزي (الـ Pool هو المكان الموحد)
- * أو مادة خاصة تُشارك بالكتالوج منسوبة لصاحبها (أسعارها تبقى خاصة به).
+ * تبويبة «إضافة مواد» — بحث في الكتالوج أو إدخال مادة جديدة للمخزن.
  */
 export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Props) {
-  const [mode, setMode] = useState<Mode>("pool")
+  const [mode, setMode] = useState<"search" | "own">("search")
   const [warehouseId, setWarehouseId] = useState(warehouses.find(w => w.is_default)?.id || warehouses[0]?.id || "")
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState("")
@@ -34,9 +31,9 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
   const unlinked = useMemo(() => pool.filter(p => !linkedMasterIds.has(p.id)), [pool, linkedMasterIds])
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return unlinked.slice(0, 40)
+    if (!q) return []
     return unlinked
-      .filter(p => p.name.toLowerCase().includes(q) || (p.barcode || "").includes(q))
+      .filter(p => p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q) || (p.barcode || "").includes(q))
       .slice(0, 40)
   }, [query, unlinked])
 
@@ -48,6 +45,7 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
 
   // —— نموذج الإدخال الحر ——
   const [ownName, setOwnName] = useState("")
+  const [ownDescription, setOwnDescription] = useState("")
   const [ownBarcode, setOwnBarcode] = useState("")
   const [ownUnits, setOwnUnits] = useState<{ type: string; price: string }[]>([{ type: "تكة", price: "" }])
   const [ownConversions, setOwnConversions] = useState<{ from: string; to: string; multiplier: string }[]>([])
@@ -99,6 +97,20 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
     setErrorMsg("")
     if (!warehouseId) { setErrorMsg("اختر المخزن"); return }
     if (ownName.trim().length < 2) { setErrorMsg("اسم المادة قصير جداً"); return }
+    if (ownBarcode.trim() && !/^(\d{8}|\d{12}|\d{13}|\d{14})$/.test(ownBarcode.trim())) {
+      setErrorMsg("صيغة الباركود غير مقبولة. استخدم 8 أو 12 أو 13 أو 14 رقماً، أو اتركه فارغاً.")
+      return
+    }
+    const normalized = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("ar")
+    const duplicate = pool.find(p => normalized(p.name) === normalized(ownName) && normalized(p.description ?? "") === normalized(ownDescription))
+    if (duplicate) {
+      setErrorMsg("توجد مادة مطابقة للاسم والوصف في الكتالوج. اخترها من نتائج البحث أو عدّل الاسم أو الوصف.")
+      return
+    }
+    if (ownBarcode.trim() && pool.some(p => p.barcode === ownBarcode.trim())) {
+      setErrorMsg("هذا الباركود مستخدم لمادة أخرى. اتركه فارغاً أو أدخل باركوداً مختلفاً.")
+      return
+    }
     const units = ownUnits
       .map(u => ({ type: u.type.trim(), price: Number(u.price || 0) }))
       .filter(u => u.type && u.price > 0)
@@ -110,7 +122,8 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
     const fd = new FormData()
     fd.set("warehouse_id", warehouseId)
     fd.set("name", ownName.trim())
-    fd.set("description", "")
+    fd.set("description", ownDescription.trim())
+    fd.set("add_as_new", "true")
     fd.set("barcode", ownBarcode.trim())
     fd.set("units", JSON.stringify(units))
     fd.set("unit_conversions", JSON.stringify(conversions))
@@ -120,11 +133,15 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
     if (ownImage) fd.set("image", ownImage)
 
     startTransition(async () => {
-      const res = await addOwnItemToWarehouse(fd)
+      let res: Awaited<ReturnType<typeof addOwnItemToWarehouse>>
+      try {
+        res = await addOwnItemToWarehouse(fd)
+      } catch {
+        setErrorMsg("تعذّرت إضافة المادة بسبب مشكلة اتصال مؤقتة. بيانات النموذج ما زالت محفوظة؛ أعد المحاولة.")
+        return
+      }
       if (res?.error) { setErrorMsg(res.error); return }
-      const poolMsg = res?.pool === "linked"
-        ? "🔗 وجدنا مادة مطابقة في الكتالوج المركزي فربطنا بها تلقائياً (بدون ازدواج) — أسعارك ورصيدك خاصة بك"
-        : "🌱 وسُجِّلت في الكتالوج المركزي منسوبة إليك لتعم الفائدة — وأسعارك ورصيدك يبقيان خاصين بك"
+      const poolMsg = "🌱 وسُجِّلت مادة جديدة في الكتالوج المركزي منسوبة إليك — أسعارك ورصيدك يبقيان خاصين بك"
       setOkMsg(`أُضيفت «${ownName.trim()}» إلى المخزن — ${poolMsg}`)
       setOwnName(""); setOwnBarcode(""); setOwnUnits([{ type: "تكة", price: "" }]); setOwnConversions([])
       setOwnStockQty(""); setOwnMinAlert(""); setOwnImage(null)
@@ -140,22 +157,6 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
           <p className="text-xs text-muted-foreground mt-0.5">
             من مواد التطبيق (الكتالوج المركزي) أو مادة جديدة منك — تُشارك بالكتالوج منسوبة إليك
           </p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 w-full sm:w-72">
-          {([
-            { id: "pool", label: "من مواد التطبيق" },
-            { id: "own", label: "مادة جديدة مني" },
-          ] as const).map(m => (
-            <button
-              key={m.id}
-              onClick={() => { setMode(m.id); setSelected(null); setQuery(""); setErrorMsg("") }}
-              className={`p-2.5 rounded-xl border-2 font-bold text-xs transition-colors ${
-                mode === m.id ? "border-brand-orange text-brand-orange bg-brand-orange/5" : "border-border text-muted-foreground"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -178,27 +179,25 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
         </div>
       )}
 
-      {mode === "pool" && !selected && (
+      {mode === "search" && !selected && (
         <div className="space-y-3">
-          <div className="relative max-w-md">
+          <div className="flex gap-2 max-w-xl">
+          <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="ابحث في الكتالوج المركزي بالاسم أو الباركود…"
+              placeholder="ابحث في مواد التطبيق بالاسم أو الباركود…"
               value={query}
               onChange={e => setQuery(e.target.value)}
               className="pr-9"
             />
           </div>
+          <Button variant="outline" onClick={() => { setMode("own"); setOwnName(query.trim()); setSelected(null); setErrorMsg("") }}>جديد</Button>
+          </div>
 
-          {results.length === 0 ? (
+          {!query.trim() ? null : results.length === 0 ? (
             <div className="text-center p-6 rounded-xl border border-dashed border-border space-y-2">
               <Package className="w-8 h-8 mx-auto text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                {query ? "لا نتائج مطابقة في الكتالوج" : "جميع مواد الكتالوج مضافة لمتجرك مسبقاً — أو أضف مادة جديدة منك"}
-              </p>
-              <Button variant="outline" size="sm" onClick={() => setMode("own")}>
-                <Plus className="w-3.5 h-3.5 ml-1" /> إضافة مادة جديدة مني
-              </Button>
+              <p className="text-xs text-muted-foreground">لا توجد نتائج مطابقة. يمكنك إضافة المادة كجديدة.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -232,7 +231,7 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
         </div>
       )}
 
-      {mode === "pool" && selected && (
+      {mode === "search" && selected && (
         <div className="space-y-4 max-w-2xl">
           <div className="flex items-center justify-between bg-muted/40 rounded-xl p-3 border border-border/60">
             <div>
@@ -295,13 +294,18 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
 
       {mode === "own" && (
         <div className="space-y-4 max-w-2xl">
+          <Button type="button" variant="ghost" size="sm" onClick={() => setMode("search")}>العودة للبحث</Button>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">اسم المادة</Label>
               <Input value={ownName} onChange={e => setOwnName(e.target.value)} placeholder="مثال: صابون غسيل برتقالي 900غ" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">الباركود (اختياري — يساعد في المطابقة التلقائية)</Label>
+              <Label className="text-xs">وصف المادة</Label>
+              <Input value={ownDescription} onChange={e => setOwnDescription(e.target.value)} placeholder="الوصف أو الحجم أو النوع" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">الباركود (اختياري)</Label>
               <Input dir="ltr" className="text-left font-bold" value={ownBarcode}
                 onChange={e => setOwnBarcode(e.target.value.replace(/[^\d]/g, ""))} placeholder="8/12/13/14 رقماً" />
             </div>

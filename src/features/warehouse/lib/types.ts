@@ -132,6 +132,7 @@ export interface PickingList {
 export interface PoolMasterProduct {
   id: string
   name: string
+  description?: string | null
   barcode: string | null
   image_url: string | null
   base_price: number | null
