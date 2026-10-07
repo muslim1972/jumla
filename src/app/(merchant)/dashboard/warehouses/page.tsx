@@ -65,7 +65,7 @@ export default async function WarehousesPage() {
       : Promise.resolve({ data: [] as never[] }),
     supabase
       .from("master_products")
-      .select("id, name, barcode, image_url, base_price, units, category_id, categories(name)")
+      .select("id, name, barcode, image_url, base_price, units, category_id, origin, categories(name)")
       .order("name", { ascending: true }),
     supabase
       .from("warehouse_movements")
@@ -117,7 +117,7 @@ export default async function WarehousesPage() {
 
   const poolProducts: PoolMasterProduct[] = (((poolRes.data ?? []) as unknown) as Array<{
     id: string; name: string; barcode: string | null; image_url: string | null; base_price: number | null;
-    units: { type: string; multiplier_to_base: number }[]; categories: { name: string } | null
+    units: { type: string; multiplier_to_base: number }[]; category_id: string | null; origin: string | null; categories: { name: string } | null
   }>).map(mp => ({
     id: mp.id,
     name: mp.name,
@@ -126,6 +126,7 @@ export default async function WarehousesPage() {
     base_price: mp.base_price,
     units: mp.units || [],
     category_name: mp.categories?.name ?? null,
+    origin: (mp.origin as PoolMasterProduct["origin"]) ?? null,
   }))
 
   const staff: StaffMember[] = ((staffRes.data ?? []) as unknown) as StaffMember[]

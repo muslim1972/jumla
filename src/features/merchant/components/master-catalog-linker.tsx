@@ -27,6 +27,8 @@ type MasterProduct = {
   base_price: number | null
   units: { type: string, multiplier_to_base: number }[]
   unit_conversions: { from: string, to: string, multiplier: number }[]
+  /** مصدر المادة: إدارة المواد أو مساهمة تاجر */
+  origin?: 'admin' | 'merchant' | null
 }
 
 export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProducts = [], categories = [], disabled }: {
@@ -212,6 +214,11 @@ export function MasterCatalogLinker({ masterProducts, linkedIds, merchantProduct
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm whitespace-normal break-words leading-tight flex-1">{p.name}</span>
+                          {p.origin === 'merchant' && (
+                            <span className="bg-brand-orange/10 text-brand-orange border border-brand-orange/30 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
+                              🌱 من تجار التطبيق
+                            </span>
+                          )}
                           {isLinked && (
                             <div className="flex items-center gap-1.5 ml-auto">
                               <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full text-[10px] font-bold">

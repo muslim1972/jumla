@@ -29,6 +29,8 @@ export type MasterProduct = {
   base_price: number | null
   units: MasterUnit[]
   unit_conversions: { from: string, to: string, multiplier: number }[]
+  /** مصدر المادة: إدارة المواد أو مساهمة تاجر («الـ Pool هو المكان الموحد») */
+  origin?: 'admin' | 'merchant' | null
 }
 
 type Conversion = {
@@ -616,6 +618,11 @@ function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
           {product.category_name && (
             <span className="bg-secondary/50 text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium">
               {product.category_name}
+            </span>
+          )}
+          {product.origin === 'merchant' && (
+            <span className="bg-brand-orange/10 text-brand-orange px-1.5 py-0.5 rounded text-[10px] font-bold border border-brand-orange/30">
+              🌱 من تجار التطبيق
             </span>
           )}
         </div>

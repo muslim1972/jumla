@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PickingDialog } from "@/features/warehouse/components/picking-dialog"
+import { getWarehouseAvailability, type OrderAvailabilityRow } from "@/features/warehouse/availability-actions"
 import type { StaffMember } from "@/features/warehouse/lib/types"
 
 interface OrdersClientProps {
@@ -280,6 +281,7 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
       )}
 
       <OrderDialog
+        key={selectedOrder?.id ?? "none"}
         order={selectedOrder}
         open={!!selectedOrder}
         onOpenChange={(isOpen: boolean) => !isOpen && setSelectedOrder(null)}
@@ -408,15 +410,25 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, isPreparing
 
 function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled, canReceiveMoney, onApprove, onReject, onProposeEdits, onReceiveAmount, onApproveDeletion, onOpenPicking }: any) {
   // الكميات المتوفرة التي يدخلها التاجر لكل مادة — تُهيأ من الكميات المطلوبة عند فتح كل قائمة
-  const [availableQty, setAvailableQty] = useState<Record<string, string>>({})
+  // (يُعاد تركيب الحوار بكل طلب عبر key في الأب فتكفي التهيئة الأولية)
+  const [availableQty, setAvailableQty] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    if (order) for (const it of order.items || []) init[it.id] = String(it.quantity)
+    return init
+  })
 
+  // رصيد المخزن الافتراضي لكل عنصر — ربط المخازن بالطلبات قبل الموافقة
+  const [availability, setAvailability] = useState<OrderAvailabilityRow[] | null>(null)
   useEffect(() => {
-    if (order) {
-      const init: Record<string, string> = {}
-      for (const it of order.items || []) init[it.id] = String(it.quantity)
-      setAvailableQty(init)
-    }
-  }, [order?.id])
+    if (!warehouseEnabled || !order || order.status !== "pending") return
+    let cancelled = false
+    getWarehouseAvailability(order.id).then(res => {
+      if (!cancelled) setAvailability(res?.rows ?? null)
+    })
+    return () => { cancelled = true }
+  }, [order?.id, warehouseEnabled])
+
+  const availabilityById = new Map((availability ?? []).map(a => [a.order_item_id, a]))
 
   if (!order) return null
 
@@ -515,6 +527,17 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                          <td className="p-2 sm:p-2.5">
                            <span className="font-bold text-brand-blue dark:text-foreground block">{item.product_name}</span>
                            <span className="text-[9px] sm:text-[10px] text-muted-foreground">({item.unit_type})</span>
+                           {warehouseEnabled && order.status === 'pending' && availabilityById.get(item.id) && (() => {
+                             const a = availabilityById.get(item.id)!
+                             return (
+                               <span className={cn(
+                                 "block mt-1 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded w-fit",
+                                 a.sufficient ? "text-emerald-600 bg-emerald-500/10" : "text-red-600 bg-red-500/10"
+                               )}>
+                                 🏬 بالمخزن: {a.available.toLocaleString('en-US')} {item.unit_type}{!a.sufficient ? " — أقل من المطلوب" : ""}
+                               </span>
+                             )
+                           })()}
                          </td>
                          <td className="text-center p-2 sm:p-2.5 font-black tabular-nums text-brand-orange text-xs sm:text-sm">{item.quantity}</td>
                          <td className="text-center p-1.5 sm:p-2">
@@ -566,6 +589,15 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
              {order.pending_edits && !isCancellation && (
                <div className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 p-3 rounded-lg text-xs font-bold text-center">
                   أرسلت تعديلاتك للمشتري وهو لم يقرر بعد — ستصلك حالة القائمة فور موافقته أو إلغائه للشراء
+               </div>
+             )}
+
+             {/* تحذير النقص في المخزن قبل إرسال الطلب للتجهيز */}
+             {warehouseEnabled && order.status === 'pending' && availability !== null &&
+              availability.some(a => !a.sufficient) && (
+               <div className="bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 p-3 rounded-lg text-xs font-bold text-center leading-6">
+                  🏬 تنبيه: {availability.filter(a => !a.sufficient).length} من مواد القائمة رصيدها في المخزن أقل من المطلوب —
+                  يمكنك تعديل «المتوفر» وإعلام المشتري، أو الإرسال للمخزن وسيتولى الموظفون تسجيل النقص في قائمة التجهيز
                </div>
              )}
 

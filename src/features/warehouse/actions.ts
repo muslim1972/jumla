@@ -186,6 +186,10 @@ export async function addOwnItemToWarehouse(formData: FormData) {
   const minStockAlert = parseInt(formData.get("min_stock_alert") as string || "0", 10)
   const image = formData.get("image") as File | null
   const categoryId = formData.get("category_id") as string | null
+  const barcode = ((formData.get("barcode") as string) || "").trim() || null
+  // «الكتالوج يعلم كل شيء»: المشاركة إجبارية — المادة تُربط بالكتالوج المركزي
+  // (بمطابقة قائمة أو برفع منسوب للتاجر) وأسعار التاجر ورصيده يبقيان خاصين به
+
 
   if (!warehouseId) return { success: false, error: "حدد المخزن" }
   const cleanName = (name || "").trim()
@@ -222,10 +226,54 @@ export async function addOwnItemToWarehouse(formData: FormData) {
     }
   }
 
+  // خطوة الكتالوج أولاً (مشاركة إجبارية): مطابقة بالباركود ثم الاسم المطابق —
+  // وإلا رفع جديد منسوب للتاجر. فشلها يوقف الإضافة كي لا يُنشأ منتج يتيم خارج الكتالوج
+  const esc = cleanName.replace(/[\\%_]/g, "\\$&")
+  let masterId: string | null = null
+  let pool: "created" | "linked" = "created"
+
+  if (barcode) {
+    const { data: byBarcode } = await supabase
+      .from("master_products").select("id").eq("barcode", barcode).maybeSingle()
+    masterId = byBarcode?.id ?? null
+  }
+  if (!masterId) {
+    const { data: byName } = await supabase
+      .from("master_products").select("id").ilike("name", esc).maybeSingle()
+    masterId = byName?.id ?? null
+  }
+  if (masterId) {
+    pool = "linked"
+  } else {
+    const { data: created, error: masterError } = await supabase
+      .from("master_products")
+      .insert({
+        name: cleanName,
+        description: description || null,
+        category_id: categoryId || null,
+        image_url: imageUrl,
+        barcode,
+        base_price: enrichedUnits[0].price,
+        // وحدات الكتالوج بلا أسعار — الأسعار ملك التاجر وحده
+        units: enrichedUnits.map(u => ({ type: u.type, multiplier_to_base: u.multiplier_to_base })),
+        unit_conversions: conversions,
+        created_by: ctx.userId,
+        origin: "merchant",
+      })
+      .select("id")
+      .single()
+
+    if (masterError || !created) {
+      return { success: false, error: "تعذّر تسجيل المادة في الكتالوج المركزي: " + (masterError?.message || "خطأ غير معروف") }
+    }
+    masterId = created.id
+  }
+
   const { data: product, error: insertError } = await supabase
     .from("products")
     .insert({
       merchant_id: ctx.merchantId,
+      master_product_id: masterId,
       name: cleanName,
       description: description || null,
       price: enrichedUnits[0].price,
@@ -268,7 +316,7 @@ export async function addOwnItemToWarehouse(formData: FormData) {
   }
 
   refresh()
-  return { success: true }
+  return { success: true, pool }
 }
 
 /** تعديل أسعار الوحدات وحد التنبيه لصنف مخزني */

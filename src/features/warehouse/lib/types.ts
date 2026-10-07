@@ -137,6 +137,8 @@ export interface PoolMasterProduct {
   base_price: number | null
   units: { type: string; multiplier_to_base: number }[]
   category_name: string | null
+  /** مصدر المادة: إدارة المواد أو مساهمة تاجر */
+  origin?: "admin" | "merchant" | null
 }
 
 /** صف في سجل التغييرات (audit) كما يراه التاجر */

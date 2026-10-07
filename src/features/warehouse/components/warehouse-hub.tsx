@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Loader2, Plus, Warehouse as WarehouseIcon, Search, AlertTriangle, Gem, Boxes, Activity, ClipboardList, Users, ScrollText, RefreshCw } from "lucide-react"
 import { enableWarehouseModule, createWarehouse } from "@/features/warehouse/actions"
 import { useWarehouseRealtime } from "@/features/warehouse/hooks/use-warehouse-realtime"
-import { WarehouseAddItemDialog } from "@/features/warehouse/components/warehouse-add-item"
+import { WarehouseAddItemPanel } from "@/features/warehouse/components/warehouse-add-item"
 import { WarehouseItemDialog } from "@/features/warehouse/components/warehouse-item-dialog"
 import { WarehouseStaffTab } from "@/features/warehouse/components/warehouse-staff-tab"
 import { WarehouseMovementsTab } from "@/features/warehouse/components/warehouse-movements-tab"
@@ -42,7 +42,7 @@ interface Props {
   canManageStaff: boolean
 }
 
-type HubTab = "items" | "staff" | "movements" | "activity"
+type HubTab = "items" | "add" | "staff" | "movements" | "activity"
 
 export function WarehouseHub(props: Props) {
   const {
@@ -59,7 +59,6 @@ export function WarehouseHub(props: Props) {
   const [statusFilter, setStatusFilter] = useState<"all" | StockStatus>("all")
   const [selectedItem, setSelectedItem] = useState<WarehouseItem | null>(null)
   const [itemDialogOpen, setItemDialogOpen] = useState(false)
-  const [addOpen, setAddOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [newWhName, setNewWhName] = useState("")
   const [showNewWh, setShowNewWh] = useState(false)
@@ -138,7 +137,7 @@ export function WarehouseHub(props: Props) {
                 <Plus className="w-4 h-4 ml-1" /> مخزن جديد
               </Button>
             )}
-            <Button size="sm" className="font-bold" onClick={() => setAddOpen(true)}>
+            <Button size="sm" className="font-bold" onClick={() => setTab("add")}>
               <Plus className="w-4 h-4 ml-1" /> إضافة مادة للمخزن
             </Button>
           </div>
@@ -236,6 +235,7 @@ export function WarehouseHub(props: Props) {
           <div className="flex gap-1 border-b border-border/60 overflow-x-auto">
             {([
               { id: "items", label: "المواد", icon: Boxes, show: true },
+              { id: "add", label: "إضافة مواد", icon: Plus, show: true },
               { id: "staff", label: "فريق العمل", icon: Users, show: true },
               { id: "movements", label: "دفتر الحركات", icon: Activity, show: true },
               { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: true },
@@ -286,7 +286,7 @@ export function WarehouseHub(props: Props) {
                     {items.length === 0 ? "مخزنك فارغ — أضف أول مادة من مواد التطبيق أو بإدخال حر" : "لا نتائج مطابقة للبحث"}
                   </p>
                   {canPricing && items.length === 0 && (
-                    <Button size="sm" className="font-bold" onClick={() => setAddOpen(true)}>
+                    <Button size="sm" className="font-bold" onClick={() => setTab("add")}>
                       <Plus className="w-4 h-4 ml-1" /> إضافة مادة للمخزن
                     </Button>
                   )}
@@ -367,6 +367,14 @@ export function WarehouseHub(props: Props) {
             </div>
           )}
 
+          {tab === "add" && (
+            <WarehouseAddItemPanel
+              warehouses={warehouses}
+              pool={poolProducts}
+              linkedMasterIds={linkedMasterIds}
+            />
+          )}
+
           {tab === "staff" && (
             <WarehouseStaffTab staff={staff} pickerStats={pickerStats} canManage={canManageStaff} />
           )}
@@ -379,14 +387,7 @@ export function WarehouseHub(props: Props) {
         </>
       )}
 
-      {/* الحوارات */}
-      <WarehouseAddItemDialog
-        open={addOpen && warehouseEnabled && warehouses.length > 0}
-        onOpenChange={setAddOpen}
-        warehouses={warehouses}
-        pool={poolProducts}
-        linkedMasterIds={linkedMasterIds}
-      />
+      {/* حوار بطاقة الصنف */}
       <WarehouseItemDialog
         key={selectedItem?.id ?? "none"}
         item={selectedItem}
