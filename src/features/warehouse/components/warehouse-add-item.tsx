@@ -28,7 +28,7 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
 
   // —— استعراض الـ Pool: الكل المتاح للربط + بحث محلي فوري ——
   const [query, setQuery] = useState("")
-  const unlinked = useMemo(() => pool.filter(p => !linkedMasterIds.has(p.id)), [pool, linkedMasterIds])
+  const unlinked = useMemo(() => pool, [pool]) // Show all to avoid confusion, disable linked ones below
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
@@ -155,7 +155,7 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
         <div>
           <h2 className="text-base font-black">إضافة مواد للمخزن</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            من مواد التطبيق (الكتالوج المركزي) أو مادة جديدة منك — تُشارك بالكتالوج منسوبة إليك
+            من مواد التطبيق (الكتالوج المركزي) أو إضافة مادة جديدة
           </p>
         </div>
       </div>
@@ -390,11 +390,11 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
           <div className="flex items-start gap-3 p-3 rounded-xl border border-brand-blue/25 bg-brand-blue/5">
             <span className="text-base leading-none mt-0.5">🌱</span>
             <div>
-              <div className="text-xs font-black text-brand-blue dark:text-brand-blue">المادة تُسجَّل في الكتالوج المركزي منسوبة إليك</div>
+              <div className="text-xs font-black text-brand-blue dark:text-brand-blue">المادة تُسجَّل في الكتالوج المركزي</div>
               <div className="text-[10px] text-muted-foreground leading-5 mt-0.5">
                 الكتالوج المركزي هو المكان الموحد لمواد التطبيق ويعلم كل شيء: تُرفع بيانات مادتك العامة
                 (الاسم/الصورة/الوحدات/الباركود) بشارة «من تجار التطبيق»، وإن وجدنا مطابقاً بالباركود أو الاسم ربطنا بها تلقائياً دون ازدواج.
-                أما <b>أسعارك ورصيدك وحدّ التنبيه فتبقى خاصة بك وحدك ولا تُنشر أبداً</b>.
+                الأسعار والرصيد وحدّ التنبيه تبقى خاصة بك وحدك ولا تُنشر.
               </div>
             </div>
           </div>
