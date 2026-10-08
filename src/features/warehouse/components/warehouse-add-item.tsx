@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Search, Plus, Package, CheckCircle2 } from "lucide-react"
+import { Loader2, Search, Plus, Package, CheckCircle2, X } from "lucide-react"
 import { addOwnItemToWarehouse, addPoolItemToWarehouse } from "@/features/warehouse/actions"
 import { formatIQD } from "@/features/warehouse/lib/helpers"
 import type { PoolMasterProduct, Warehouse } from "@/features/warehouse/lib/types"
@@ -179,7 +179,7 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
         </div>
       )}
 
-      {mode === "search" && !selected && (
+      {mode === "search" && (
         <div className="space-y-3">
           <div className="flex gap-2 max-w-xl">
           <div className="relative flex-1">
@@ -200,95 +200,97 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
               <p className="text-xs text-muted-foreground">لا توجد نتائج مطابقة. يمكنك إضافة المادة كجديدة.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="space-y-2">
               {results.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => pickMaster(p)}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/70 hover:border-brand-orange/50 hover:bg-brand-orange/5 text-right transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                    {p.image_url
-                      ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
-                      : <Package className="w-4 h-4 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-bold truncate">{p.name}</span>
-                      {p.origin === 'merchant' && (
-                        <span className="text-[9px] font-bold bg-brand-orange/10 text-brand-orange px-1.5 py-0.5 rounded-full border border-brand-orange/30">🌱</span>
-                      )}
+                <div key={p.id} className="rounded-xl border border-border/70 overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={linkedMasterIds.has(p.id)}
+                    onClick={() => selected?.id === p.id ? setSelected(null) : pickMaster(p)}
+                    aria-expanded={selected?.id === p.id}
+                    className={`w-full flex items-center gap-3 p-3 text-right transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${selected?.id === p.id ? "bg-brand-orange/5 border-b border-brand-orange/20" : "hover:border-brand-orange/50 hover:bg-brand-orange/5"}`}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                      {p.image_url
+                        ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                        : <Package className="w-4 h-4 text-muted-foreground" />}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {p.units.map(u => u.type).join(" · ")}{p.category_name ? ` — ${p.category_name}` : ""}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold truncate">{p.name}</span>
+                        {p.origin === 'merchant' && (
+                          <span className="text-[9px] font-bold bg-brand-orange/10 text-brand-orange px-1.5 py-0.5 rounded-full border border-brand-orange/30">🌱</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {p.units.map(u => u.type).join(" · ")}{p.category_name ? ` — ${p.category_name}` : ""}
+                      </div>
                     </div>
-                  </div>
-                  <Plus className="w-4 h-4 text-brand-orange shrink-0" />
-                </button>
+                    {linkedMasterIds.has(p.id)
+                      ? <span className="text-[10px] font-bold text-emerald-700">مضافة للمخزن</span>
+                      : selected?.id === p.id
+                      ? <X className="w-4 h-4 text-muted-foreground shrink-0" />
+                      : <Plus className="w-4 h-4 text-brand-orange shrink-0" />}
+                  </button>
+
+                  {selected?.id === p.id && (
+                    <div className="space-y-4 bg-card p-3 sm:p-4" aria-label={`تفاصيل إضافة ${selected.name}`}>
+                      <div className="text-[11px] text-muted-foreground">
+                        الأسعار والرصيد وحد التنبيه تخص متجرك، ويمكنك تعديلها قبل الإضافة.
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">أسعار البيع (د.ع)</Label>
+                        {selected.units.map(u => (
+                          <div key={u.type} className="flex items-center gap-2 max-w-md">
+                            <div className="w-20 font-bold text-sm shrink-0">{u.type}</div>
+                            <Input
+                              dir="ltr"
+                              inputMode="numeric"
+                              className="text-left font-bold"
+                              value={unitPrices[u.type] ?? ""}
+                              onChange={e => setUnitPrices(prev => ({ ...prev, [u.type]: e.target.value.replace(/[^\d]/g, "") }))}
+                            />
+                            {u.multiplier_to_base !== 1 && (
+                              <div className="text-[10px] text-muted-foreground shrink-0 w-20">×{u.multiplier_to_base}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">الرصيد</Label>
+                          <Input dir="ltr" inputMode="numeric" className="text-left font-bold" value={stockQty}
+                            onChange={e => setStockQty(e.target.value.replace(/[^\d]/g, ""))} placeholder="0" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">وحدة الرصيد</Label>
+                          <select className="w-full rounded-md border border-input bg-background px-2 py-2 text-sm font-bold"
+                            value={stockUnit} onChange={e => setStockUnit(e.target.value)}>
+                            {selected.units.map(u => <option key={u.type} value={u.type}>{u.type}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">حد التنبيه</Label>
+                          <Input dir="ltr" inputMode="numeric" className="text-left font-bold" value={minAlert}
+                            onChange={e => setMinAlert(e.target.value.replace(/[^\d]/g, ""))} placeholder="0" />
+                        </div>
+                      </div>
+
+                      {selected.base_price ? (
+                        <p className="text-[10px] text-muted-foreground">السعر المرجعي في المركز: {formatIQD(selected.base_price)} د.ع (لا يُعرض للمشترين)</p>
+                      ) : null}
+
+                      <Button onClick={submitPool} disabled={isPending} className="font-bold">
+                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 ml-1" /> إضافة إلى المخزن</>}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {mode === "search" && selected && (
-        <div className="space-y-4 max-w-2xl">
-          <div className="flex items-center justify-between bg-muted/40 rounded-xl p-3 border border-border/60">
-            <div>
-              <div className="font-black text-sm">{selected.name}</div>
-              <div className="text-[11px] text-muted-foreground">
-                بيانات المادة (الاسم/الصورة/القسم) تُدار مركزياً — وما ستدخله الآن يُحفظ لمتجرك فقط
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>تغيير</Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs">أسعار البيع (د.ع) — مقترحة من سعر المركز، عدّلها بحرية</Label>
-            {selected.units.map(u => (
-              <div key={u.type} className="flex items-center gap-2 max-w-md">
-                <div className="w-20 font-bold text-sm shrink-0">{u.type}</div>
-                <Input
-                  dir="ltr"
-                  inputMode="numeric"
-                  className="text-left font-bold"
-                  value={unitPrices[u.type] ?? ""}
-                  onChange={e => setUnitPrices(prev => ({ ...prev, [u.type]: e.target.value.replace(/[^\d]/g, "") }))}
-                />
-                {u.multiplier_to_base !== 1 && (
-                  <div className="text-[10px] text-muted-foreground shrink-0 w-20">×{u.multiplier_to_base}</div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 max-w-2xl">
-            <div className="space-y-1.5">
-              <Label className="text-xs">الرصيد</Label>
-              <Input dir="ltr" inputMode="numeric" className="text-left font-bold" value={stockQty}
-                onChange={e => setStockQty(e.target.value.replace(/[^\d]/g, ""))} placeholder="0" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">وحدة الرصيد</Label>
-              <select className="w-full rounded-md border border-input bg-background px-2 py-2 text-sm font-bold"
-                value={stockUnit} onChange={e => setStockUnit(e.target.value)}>
-                {selected.units.map(u => <option key={u.type} value={u.type}>{u.type}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">حد التنبيه</Label>
-              <Input dir="ltr" inputMode="numeric" className="text-left font-bold" value={minAlert}
-                onChange={e => setMinAlert(e.target.value.replace(/[^\d]/g, ""))} placeholder="0" />
-            </div>
-          </div>
-
-          {selected.base_price ? (
-            <p className="text-[10px] text-muted-foreground">السعر المرجعي في المركز: {formatIQD(selected.base_price)} د.ع (لا يُعرض للمشترين)</p>
-          ) : null}
-
-          <Button onClick={submitPool} disabled={isPending} className="font-bold">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 ml-1" /> إضافة إلى المخزن</>}
-          </Button>
         </div>
       )}
 

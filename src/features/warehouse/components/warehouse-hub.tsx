@@ -245,7 +245,7 @@ export function WarehouseHub(props: Props) {
               { id: "staff", label: "فريق العمل", icon: Users, show: canManageStaff },
               { id: "movements", label: "دفتر الحركات", icon: Activity, show: !isStaff },
               { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: !isStaff },
-            ] as { id: HubTab; label: string; icon: typeof Users; show: boolean }[]).map(t => (
+            ] as { id: HubTab; label: string; icon: typeof Users; show: boolean }[]).filter(t => t.show).map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
