@@ -35,12 +35,14 @@ export default async function WarehousesPage() {
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: true }),
     supabase.from("profiles").select("store_name, full_name").eq("id", ctx.merchantId).single(),
-    supabase
-      .from("profiles")
-      .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
-      .eq("role", "merchant_staff")
-      .eq("parent_merchant_id", ctx.merchantId)
-      .order("created_at", { ascending: true }),
+    ctx.role === "merchant"
+      ? supabase
+          .from("profiles")
+          .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
+          .eq("role", "merchant_staff")
+          .eq("parent_merchant_id", ctx.merchantId)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as never[] }),
     supabase
       .from("picking_lists")
       .select("id, order_id, status, picker_name, issued_at, picked_at, orders(invoice_number, store_name)")
@@ -67,18 +69,22 @@ export default async function WarehousesPage() {
       .from("master_products")
       .select("id, name, description, barcode, image_url, base_price, units, category_id, origin, categories(name)")
       .order("name", { ascending: true }),
-    supabase
-      .from("warehouse_movements")
-      .select("id, merchant_id, warehouse_id, product_id, kind, quantity, balance_after, reference_type, reference_id, note, performed_by, created_at, product:products(name, unit_conversions), actor:profiles(full_name)")
-      .order("created_at", { ascending: false })
-      .limit(150),
-    supabase
-      .from("picking_lists")
-      .select("id, order_id, status, picker_id, picker_name, issued_at, picked_at, picking_list_items(shortage_quantity)")
-      .eq("merchant_id", ctx.merchantId)
-      .not("picked_at", "is", null)
-      .gte("picked_at", monthCutoff.toISOString())
-      .limit(300),
+    ctx.role === "merchant"
+      ? supabase
+          .from("warehouse_movements")
+          .select("id, merchant_id, warehouse_id, product_id, kind, quantity, balance_after, reference_type, reference_id, note, performed_by, created_at, product:products(name, unit_conversions), actor:profiles(full_name)")
+          .order("created_at", { ascending: false })
+          .limit(150)
+      : Promise.resolve({ data: [] as never[] }),
+    ctx.role === "merchant"
+      ? supabase
+          .from("picking_lists")
+          .select("id, order_id, status, picker_id, picker_name, issued_at, picked_at, picking_list_items(shortage_quantity)")
+          .eq("merchant_id", ctx.merchantId)
+          .not("picked_at", "is", null)
+          .gte("picked_at", monthCutoff.toISOString())
+          .limit(300)
+      : Promise.resolve({ data: [] as never[] }),
   ])
 
   const items = ((itemsRes.data ?? []) as unknown) as Array<WarehouseItem & { product: Record<string, unknown> | null }>

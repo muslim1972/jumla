@@ -144,7 +144,7 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
           {([
             { id: "prices", label: "الأسعار وحد التنبيه", show: canPricing, icon: Save },
             { id: "stock", label: "حركة مخزنية", show: canWarehouse, icon: ArrowDownToLine },
-            { id: "history", label: "آخر الحركات", show: true, icon: History },
+            { id: "history", label: "آخر الحركات", show: !isStaff, icon: History },
           ] as { id: Tab; label: string; show: boolean; icon: typeof Save }[])
             .filter(t => t.show)
             .map(t => (

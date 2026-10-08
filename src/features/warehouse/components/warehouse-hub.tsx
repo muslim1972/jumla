@@ -47,7 +47,7 @@ type HubTab = "items" | "add" | "staff" | "movements" | "activity"
 export function WarehouseHub(props: Props) {
   const {
     merchantId,
-    actorRole, isStaff, canPricing, canWarehouse, warehouseEnabled,
+    actorName, actorRole, isStaff, canPricing, canWarehouse, warehouseEnabled,
     storeName, warehouses, items, poolProducts, staff, movements, activeLists, pickerStats, canManageStaff,
   } = props
 
@@ -116,6 +116,7 @@ export function WarehouseHub(props: Props) {
     { label: "وصل حد التنبيه", value: `${lowItems.length}${outItems.length > 0 ? ` (${outItems.length} نافد)` : ""}`, icon: AlertTriangle, cls: "text-red-600 dark:text-red-400 bg-red-500/10" },
     { label: "حركة مخزنية اليوم", value: String(todayMovements), icon: Activity, cls: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" },
   ]
+  const visibleKpis = isStaff ? kpis.filter(k => k.label !== "حركة مخزنية اليوم") : kpis
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
@@ -124,7 +125,12 @@ export function WarehouseHub(props: Props) {
         <div>
           <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2">
             <span className="p-2 rounded-xl bg-brand-orange/10 text-brand-orange border border-brand-orange/20"><WarehouseIcon className="w-5 h-5" /></span>
-            مخازن {storeName}
+            {isStaff ? (
+              <>
+                <span>{actorName || "الموظف"}</span>
+                <span className="text-xs sm:text-sm font-bold text-muted-foreground">موظف في أسواق {storeName}</span>
+              </>
+            ) : `مخازن ${storeName}`}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             الكميات، الأسعار، حدود التنبيه، وقوائم التجهيز — كل حركة مسجّلة باسم صاحبها ووقتها
@@ -171,7 +177,7 @@ export function WarehouseHub(props: Props) {
         <>
           {/* المؤشرات */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {kpis.map(k => (
+            {visibleKpis.map(k => (
               <div key={k.label} className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl shrink-0 ${k.cls}`}><k.icon className="w-4 h-4" /></div>
                 <div className="min-w-0">
@@ -236,9 +242,9 @@ export function WarehouseHub(props: Props) {
             {([
               { id: "items", label: "المواد", icon: Boxes, show: true },
               { id: "add", label: "إضافة مواد", icon: Plus, show: true },
-              { id: "staff", label: "فريق العمل", icon: Users, show: true },
-              { id: "movements", label: "دفتر الحركات", icon: Activity, show: true },
-              { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: true },
+              { id: "staff", label: "فريق العمل", icon: Users, show: canManageStaff },
+              { id: "movements", label: "دفتر الحركات", icon: Activity, show: !isStaff },
+              { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: !isStaff },
             ] as { id: HubTab; label: string; icon: typeof Users; show: boolean }[]).map(t => (
               <button
                 key={t.id}
