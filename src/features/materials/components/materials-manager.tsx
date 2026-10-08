@@ -29,6 +29,7 @@ export type MasterProduct = {
   base_price: number | null
   units: MasterUnit[]
   unit_conversions: { from: string, to: string, multiplier: number }[]
+  updated_at?: string
   /** مصدر المادة: إدارة المواد أو مساهمة تاجر («الـ Pool هو المكان الموحد») */
   origin?: 'admin' | 'merchant' | null
 }
@@ -276,6 +277,7 @@ export function MasterProductForm({
 
     formData.append("units", JSON.stringify(effectiveUnits))
     formData.append("unit_conversions", JSON.stringify(validConversions))
+    if (initial?.updated_at) formData.append("expected_updated_at", initial.updated_at)
 
     const result = await onSubmit(formData)
     setIsSubmitting(false)

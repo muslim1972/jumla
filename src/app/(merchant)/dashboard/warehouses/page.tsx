@@ -56,7 +56,7 @@ export default async function WarehousesPage() {
   const defaultWarehouseId = warehouses.find(w => w.is_default)?.id ?? warehouses[0]?.id ?? null
 
   // بنود المخازن + منتجاتها (استعلام واحد بلا حد — التاجر قد يدير آلاف المواد)
-  const [itemsRes, poolRes, movementsRes, recentListsRes] = await Promise.all([
+  const [itemsRes, poolRes, movementsRes, recentListsRes, categoriesRes] = await Promise.all([
     defaultWarehouseId
       ? supabase
           .from("warehouse_items")
@@ -67,7 +67,7 @@ export default async function WarehousesPage() {
       : Promise.resolve({ data: [] as never[] }),
     supabase
       .from("master_products")
-      .select("id, name, description, barcode, image_url, base_price, units, category_id, origin, categories(name)")
+      .select("id, name, description, barcode, image_url, base_price, units, unit_conversions, category_id, origin, updated_at, categories(name)")
       .order("name", { ascending: true }),
     ctx.role === "merchant"
       ? supabase
@@ -85,6 +85,7 @@ export default async function WarehousesPage() {
           .gte("picked_at", monthCutoff.toISOString())
           .limit(300)
       : Promise.resolve({ data: [] as never[] }),
+    supabase.from("categories").select("id, name").order("name"),
   ])
 
   const items = ((itemsRes.data ?? []) as unknown) as Array<WarehouseItem & { product: Record<string, unknown> | null }>
@@ -123,7 +124,8 @@ export default async function WarehousesPage() {
 
   const poolProducts: PoolMasterProduct[] = (((poolRes.data ?? []) as unknown) as Array<{
     id: string; name: string; description: string | null; barcode: string | null; image_url: string | null; base_price: number | null;
-    units: { type: string; multiplier_to_base: number }[]; category_id: string | null; origin: string | null; categories: { name: string } | null
+    units: { type: string; multiplier_to_base: number }[]; unit_conversions: { from: string; to: string; multiplier: number }[];
+    category_id: string | null; origin: string | null; updated_at: string; categories: { name: string } | null
   }>).map(mp => ({
     id: mp.id,
     name: mp.name,
@@ -132,6 +134,9 @@ export default async function WarehousesPage() {
     image_url: mp.image_url,
     base_price: mp.base_price,
     units: mp.units || [],
+    unit_conversions: mp.unit_conversions || [],
+    category_id: mp.category_id,
+    updated_at: mp.updated_at,
     category_name: mp.categories?.name ?? null,
     origin: (mp.origin as PoolMasterProduct["origin"]) ?? null,
   }))
@@ -170,6 +175,7 @@ export default async function WarehousesPage() {
       warehouses={warehouses}
       items={normalizedItems}
       poolProducts={poolProducts}
+      catalogCategories={categoriesRes.data || []}
       staff={staff}
       movements={normalizedMovements}
       activeLists={activeLists}

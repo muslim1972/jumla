@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import { validateBarcode } from "@/features/materials/lib/barcode"
 import { calculateUnitMultipliers } from "@/features/materials/lib/units"
+import { getActorContext, hasPermission } from "@/features/staff/lib/guard"
 
 async function assertMaterialsRole(allowMerchant: boolean = false) {
   const supabase = await createClient()
@@ -30,7 +31,7 @@ async function assertMaterialsRole(allowMerchant: boolean = false) {
 // رفع صورة مادة الكتالوج داخل مجلد المعرّف الشخصي للمستخدم — نفس نمط رفع منتجات
 // التجار المقبول من سياسات storage (المسارات المغايرة مثل master/... تُرفض بالسياسة)
 // مع إرجاع خطأ الرفع بدل ابتلاعه حتى لا تُحفظ مادة بلا صورة بصمت
-async function uploadMasterImage(supabase: any, userId: string, image: File): Promise<{ url: string | null, error: string | null }> {
+async function uploadMasterImage(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, image: File): Promise<{ url: string | null, error: string | null }> {
   const fileExt = image.name.split('.').pop()
   const fileName = `master-${Math.random()}.${fileExt}`
   const filePath = `${userId}/${fileName}`
@@ -49,7 +50,7 @@ async function uploadMasterImage(supabase: any, userId: string, image: File): Pr
   return { url: publicUrl, error: null }
 }
 
-function translateMasterError(error: any): string {
+function translateMasterError(error: { code?: string; message?: string } | null): string {
   // 23505: انتهاك الفهرس الفريد للباركود في master_products
   if (error?.code === '23505') {
     return "هذا الباركود مسجل مسبقاً لمادة أخرى"
@@ -123,7 +124,7 @@ export async function createMasterProduct(formData: FormData) {
   try {
     units = JSON.parse(unitsJson)
     unit_conversions = JSON.parse(conversionsJson)
-  } catch (e) {
+  } catch {
     return { success: false, error: "Invalid json data" }
   }
 
@@ -184,10 +185,17 @@ export async function createMasterProduct(formData: FormData) {
 }
 
 export async function editMasterProduct(formData: FormData) {
-  const { supabase, user, error: roleError } = await assertMaterialsRole()
-  if (roleError || !user) return { success: false, error: roleError || "Unauthorized" }
+  const ctx = await getActorContext()
+  if (!ctx || (ctx.role === "merchant_staff" && !hasPermission(ctx, "pricing"))) {
+    const { error: roleError } = await assertMaterialsRole()
+    if (roleError) return { success: false, error: "غير مصرح لك بتصحيح بيانات الكتالوج" }
+  }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Unauthorized" }
 
   const id = formData.get("id") as string
+  const expectedUpdatedAt = formData.get("expected_updated_at") as string | null
   const name = (formData.get("name") as string || "").trim()
   const description = (formData.get("description") as string || "").trim()
   const category_id = formData.get("category_id") as string | null
@@ -199,6 +207,9 @@ export async function editMasterProduct(formData: FormData) {
 
   if (!id) {
     return { success: false, error: "معرّف المادة مفقود" }
+  }
+  if (!expectedUpdatedAt) {
+    return { success: false, error: "تعذر التحقق من نسخة المادة. أعد تحميل الصفحة ثم حاول التصحيح مجدداً." }
   }
   if (!name) {
     return { success: false, error: "اسم المادة مطلوب" }
@@ -214,7 +225,7 @@ export async function editMasterProduct(formData: FormData) {
   try {
     units = JSON.parse(unitsJson)
     unit_conversions = JSON.parse(conversionsJson)
-  } catch (e) {
+  } catch {
     return { success: false, error: "Invalid json data" }
   }
 
@@ -247,7 +258,17 @@ export async function editMasterProduct(formData: FormData) {
     return { success: false, error: "هذه المادة مسجلة مسبقاً بنفس الاسم والباركود." }
   }
 
-  const updates: any = {
+  const updates: {
+    name: string
+    description: string | null
+    category_id: string | null
+    barcode: string | null
+    base_price: number | null
+    units: { type: string; multiplier_to_base: number }[]
+    unit_conversions: { from: string; to: string; multiplier: number }[]
+    updated_at: string
+    image_url?: string
+  } = {
     name,
     description: description || null,
     category_id: category_id || null,
@@ -264,15 +285,20 @@ export async function editMasterProduct(formData: FormData) {
     if (upload.url) updates.image_url = upload.url
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('master_products')
     .update(updates)
     .eq('id', id)
+    .eq('updated_at', expectedUpdatedAt)
+    .select('id')
+    .maybeSingle()
 
   if (error) return { success: false, error: translateMasterError(error) }
+  if (!updated) return { success: false, error: "لم يُحفظ التصحيح: ربما عدّل مستخدم آخر المادة، أو لم تُطبّق سياسة الكتالوج. حدّث الصفحة وتحقق من إعداد قاعدة البيانات ثم أعد المحاولة." }
 
   revalidatePath("/materials")
   revalidatePath("/dashboard")
+  revalidatePath("/dashboard/warehouses")
   return { success: true }
 }
 

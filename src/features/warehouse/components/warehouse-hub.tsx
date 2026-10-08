@@ -35,6 +35,7 @@ interface Props {
   warehouses: Warehouse[]
   items: WarehouseItem[]
   poolProducts: PoolMasterProduct[]
+  catalogCategories: { id: string; name: string }[]
   staff: StaffMember[]
   movements: WarehouseMovement[]
   activeLists: { id: string; order_id: string; status: string; picker_name: string | null; invoice_number: number | null; store_name: string | null }[]
@@ -48,7 +49,7 @@ export function WarehouseHub(props: Props) {
   const {
     merchantId,
     actorName, actorRole, isStaff, canPricing, canWarehouse, warehouseEnabled,
-    storeName, warehouses, items, poolProducts, staff, movements, activeLists, pickerStats, canManageStaff,
+    storeName, warehouses, items, poolProducts, catalogCategories, staff, movements, activeLists, pickerStats, canManageStaff,
   } = props
 
   useWarehouseRealtime(merchantId)
@@ -377,6 +378,7 @@ export function WarehouseHub(props: Props) {
             <WarehouseAddItemPanel
               warehouses={warehouses}
               pool={poolProducts}
+              categories={catalogCategories}
               linkedMasterIds={linkedMasterIds}
             />
           )}

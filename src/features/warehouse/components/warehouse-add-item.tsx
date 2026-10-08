@@ -1,17 +1,28 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Search, Plus, Package, CheckCircle2, X } from "lucide-react"
+import { Loader2, Search, Plus, Package, CheckCircle2, X, Pencil } from "lucide-react"
 import { addOwnItemToWarehouse, addPoolItemToWarehouse } from "@/features/warehouse/actions"
+import { editMasterProduct } from "@/features/materials/actions"
+import type { MasterProduct } from "@/features/materials/components/materials-manager"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatIQD } from "@/features/warehouse/lib/helpers"
 import type { PoolMasterProduct, Warehouse } from "@/features/warehouse/lib/types"
+
+const MasterProductForm = dynamic(
+  () => import("@/features/materials/components/materials-manager").then(module => module.MasterProductForm),
+  { loading: () => <p className="text-xs text-muted-foreground">جارٍ تحميل نموذج التصحيح…</p> }
+)
 
 interface Props {
   warehouses: Warehouse[]
   pool: PoolMasterProduct[]
+  categories: { id: string; name: string }[]
   /** المعرّفات المرتبطة مسبقاً — لمنع التكرار في الواجهة */
   linkedMasterIds: Set<string>
 }
@@ -19,7 +30,8 @@ interface Props {
 /**
  * تبويبة «إضافة مواد» — بحث في الكتالوج أو إدخال مادة جديدة للمخزن.
  */
-export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Props) {
+export function WarehouseAddItemPanel({ warehouses, pool, categories, linkedMasterIds }: Props) {
+  const router = useRouter()
   const [mode, setMode] = useState<"search" | "own">("search")
   const [warehouseId, setWarehouseId] = useState(warehouses.find(w => w.is_default)?.id || warehouses[0]?.id || "")
   const [isPending, startTransition] = useTransition()
@@ -38,6 +50,8 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
   }, [query, unlinked])
 
   const [selected, setSelected] = useState<PoolMasterProduct | null>(null)
+  const [editingMaster, setEditingMaster] = useState<PoolMasterProduct | null>(null)
+  const [categoryOptions, setCategoryOptions] = useState(categories)
   const [unitPrices, setUnitPrices] = useState<Record<string, string>>({})
   const [stockQty, setStockQty] = useState("")
   const [stockUnit, setStockUnit] = useState("")
@@ -239,6 +253,10 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
                         الأسعار والرصيد وحد التنبيه تخص متجرك، ويمكنك تعديلها قبل الإضافة.
                       </div>
 
+                      <Button type="button" variant="outline" size="sm" onClick={() => setEditingMaster(selected)}>
+                        <Pencil className="w-3.5 h-3.5 ml-1" /> تصحيح بيانات الكتالوج المشترك
+                      </Button>
+
                       <div className="space-y-2">
                         <Label className="text-xs">أسعار البيع (د.ع)</Label>
                         {selected.units.map(u => (
@@ -406,6 +424,34 @@ export function WarehouseAddItemPanel({ warehouses, pool, linkedMasterIds }: Pro
           </Button>
         </div>
       )}
+
+      <Dialog open={!!editingMaster} onOpenChange={open => { if (!open) setEditingMaster(null) }}>
+        <DialogContent dir="rtl" className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader><DialogTitle>تصحيح بيانات المادة في الكتالوج المشترك</DialogTitle></DialogHeader>
+          {editingMaster && (
+            <>
+              <p className="text-xs text-muted-foreground">التعديل سيظهر للمستخدمين عند ربط المادة لاحقاً. أسعار وأرصدة التجار الحالية تبقى كما هي.</p>
+              <MasterProductForm
+                key={editingMaster.id}
+                categories={categoryOptions}
+                initial={{
+                  ...editingMaster,
+                  category_name: categoryOptions.find(c => c.id === editingMaster.category_id)?.name ?? null,
+                  unit_conversions: editingMaster.unit_conversions,
+                } as MasterProduct}
+                formId={`warehouse-master-edit-${editingMaster.id}`}
+                submitLabel="حفظ تصحيح الكتالوج"
+                onSubmit={formData => {
+                  formData.append("id", editingMaster.id)
+                  return editMasterProduct(formData)
+                }}
+                onCategoryCreated={category => setCategoryOptions(current => [...current.filter(c => c.id !== category.id), category])}
+                onSuccess={() => { setEditingMaster(null); setSelected(null); router.refresh() }}
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

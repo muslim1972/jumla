@@ -137,6 +137,9 @@ export interface PoolMasterProduct {
   image_url: string | null
   base_price: number | null
   units: { type: string; multiplier_to_base: number }[]
+  unit_conversions: { from: string; to: string; multiplier: number }[]
+  category_id: string | null
+  updated_at: string
   category_name: string | null
   /** مصدر المادة: إدارة المواد أو مساهمة تاجر */
   origin?: "admin" | "merchant" | null
