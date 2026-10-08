@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Loader2, UserPlus, KeyRound, Pause, Play, Pencil, ShieldCheck } from "lucide-react"
+import Link from "next/link"
 import { createStaff, updateStaff, toggleStaffActive, resetStaffPassword } from "@/features/staff/actions"
 import { generateStaffPassword, isValidStaffUsername } from "@/utils/staff"
 import { STAFF_PERMISSION_LABELS, type PickerStat, type StaffPermission, type StaffMember } from "@/features/warehouse/lib/types"
@@ -30,6 +31,10 @@ export function WarehouseStaffTab({ staff, pickerStats, canManage }: Props) {
     <div className="space-y-4">
       {errorMsg && <div className="p-2.5 bg-destructive/10 text-destructive text-xs rounded-md font-bold">{errorMsg}</div>}
       {okMsg && <div className="p-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded-md font-bold">{okMsg}</div>}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-brand-blue/20 bg-brand-blue/5 p-3 text-xs leading-6">
+        <p>دخول الموظف من شاشة تسجيل الدخول عبر «دخول موظفي المتاجر»، باستخدام اسم المستخدم وكلمة المرور اللذين أنشأهما صاحب المتجر. سيُفتح له القسم المسموح وفق صلاحياته.</p>
+        <Link href="/login" className="shrink-0 font-bold text-brand-blue underline underline-offset-2">فتح شاشة الدخول</Link>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {staff.map(s => {
@@ -166,7 +171,7 @@ function AddStaffDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
       <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-right">إضافة موظف جديد</DialogTitle>
-          <DialogDescription className="text-right">سيظهر ضمن فريق متجرك فقط، وكل حركة تُنسب لاسمه</DialogDescription>
+          <DialogDescription className="text-right">سيظهر ضمن فريق متجرك فقط، وكل حركة تُنسب لاسمه. بعد الإنشاء يدخل من صفحة التطبيق عبر «دخول موظفي المتاجر».</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">

@@ -30,7 +30,7 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
       } else {
         alert("خطأ في الحفظ: " + result.error)
       }
-    } catch (error) {
+    } catch {
       alert("خطأ في الاتصال")
     } finally {
       setIsLoading(false)
@@ -112,7 +112,7 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
         )}
       </button>
 
-      <p className="text-[10px] text-muted-foreground text-center mt-1">* يجب تحديد أجور التوصيل ورقم الدعم قبل إضافة أي منتجات جديدة.</p>
+      <p className="text-[10px] text-muted-foreground text-center mt-1">* حدّد أجور التوصيل ورقم دعم الطلبات ليتمكن عملاؤك من إكمال طلباتهم والتواصل مع متجرك.</p>
         </div>
       )}
     </div>

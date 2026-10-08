@@ -139,6 +139,15 @@ export function LoginClient({ message }: { message?: string }) {
               ? "أدخل رقم هاتفك وكلمة المرور للدخول إلى حسابك"
               : "الدخول بالبريد الإلكتروني — للحسابات القديمة المسجلة ببريد"}
           </CardDescription>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full font-bold"
+            aria-pressed={mode === "staff"}
+            onClick={() => switchMode(mode === "staff" ? "phone" : "staff")}
+          >
+            {mode === "staff" ? "العودة إلى دخول الحسابات" : "دخول موظفي المتاجر"}
+          </Button>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -232,24 +241,13 @@ export function LoginClient({ message }: { message?: string }) {
                   </div>
                 ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => switchMode(mode === "staff" ? "phone" : mode === "phone" ? "email" : "phone")}
-                className="text-xs text-muted-foreground hover:text-brand-orange underline underline-offset-2"
-              >
-                {mode === "staff"
-                  ? "العودة لتسجيل دخول الحسابات"
-                  : mode === "phone"
-                  ? "تسجيل الدخول بالبريد الإلكتروني (حسابات قديمة)"
-                  : "تسجيل الدخول برقم الهاتف"}
-              </button>
               {mode !== "staff" && (
                 <button
                   type="button"
-                  onClick={() => switchMode("staff")}
-                  className="block text-xs text-muted-foreground/70 hover:text-brand-blue underline underline-offset-2"
+                  onClick={() => switchMode(mode === "phone" ? "email" : "phone")}
+                  className="text-xs text-muted-foreground hover:text-brand-orange underline underline-offset-2"
                 >
-                  👤 دخول الموظفين (بوابة داخلية)
+                  {mode === "phone" ? "تسجيل الدخول بالبريد الإلكتروني (حسابات قديمة)" : "تسجيل الدخول برقم الهاتف"}
                 </button>
               )}
             </div>

@@ -80,26 +80,20 @@ export default async function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="flex flex-col md:flex-row gap-8">
-        
-        {/* Add Product Form */}
-        <div className="w-full md:w-1/3">
-          <MerchantSettings 
-            initialDeliveryFee={profile?.delivery_fee} 
-            initialSupportPhone={profile?.support_phone} 
-          />
+      <section className="mb-8 space-y-3">
+        <MerchantSettings
+          initialDeliveryFee={profile?.delivery_fee}
+          initialSupportPhone={profile?.support_phone}
+        />
+        {!isProfileComplete && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-2 items-start text-destructive">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">يجب تحديد أجور التوصيل ورقم الدعم أولاً لتتمكن من إضافة المنتجات.</p>
+          </div>
+        )}
+      </section>
 
-          {!isProfileComplete && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-2 items-start text-destructive">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <p className="text-sm font-medium">يجب تحديد أجور التوصيل ورقم الدعم أولاً لتتمكن من إضافة المنتجات.</p>
-            </div>
-          )}
-
-        </div>
-
-        {/* Dashboard Content */}
-        <div className="w-full md:w-2/3 space-y-8">
+      <div className="space-y-8">
           
           {/* Analytics Section */}
           <div className="space-y-4">
@@ -161,7 +155,6 @@ export default async function DashboardPage() {
 
           {/* Products List */}
           <MerchantProductsList products={products || []} categories={categories} />
-        </div>
       </div>
     </div>
   )
