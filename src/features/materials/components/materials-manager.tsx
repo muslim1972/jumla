@@ -133,7 +133,9 @@ export function MasterProductForm({
   const [units, setUnits] = useState<{ type: string }[]>(
     initial?.units?.map(u => ({ type: u.type })) || []
   )
-  const [currentUnitType, setCurrentUnitType] = useState("كارتون")
+  const [currentUnitType, setCurrentUnitType] = useState(() =>
+    UNIT_OPTIONS.find(option => !initial?.units?.some(unit => unit.type === option)) || UNIT_OPTIONS[0]
+  )
   const [conversions, setConversions] = useState<Conversion[]>(() => buildConversionsFromInitial(initial))
   const [formError, setFormError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -160,6 +162,7 @@ export function MasterProductForm({
       return
     }
     setUnits([...units, { type: currentUnitType }])
+    setIsNoPartsMaterial(false)
     setFormError("")
   }
 
