@@ -290,7 +290,7 @@ export async function editMasterProduct(formData: FormData) {
     .update(updates)
     .eq('id', id)
     .eq('updated_at', expectedUpdatedAt)
-    .select('id')
+    .select('id, name, description, category_id, barcode, base_price, units, unit_conversions, image_url, updated_at')
     .maybeSingle()
 
   if (error) return { success: false, error: translateMasterError(error) }
@@ -299,7 +299,7 @@ export async function editMasterProduct(formData: FormData) {
   revalidatePath("/materials")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/warehouses")
-  return { success: true }
+  return { success: true, product: updated }
 }
 
 export async function deleteMasterProduct(id: string) {

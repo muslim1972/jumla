@@ -40,7 +40,8 @@ export function WarehouseAddItemPanel({ warehouses, pool, categories, linkedMast
 
   // —— استعراض الـ Pool: الكل المتاح للربط + بحث محلي فوري ——
   const [query, setQuery] = useState("")
-  const unlinked = useMemo(() => pool, [pool]) // Show all to avoid confusion, disable linked ones below
+  const [poolOverrides, setPoolOverrides] = useState<Record<string, PoolMasterProduct>>({})
+  const unlinked = useMemo(() => pool.map(product => poolOverrides[product.id] ?? product), [pool, poolOverrides])
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
@@ -443,7 +444,17 @@ export function WarehouseAddItemPanel({ warehouses, pool, categories, linkedMast
                 submitLabel="حفظ تصحيح الكتالوج"
                 onSubmit={formData => {
                   formData.append("id", editingMaster.id)
-                  return editMasterProduct(formData)
+                  return editMasterProduct(formData).then(result => {
+                    if (result?.success && result.product) {
+                      const updatedProduct: PoolMasterProduct = {
+                        ...editingMaster,
+                        ...result.product,
+                        category_name: categoryOptions.find(category => category.id === result.product?.category_id)?.name ?? null,
+                      }
+                      setPoolOverrides(current => ({ ...current, [editingMaster.id]: updatedProduct }))
+                    }
+                    return result
+                  })
                 }}
                 onCategoryCreated={category => setCategoryOptions(current => [...current.filter(c => c.id !== category.id), category])}
                 onSuccess={() => { setEditingMaster(null); setSelected(null); router.refresh() }}
