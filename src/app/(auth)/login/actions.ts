@@ -21,7 +21,9 @@ export async function signIn(formData: FormData) {
   if (error) {
     let errorMessage = "حدث خطأ أثناء تسجيل الدخول."
     if (error.message.includes("Invalid login credentials")) {
-      errorMessage = "رقم الهاتف أو كلمة المرور غير صحيحة"
+      errorMessage = isPhoneIdentity(identity)
+        ? "رقم الهاتف أو كلمة المرور غير صحيحة"
+        : "البريد الإلكتروني أو كلمة المرور غير صحيحة"
     } else if (error.message.includes("Email not confirmed")) {
       errorMessage = "يرجى تأكيد الحساب أولاً"
     } else {
