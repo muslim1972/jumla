@@ -21,7 +21,7 @@
   "src/app/(auth)/awaiting-approval/page.tsx": "4c0cd82c831bebf111d1117db905bb0a",
   "src/app/(auth)/layout.tsx": "7f485dfdef91e4d703f5d5fdf8a04944",
   "src/app/(auth)/loading.tsx": "6f72a50dfe6a44295c7b631bc18fcace",
-  "src/app/(auth)/login/actions.ts": "e40998e9fa5f593218e309e7669e6b2f",
+  "src/app/(auth)/login/actions.ts": "255acbe8ee25665f571676ddf089882d",
   "src/app/(auth)/login/login-client.tsx": "363e2e08891990f006323517ffe3f294",
   "src/app/(auth)/login/page.tsx": "38734fedd78c834d69a1ea73b71bbb50",
   "src/app/(auth)/register/actions.ts": "ce2189a233acee5df611734e88750462",

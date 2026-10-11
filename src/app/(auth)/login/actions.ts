@@ -10,8 +10,39 @@ export async function signIn(formData: FormData) {
   const password = formData.get("password") as string
   const supabase = await createClient()
 
-  // الدخول برقم الهاتف (يُحوَّل داخلياً إلى البريد الزائف) أو بالبريد الإلكتروني للحسابات القديمة
-  const email = isPhoneIdentity(identity) ? phoneToEmail(identity)! : identity
+  // الدخول برقم الهاتف أو بالبريد الإلكتروني:
+  // إن كان المُدخل رقم هاتف، نفحص أولاً إن كان حساباً قديماً مسجلاً ببريد حقيقي
+  let email = identity
+  if (isPhoneIdentity(identity)) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (supabaseUrl && supabaseServiceKey) {
+      try {
+        const adminClient = createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('phone', identity)
+          .maybeSingle()
+
+        if (profile) {
+          const { data: userData } = await adminClient.auth.admin.getUserById(profile.id)
+          if (userData?.user?.email) {
+            email = userData.user.email
+          }
+        }
+      } catch (e) {
+        console.error("Failed to resolve email for phone:", e)
+      }
+    }
+
+    // إذا لم نجد بريداً حقيقياً في profiles، نلجأ إلى البريد الزائف الافتراضي
+    if (!email || email === identity) {
+      email = phoneToEmail(identity)!
+    }
+  }
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
