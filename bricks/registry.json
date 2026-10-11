@@ -1,0 +1,314 @@
+{
+  "version": "1.0.0",
+  "system": "Jumla Marketplace",
+  "description": "سجل الطابوق المعماري لنظام جملتي — الدرع الواقي لمنع التراجعات وربط كل ملف بطابوقة مسؤولة",
+  "updated_at": "2026-10-11T23:15:00Z",
+  "bricks": {
+    "FE-CORE-01": {
+      "name": "الغلاف العام ومكونات النظام المشتركة",
+      "layer": "Frontend Core",
+      "domain": "core",
+      "status": "stable",
+      "description": "غلاف التطبيق العام، الثيم، القوائم العائمة، الإشعارات العامة، دوال الربط الأساسية مع Supabase",
+      "files": [
+        "src/app/(app)/layout.tsx",
+        "src/app/(app)/loading.tsx",
+        "src/app/(app)/no-permission/page.tsx",
+        "src/app/(app)/page.tsx",
+        "src/app/(app)/support/page.tsx",
+        "src/app/api/cron/keep-alive/route.ts",
+        "src/app/favicon.ico",
+        "src/app/globals.css",
+        "src/app/layout.tsx",
+        "src/app/loading.tsx",
+        "src/app/sw.ts",
+        "src/components/global/autocomplete-search.tsx",
+        "src/components/global/floating-app-menu.tsx",
+        "src/components/global/floating-contact-button.tsx",
+        "src/components/global/floating-menu-provider.tsx",
+        "src/components/global/floating-top-right.tsx",
+        "src/components/global/install-app-button.tsx",
+        "src/components/global/mode-toggle.tsx",
+        "src/components/global/notification-center.tsx",
+        "src/components/global/onesignal-provider.tsx",
+        "src/components/global/promo-banners.tsx",
+        "src/components/global/scroll-to-top.tsx",
+        "src/components/global/sign-out-button.tsx",
+        "src/components/global/theme-provider.tsx",
+        "src/components/global/top-announcement-bar.tsx",
+        "src/components/ui/button.tsx",
+        "src/components/ui/card.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/dropdown-menu.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/label.tsx",
+        "src/components/ui/select.tsx",
+        "src/components/ui/skeleton.tsx",
+        "src/hooks/use-debounce.ts",
+        "src/lib/app-context.ts",
+        "src/lib/generate-code.ts",
+        "src/lib/round-to-250.ts",
+        "src/lib/utils.ts",
+        "src/proxy.ts",
+        "src/utils/onesignal.ts",
+        "src/utils/phone.ts",
+        "src/utils/staff.ts",
+        "src/utils/supabase/admin.ts",
+        "src/utils/supabase/client.ts",
+        "src/utils/supabase/middleware.ts",
+        "src/utils/supabase/server.ts"
+      ],
+      "db": [
+        "app_settings",
+        "banners",
+        "top_banners"
+      ]
+    },
+    "FE-AUTH-01": {
+      "name": "المصادقة والصلاحيات وإدارة الحسابات",
+      "layer": "Auth & Access",
+      "domain": "auth",
+      "status": "stable",
+      "description": "تسجيل الدخول، إنشاء الحساب، انتظار الموافقة، التحقق من الصلاحيات وأدوار الموظفين",
+      "files": [
+        "src/app/(auth)/actions.ts",
+        "src/app/(auth)/awaiting-approval/page.tsx",
+        "src/app/(auth)/layout.tsx",
+        "src/app/(auth)/loading.tsx",
+        "src/app/(auth)/login/actions.ts",
+        "src/app/(auth)/login/login-client.tsx",
+        "src/app/(auth)/login/page.tsx",
+        "src/app/(auth)/register/actions.ts",
+        "src/app/(auth)/register/page.tsx",
+        "src/app/(auth)/register/register-client.tsx",
+        "src/app/actions/auth-actions.ts",
+        "src/features/staff/actions.ts",
+        "src/features/staff/lib/guard.ts",
+        "src/features/staff/staff-signin.ts",
+        "src/features/user/components/profile/account-deletion.tsx",
+        "src/features/user/components/profile/buyer-orders-manager.tsx",
+        "src/features/user/components/profile/password-manager.tsx",
+        "src/features/user/components/profile/profile-info-form.tsx",
+        "src/features/user/components/profile/rewards-summary.tsx",
+        "src/features/user/components/profile/types.ts",
+        "src/features/user/components/user-profile-modal.tsx"
+      ],
+      "db": [
+        "profiles",
+        "get_role_by_email",
+        "get_user_role",
+        "handle_new_user"
+      ]
+    },
+    "FE-PROD-01": {
+      "name": "دليل المنتجات والبحث والتصنيفات",
+      "layer": "Storefront",
+      "domain": "products",
+      "status": "stable",
+      "description": "عرض المنتجات وتصنيفاتها، بطاقات السلع، البحث السريع وتصفية المواد",
+      "files": [
+        "src/features/products/components/product-card.tsx",
+        "src/features/products/components/product-explorer.tsx",
+        "src/features/products/lib/taxonomy.ts"
+      ],
+      "db": [
+        "products",
+        "categories",
+        "master_products",
+        "sync_master_product_to_products"
+      ]
+    },
+    "FE-CART-01": {
+      "name": "سلة التسوق والمشتريات",
+      "layer": "Commerce",
+      "domain": "cart",
+      "status": "stable",
+      "description": "إدارة عناصر السلة، حساب الكميات والإجماليات والخصومات الفورية",
+      "files": [
+        "src/app/(app)/cart/cart-client.tsx",
+        "src/app/(app)/cart/page.tsx",
+        "src/features/cart/actions.ts",
+        "src/features/cart/components/add-to-cart-button.tsx"
+      ],
+      "db": [
+        "cart_items"
+      ]
+    },
+    "FE-ORD-01": {
+      "name": "إدارة الطلبات والفواتير وإتمام الشراء",
+      "layer": "Commerce",
+      "domain": "orders",
+      "status": "stable",
+      "description": "إتمام عمليات الشراء، تتبع مسار الطلبات، فواتير المبيعات، ونظام تقييم التجار",
+      "files": [
+        "src/app/actions/buyer-orders-actions.ts",
+        "src/features/orders/actions.ts",
+        "src/features/orders/actions/rating-actions.ts",
+        "src/features/orders/components/archive-dialog.tsx",
+        "src/features/orders/components/checkout-dialog.tsx",
+        "src/features/orders/components/invoice-preview.tsx",
+        "src/features/orders/components/my-orders.tsx",
+        "src/features/orders/components/rating-dialog.tsx"
+      ],
+      "db": [
+        "orders",
+        "order_items",
+        "create_order_atomic",
+        "get_next_invoice_number",
+        "restore_stock_quantity"
+      ]
+    },
+    "FE-MERCH-01": {
+      "name": "لوحة تحكم التاجر وإدارة المبيعات والمستودعات",
+      "layer": "Merchant",
+      "domain": "merchant",
+      "status": "stable",
+      "description": "لوحة قيادة التاجر، إدارة سلع التاجر ومستودعاته وحركات الإخراج والمطابقة",
+      "files": [
+        "src/app/(app)/store/[merchantId]/loading.tsx",
+        "src/app/(app)/store/[merchantId]/page.tsx",
+        "src/app/(app)/store/[merchantId]/store-client.tsx",
+        "src/app/(merchant)/dashboard/actions.ts",
+        "src/app/(merchant)/dashboard/archive/archive-client.tsx",
+        "src/app/(merchant)/dashboard/archive/page.tsx",
+        "src/app/(merchant)/dashboard/billing/billing-list-client.tsx",
+        "src/app/(merchant)/dashboard/billing/page.tsx",
+        "src/app/(merchant)/dashboard/loading.tsx",
+        "src/app/(merchant)/dashboard/orders/actions.ts",
+        "src/app/(merchant)/dashboard/orders/orders-client.tsx",
+        "src/app/(merchant)/dashboard/orders/page.tsx",
+        "src/app/(merchant)/dashboard/page.tsx",
+        "src/app/(merchant)/dashboard/warehouses/page.tsx",
+        "src/app/(merchant)/layout.tsx",
+        "src/features/merchant/components/add-product-form.tsx",
+        "src/features/merchant/components/edit-product-modal.tsx",
+        "src/features/merchant/components/master-catalog-linker.tsx",
+        "src/features/merchant/components/merchant-products-list.tsx",
+        "src/features/merchant/components/merchant-settings.tsx",
+        "src/features/merchant/components/merchant-tabs.tsx",
+        "src/features/merchant/components/realtime-billing-listener.tsx",
+        "src/features/warehouse/actions.ts",
+        "src/features/warehouse/activity-actions.ts",
+        "src/features/warehouse/availability-actions.ts",
+        "src/features/warehouse/components/picking-dialog.tsx",
+        "src/features/warehouse/components/warehouse-activity-tab.tsx",
+        "src/features/warehouse/components/warehouse-add-item.tsx",
+        "src/features/warehouse/components/warehouse-hub.tsx",
+        "src/features/warehouse/components/warehouse-item-dialog.tsx",
+        "src/features/warehouse/components/warehouse-movements-tab.tsx",
+        "src/features/warehouse/components/warehouse-staff-tab.tsx",
+        "src/features/warehouse/hooks/use-warehouse-realtime.ts",
+        "src/features/warehouse/lib/error-messages.ts",
+        "src/features/warehouse/lib/helpers.ts",
+        "src/features/warehouse/lib/types.ts",
+        "src/features/warehouse/low-stock.ts",
+        "src/features/warehouse/picking/actions.ts"
+      ],
+      "db": [
+        "merchant_billings",
+        "merchant_sequences"
+      ]
+    },
+    "FE-DEBT-01": {
+      "name": "الديون والذمم المالية والمشترين الموثوقين",
+      "layer": "Financial",
+      "domain": "credit",
+      "status": "stable",
+      "description": "إدارة قوائم الآجل والديون للتاجر والمشتري، وسجل المشترين الموثوقين والتسديدات",
+      "files": [
+        "src/app/(app)/debts/page.tsx",
+        "src/app/(merchant)/dashboard/debts/page.tsx",
+        "src/app/(merchant)/dashboard/trusted-buyers/page.tsx",
+        "src/features/credit/actions.ts",
+        "src/features/credit/components/buyer-debts-client.tsx",
+        "src/features/credit/components/merchant-debts-client.tsx",
+        "src/features/credit/components/trusted-buyers-client.tsx"
+      ],
+      "db": [
+        "trusted_buyers",
+        "pay_order_debt"
+      ]
+    },
+    "FE-WAL-01": {
+      "name": "المحفظة الرقمية ونقاط المكافآت",
+      "layer": "Financial",
+      "domain": "wallet",
+      "status": "stable",
+      "description": "رصيد المحفظة الإلكترونية، عمليات الإيداع، سجل التحويلات، ونقاط المكافآت والولاء",
+      "files": [
+        "src/app/(app)/rewards/actions.ts",
+        "src/app/(app)/rewards/page.tsx",
+        "src/app/(app)/wallet/actions.ts",
+        "src/app/(app)/wallet/page.tsx",
+        "src/features/wallet/components/top-up-modal.tsx",
+        "src/features/wallet/components/wallet-dashboard.tsx"
+      ],
+      "db": [
+        "wallets",
+        "wallet_transactions",
+        "charge_wallet",
+        "add_reward_points",
+        "handle_new_user_wallet"
+      ]
+    },
+    "FE-DELIV-01": {
+      "name": "إدارة التوصيل وتوزيع الطلبات",
+      "layer": "Logistics",
+      "domain": "delivery",
+      "status": "stable",
+      "description": "لوحة قيادة التوصيل، تكليف المندوبين، ومتابعة شحنات التوصيل بين التجار والمشترين",
+      "files": [
+        "src/features/delivery/actions.ts",
+        "src/features/delivery/components/add-merchant-dialog.tsx",
+        "src/features/delivery/components/delivery-dashboard.tsx"
+      ],
+      "db": []
+    },
+    "FE-MAT-01": {
+      "name": "إدارة المواد والباركود والوحدات القياسية",
+      "layer": "Inventory",
+      "domain": "materials",
+      "status": "stable",
+      "description": "واجهة المواد المركزية، قارئ الباركود، وإدارة وحدات القياس القياسية",
+      "files": [
+        "src/app/(materials)/layout.tsx",
+        "src/app/(materials)/materials/page.tsx",
+        "src/features/materials/actions.ts",
+        "src/features/materials/components/materials-manager.tsx",
+        "src/features/materials/lib/barcode.ts",
+        "src/features/materials/lib/units.ts"
+      ],
+      "db": []
+    },
+    "FE-ADMIN-01": {
+      "name": "لوحة الإدارة العليا وسجل التدقيق والرقابة",
+      "layer": "Administration",
+      "domain": "admin",
+      "status": "stable",
+      "description": "لوحة تحكم المسؤول العام، إدارة المستخدمين، مراجعة التدقيق (Audit Logs)، وإشعارات النظام",
+      "files": [
+        "src/app/(app)/admin/admin-active-orders.tsx",
+        "src/app/(app)/admin/admin-client.tsx",
+        "src/app/(app)/admin/page.tsx",
+        "src/features/admin/actions.ts",
+        "src/features/admin/actions/employee-productivity-actions.ts",
+        "src/features/admin/actions/field-history-actions.ts",
+        "src/features/admin/components/admin-user-details.tsx",
+        "src/features/admin/components/audit-log-viewer.tsx",
+        "src/features/admin/components/contact-settings-modal.tsx",
+        "src/features/admin/components/field-history-popover.tsx",
+        "src/features/admin/components/materials-productivity.tsx",
+        "src/features/admin/components/merchant-billing-admin.tsx",
+        "src/features/admin/hooks/use-field-history.ts",
+        "src/features/notifications/actions.ts"
+      ],
+      "db": [
+        "ad_requests",
+        "audit_logs",
+        "notifications",
+        "audit_log_trigger",
+        "audit_trigger_func"
+      ]
+    }
+  }
+}
