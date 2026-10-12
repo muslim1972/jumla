@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Warehouse as WarehouseIcon, Search, AlertTriangle, Gem, Boxes, Activity, ClipboardList, Users, ScrollText, RefreshCw } from "lucide-react"
+import { Loader2, Plus, Warehouse as WarehouseIcon, Search, AlertTriangle, Gem, Boxes, Activity, ClipboardList, Users, ScrollText, RefreshCw, FileMinus } from "lucide-react"
 import { enableWarehouseModule, createWarehouse } from "@/features/warehouse/actions"
 import { useWarehouseRealtime } from "@/features/warehouse/hooks/use-warehouse-realtime"
 import { WarehouseAddItemPanel } from "@/features/warehouse/components/warehouse-add-item"
@@ -12,6 +12,7 @@ import { WarehouseItemDialog } from "@/features/warehouse/components/warehouse-i
 import { WarehouseStaffTab } from "@/features/warehouse/components/warehouse-staff-tab"
 import { WarehouseMovementsTab } from "@/features/warehouse/components/warehouse-movements-tab"
 import { WarehouseActivityTab } from "@/features/warehouse/components/warehouse-activity-tab"
+import { WarehouseDeductionsTab } from "@/features/warehouse/components/warehouse-deductions-tab"
 import { baseToDisplay, formatIQD, statusColor, statusLabel, type StockStatus } from "@/features/warehouse/lib/helpers"
 import type {
   PickerStat,
@@ -20,6 +21,7 @@ import type {
   WarehouseItem,
   WarehouseMovement,
   WarehouseUnit,
+  WarehouseDeductionRequest,
 } from "@/features/warehouse/lib/types"
 import type { StaffMember } from "@/features/warehouse/lib/types"
 
@@ -41,18 +43,31 @@ interface Props {
   activeLists: { id: string; order_id: string; status: string; picker_name: string | null; invoice_number: number | null; store_name: string | null }[]
   pickerStats: PickerStat[]
   canManageStaff: boolean
+  currentUserId: string
+  deductionRequests?: WarehouseDeductionRequest[]
 }
 
-type HubTab = "items" | "add" | "staff" | "movements" | "activity"
+type HubTab = "items" | "add" | "deductions" | "staff" | "movements" | "activity"
 
 export function WarehouseHub(props: Props) {
   const {
     merchantId,
     actorName, actorRole, isStaff, canPricing, canWarehouse, warehouseEnabled,
     storeName, warehouses, items, poolProducts, catalogCategories, staff, movements, activeLists, pickerStats, canManageStaff,
+    currentUserId, deductionRequests = [],
   } = props
 
   useWarehouseRealtime(merchantId)
+
+  const pendingDeductionsCount = useMemo(() => {
+    return deductionRequests.filter(r => {
+      if (r.status !== "pending") return false
+      if (!isStaff && r.merchant_status === "pending") return true
+      if (r.witness_id === currentUserId && r.witness_status === "pending") return true
+      return false
+    }).length
+  }, [deductionRequests, isStaff, currentUserId])
+
 
   const [tab, setTab] = useState<HubTab>("items")
   const [warehouseFilter, setWarehouseFilter] = useState<string>("all")
@@ -243,10 +258,11 @@ export function WarehouseHub(props: Props) {
             {([
               { id: "items", label: "المواد", icon: Boxes, show: true },
               { id: "add", label: "إضافة مواد", icon: Plus, show: true },
+              { id: "deductions", label: "طلبات الطرح", icon: FileMinus, show: canWarehouse, badge: pendingDeductionsCount },
               { id: "staff", label: "فريق العمل", icon: Users, show: canManageStaff },
               { id: "movements", label: "دفتر الحركات", icon: Activity, show: !isStaff },
               { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: !isStaff },
-            ] as { id: HubTab; label: string; icon: typeof Users; show: boolean }[]).filter(t => t.show).map(t => (
+            ] as { id: HubTab; label: string; icon: typeof Users; show: boolean; badge?: number }[]).filter(t => t.show).map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -256,9 +272,15 @@ export function WarehouseHub(props: Props) {
               >
                 <t.icon className="w-4 h-4" />
                 {t.label}
+                {t.badge != null && t.badge > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-brand-orange text-white font-black">
+                    {t.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
+
 
           {/* المحتوى */}
           {tab === "items" && (
@@ -383,6 +405,14 @@ export function WarehouseHub(props: Props) {
             />
           )}
 
+          {tab === "deductions" && (
+            <WarehouseDeductionsTab
+              requests={deductionRequests}
+              currentUserId={currentUserId}
+              isMerchant={!isStaff}
+            />
+          )}
+
           {tab === "staff" && (
             <WarehouseStaffTab staff={staff} pickerStats={pickerStats} canManage={canManageStaff} />
           )}
@@ -400,12 +430,15 @@ export function WarehouseHub(props: Props) {
         key={selectedItem?.id ?? "none"}
         item={selectedItem}
         open={itemDialogOpen}
-        onOpenChange={v => { setItemDialogOpen(v); if (!v) setTimeout(() => setSelectedItem(null), 200) }}
+        onOpenChange={v => { setItemDialogOpen(v); if (!v) setSelectedItem(null) }}
         canPricing={canPricing}
         canWarehouse={canWarehouse}
         isStaff={isStaff}
         movements={movements}
+        staff={staff}
+        currentUserId={currentUserId}
       />
+
     </div>
   )
 }

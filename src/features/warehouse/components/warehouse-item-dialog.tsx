@@ -5,10 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Save, ArrowDownToLine, ArrowUpFromLine, Scale, Trash2, History } from "lucide-react"
-import { recordWarehouseMovement, updateWarehouseItemPricing, deleteWarehouseItem } from "@/features/warehouse/actions"
+import { Loader2, Save, ArrowDownToLine, ArrowUpFromLine, Scale, Trash2, History, FileMinus, ShieldAlert } from "lucide-react"
+import { recordWarehouseMovement, updateWarehouseItemPricing, deleteWarehouseItem, createWarehouseDeductionRequest } from "@/features/warehouse/actions"
 import { baseToDisplay, displayToBase, formatIQD, statusLabel, statusColor, type StockStatus } from "@/features/warehouse/lib/helpers"
-import type { WarehouseItem, WarehouseMovement } from "@/features/warehouse/lib/types"
+import { DEDUCTION_REASON_LABELS, type DeductionReasonType, type StaffMember, type WarehouseItem, type WarehouseMovement } from "@/features/warehouse/lib/types"
 
 interface Props {
   item: WarehouseItem | null
@@ -18,9 +18,11 @@ interface Props {
   canWarehouse: boolean
   isStaff: boolean
   movements: WarehouseMovement[]
+  staff?: StaffMember[]
+  currentUserId?: string
 }
 
-type Tab = "prices" | "stock" | "history"
+type Tab = "prices" | "stock" | "deduct" | "history"
 
 /** وحدة العرض الافتراضية لصنف: stock_unit إن وُجد وإلا أول وحدة */
 function resolveDisplayUnit(product: WarehouseItem["product"]): string {
@@ -30,13 +32,14 @@ function resolveDisplayUnit(product: WarehouseItem["product"]): string {
   return us[0]?.type ?? ""
 }
 
-export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canWarehouse, isStaff, movements }: Props) {
+export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canWarehouse, isStaff, movements, staff = [], currentUserId }: Props) {
   // يُعاد تركيبه بالكامل لكل صنف (key في الأب) — كل الحقول تهيأ من خصائص الصنف مباشرة
   const [tab, setTab] = useState<Tab>("prices")
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState("")
   const [okMsg, setOkMsg] = useState("")
   const [confirmDelete, setConfirmDelete] = useState(false)
+
 
   const product = item?.product ?? null
   const conversions = useMemo(() => product?.unit_conversions || [], [product])
@@ -58,6 +61,50 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
   const [moveQty, setMoveQty] = useState("")
   const [moveUnit, setMoveUnit] = useState(() => resolveDisplayUnit(item?.product))
   const [moveNote, setMoveNote] = useState("")
+
+  // حالات تبويبة طرح من المخزن
+  const [deductQty, setDeductQty] = useState("")
+  const [deductUnit, setDeductUnit] = useState(() => resolveDisplayUnit(item?.product))
+  const [deductReason, setDeductReason] = useState<DeductionReasonType>("damage")
+  const [deductNotes, setDeductNotes] = useState("")
+  const [witnessId, setWitnessId] = useState("")
+
+  const otherWarehouseStaff = useMemo(() => {
+    return (staff || []).filter(s => s.is_active && s.id !== currentUserId && s.permissions.includes("warehouse"))
+  }, [staff, currentUserId])
+
+  const applyDeductionRequest = () => {
+    if (!item) return
+    setErrorMsg(""); setOkMsg("")
+    const qty = Number(deductQty)
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setErrorMsg("أدخل كمية صحيحة أكبر من الصفر")
+      return
+    }
+    if (otherWarehouseStaff.length > 0 && !witnessId) {
+      setErrorMsg("اختر موظف مخزن كشاهد مؤيد للطلب")
+      return
+    }
+    const fd = new FormData()
+    fd.set("item_id", item.id)
+    fd.set("quantity", String(qty))
+    fd.set("unit", deductUnit)
+    fd.set("reason_type", deductReason)
+    fd.set("notes", deductNotes)
+    if (witnessId) fd.set("witness_id", witnessId)
+
+    startTransition(async () => {
+      const res = await createWarehouseDeductionRequest(fd)
+      if (!res.success) {
+        setErrorMsg(res.error || "تعذر إرسال طلب الطرح")
+      } else {
+        setOkMsg("تم إرسال طلب الطرح بنجاح — بانتظار الاعتماد المزدوج قبل الخصم من الرصيد")
+        setDeductQty("")
+        setDeductNotes("")
+        setWitnessId("")
+      }
+    })
+  }
 
   const itemMovements = useMemo(
     () => movements.filter(m => m.product_id === item?.product_id).slice(0, 8),
@@ -140,12 +187,14 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
         </DialogHeader>
 
         {/* تبويبات البطاقة */}
-        <div className="flex gap-1 border-b border-border/60 -mt-1">
+        <div className="flex gap-1 border-b border-border/60 -mt-1 overflow-x-auto">
           {([
             { id: "prices", label: "الأسعار وحد التنبيه", show: canPricing, icon: Save },
             { id: "stock", label: "حركة مخزنية", show: canWarehouse, icon: ArrowDownToLine },
+            { id: "deduct", label: "طرح من المخزن", show: canWarehouse, icon: FileMinus },
             { id: "history", label: "آخر الحركات", show: !isStaff, icon: History },
           ] as { id: Tab; label: string; show: boolean; icon: typeof Save }[])
+
             .filter(t => t.show)
             .map(t => (
               <button
@@ -240,23 +289,37 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
 
         {tab === "stock" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
+            {isStaff ? (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <span>حركة الموظف المباشرة محصورة في الوارد (إضافة رصيد).</span>
+                  <div className="text-[11px] font-normal text-muted-foreground mt-0.5">
+                    لطرح أو إتلاف بضاعة يرجى الانتقال إلى تبويبة «طرح من المخزن» لطلب اعتماد التاجر وتأييد الزميل.
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className={`grid gap-2 ${isStaff ? "grid-cols-1" : "grid-cols-3"}`}>
               {([
-                { id: "in", label: "وارد (إضافة)", icon: ArrowDownToLine },
-                { id: "out", label: "إخراج", icon: ArrowUpFromLine },
-                { id: "adjust", label: "تسوية جرد", icon: Scale },
-              ] as const).map(k => (
-                <button
-                  key={k.id}
-                  onClick={() => setMoveKind(k.id)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 font-bold text-xs transition-colors ${
-                    moveKind === k.id ? "border-brand-orange text-brand-orange bg-brand-orange/5" : "border-border text-muted-foreground hover:border-border"
-                  }`}
-                >
-                  <k.icon className="w-4 h-4" />
-                  {k.label}
-                </button>
-              ))}
+                { id: "in", label: "وارد (إضافة)", icon: ArrowDownToLine, show: true },
+                { id: "out", label: "إخراج", icon: ArrowUpFromLine, show: !isStaff },
+                { id: "adjust", label: "تسوية جرد", icon: Scale, show: !isStaff },
+              ] as const)
+                .filter(k => k.show)
+                .map(k => (
+                  <button
+                    key={k.id}
+                    onClick={() => setMoveKind(k.id as any)}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 font-bold text-xs transition-colors ${
+                      moveKind === k.id ? "border-brand-orange text-brand-orange bg-brand-orange/5" : "border-border text-muted-foreground hover:border-border"
+                    }`}
+                  >
+                    <k.icon className="w-4 h-4" />
+                    {k.label}
+                  </button>
+                ))}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -295,6 +358,98 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
             </Button>
           </div>
         )}
+
+        {tab === "deduct" && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-xs space-y-1">
+              <div className="font-bold text-destructive flex items-center gap-1.5">
+                <FileMinus className="w-4 h-4" />
+                <span>طلب طرح أو إتلاف معتمد من المخزن</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-5">
+                يُخصم الرصيد تلقائياً بعد استكمال الاعتماد الثنائي المطلوب (تأييد الزميل الشاهد إن وجد + اعتماد التاجر صاحب المتجر).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">الكمية المراد طرحها</Label>
+                <Input
+                  dir="ltr"
+                  inputMode="numeric"
+                  className="text-left font-bold"
+                  value={deductQty}
+                  onChange={e => setDeductQty(e.target.value.replace(/[^\d.]/g, ""))}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">الوحدة</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold"
+                  value={deductUnit}
+                  onChange={e => setDeductUnit(e.target.value)}
+                >
+                  {units.map(u => <option key={u.type} value={u.type}>{u.type}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">سبب الطرح</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold"
+                value={deductReason}
+                onChange={e => setDeductReason(e.target.value as DeductionReasonType)}
+              >
+                {(Object.entries(DEDUCTION_REASON_LABELS) as [DeductionReasonType, { label: string; icon: string }][]).map(([val, meta]) => (
+                  <option key={val} value={val}>{meta.icon} {meta.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">تفاصيل / بيان سبب الطرح</Label>
+              <Input
+                value={deductNotes}
+                onChange={e => setDeductNotes(e.target.value)}
+                placeholder="مثال: تلف أثناء النقل، بيع نقدي مباشر بدون وصل، عجز في الجرد..."
+              />
+            </div>
+
+            {/* الموظف الشاهد المؤيّد */}
+            {otherWarehouseStaff.length > 0 ? (
+              <div className="space-y-1.5 p-3 rounded-xl border border-border/80 bg-muted/30">
+                <Label className="text-xs font-bold flex items-center gap-1.5">
+                  <span>الموظف الشاهد المؤيّد (إلزامي)</span>
+                </Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-bold"
+                  value={witnessId}
+                  onChange={e => setWitnessId(e.target.value)}
+                >
+                  <option value="">-- اختر موظف المخزن الشاهد من الكادر --</option>
+                  {otherWarehouseStaff.map(s => (
+                    <option key={s.id} value={s.id}>{s.full_name || s.username}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  👥 سيصل إشعار لزميلك لتأييد الواقعة + إشعار للتاجر للاعتماد النهائي.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl border border-brand-blue/30 bg-brand-blue/5 text-xs text-brand-blue font-bold flex items-center gap-2">
+                <span>ℹ️</span>
+                <span>لا يوجد موظف مخزن آخر حالياً — سيُرسل الطلب مباشرة إلى صاحب المتجر (التاجر الأصلي) للاعتماد.</span>
+              </div>
+            )}
+
+            <Button onClick={applyDeductionRequest} disabled={isPending} className="w-full font-bold bg-destructive hover:bg-destructive/90 text-white">
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FileMinus className="w-4 h-4 ml-1" /> إرسال طلب الطرح للاعتماد</>}
+            </Button>
+          </div>
+        )}
+
 
         {tab === "history" && (
           <div className="space-y-3">

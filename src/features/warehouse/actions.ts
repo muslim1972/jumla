@@ -6,6 +6,7 @@ import { getActorContext, hasPermission } from "@/features/staff/lib/guard"
 import { displayToBase, multiplierToBase } from "@/features/warehouse/lib/helpers"
 import { checkAndNotifyLowStock } from "@/features/warehouse/low-stock"
 import { warehouseCatalogInsertErrorMessage } from "@/features/warehouse/lib/error-messages"
+import { DEDUCTION_REASON_LABELS, type DeductionReasonType, type WarehouseDeductionRequest } from "@/features/warehouse/lib/types"
 
 // ============================================================================
 // إجراءات المخازن — ميزة معزولة. كل إجراء يتحقق من سياق الفاعل (تاجر/موظف بصلاحية)
@@ -417,6 +418,11 @@ export async function recordWarehouseMovement(
   if (!hasPermission(ctx, "warehouse")) return { success: false, error: "لا تملك صلاحية العمل على المخازن" }
   if (!Number.isFinite(displayQuantity) || displayQuantity < 0) return { success: false, error: "كمية غير صالحة" }
 
+  // حماية أمنية: الموظف لا يطرح ولا يسوي مباشرة؛ أي طرح يمر عبر طلب الطرح المعتمد
+  if (ctx.isStaff && (kind === "out" || kind === "adjust")) {
+    return { success: false, error: "لإخراج المواد أو إتلافها، يرجى تقديم طلب اعتماد من تبويبة (طرح من المخزن)" }
+  }
+
   const { data: row } = await supabase
     .from("warehouse_items")
     .select("id, quantity, product_id, products(unit_conversions)")
@@ -481,4 +487,220 @@ export async function deleteWarehouseItem(itemId: string) {
 
   refresh()
   return { success: true }
+}
+
+/** إنشاء طلب طرح مخزني معتمد */
+export async function createWarehouseDeductionRequest(formData: FormData) {
+  const supabase = await createClient()
+  const ctx = await getActorContext()
+  if (!ctx) return { success: false, error: "غير مصرح" }
+  if (!hasPermission(ctx, "warehouse")) return { success: false, error: "لا تملك صلاحية العمل على المخازن" }
+
+  const itemId = formData.get("item_id") as string
+  const quantityRaw = parseFloat(formData.get("quantity") as string || "0")
+  const unit = (formData.get("unit") as string || "").trim()
+  const reasonType = formData.get("reason_type") as DeductionReasonType
+  const notes = ((formData.get("notes") as string) || "").trim()
+  const witnessIdInput = formData.get("witness_id") as string | null
+
+  if (!itemId) return { success: false, error: "حدد صنف المخزن" }
+  if (!Number.isFinite(quantityRaw) || quantityRaw <= 0) return { success: false, error: "أدخل كمية صحيحة أكبر من الصفر" }
+  if (!unit) return { success: false, error: "حدد وحدة القياس" }
+  if (!["damage", "expired", "external_sale", "shortage", "other"].includes(reasonType)) {
+    return { success: false, error: "حدد سبب الطرح من القائمة" }
+  }
+
+  // جلب صنف المخزن مع المنتج والتحويلات
+  const { data: item } = await supabase
+    .from("warehouse_items")
+    .select(`
+      id,
+      quantity,
+      warehouse_id,
+      product_id,
+      warehouses!inner(id, name, merchant_id),
+      product:products(id, name, unit_conversions)
+    `)
+    .eq("id", itemId)
+    .eq("warehouses.merchant_id", ctx.merchantId)
+    .single()
+
+  if (!item || !item.product) return { success: false, error: "صنف المخزن غير موجود أو غير مصرح" }
+
+  const conversions = ((item.product as any).unit_conversions) || []
+  const baseQty = Math.round(quantityRaw * multiplierToBase(unit, conversions))
+  if (baseQty <= 0) return { success: false, error: "الكمية المحسوبة غير صالحة" }
+
+  if (item.quantity < baseQty) {
+    return { success: false, error: `الرصيد المتاح في المخزن لا يكفي. المطلوب أساساً: ${baseQty} والمتاح: ${item.quantity}` }
+  }
+
+  // فحص موظفي المخزن الآخرين التابعين لنفس التاجر
+  const { data: staffList } = await supabase
+    .from("profiles")
+    .select("id, full_name, permissions")
+    .eq("role", "merchant_staff")
+    .eq("parent_merchant_id", ctx.merchantId)
+    .eq("is_active", true)
+    .neq("id", ctx.userId)
+
+  const otherWarehouseStaff = (staffList || []).filter((s: any) =>
+    Array.isArray(s.permissions) && s.permissions.includes("warehouse")
+  )
+
+  let witnessId: string | null = null
+  let witnessName: string | null = null
+  let witnessStatus: "pending" | "not_required" = "pending"
+
+  if (otherWarehouseStaff.length > 0) {
+    // يوجد موظفون آخرون في المخزن: الشاهد إجباري
+    if (!witnessIdInput) {
+      return { success: false, error: "يجب اختيار موظف مخزن كشاهد مؤيّد للطلب" }
+    }
+    const witness = otherWarehouseStaff.find((s: any) => s.id === witnessIdInput)
+    if (!witness) {
+      return { success: false, error: "الموظف الشاهد المختار غير صالح أو غير نشط في المخزن" }
+    }
+    witnessId = witness.id
+    witnessName = witness.full_name || "موظف مخزن"
+    witnessStatus = "pending"
+  } else {
+    // لا يوجد أي موظف آخر في المخزن: يكتفى بموافقة التاجر الأصلي فقط
+    witnessId = null
+    witnessName = null
+    witnessStatus = "not_required"
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("warehouse_deduction_requests")
+    .insert({
+      merchant_id: ctx.merchantId,
+      warehouse_id: item.warehouse_id,
+      item_id: item.id,
+      product_id: item.product_id,
+      requested_by_id: ctx.userId,
+      requested_by_name: ctx.fullName || "موظف المخزن",
+      quantity: quantityRaw,
+      unit,
+      base_quantity: baseQty,
+      reason_type: reasonType,
+      notes: notes || null,
+      witness_id: witnessId,
+      witness_name: witnessName,
+      witness_status: witnessStatus,
+      merchant_status: "pending",
+      status: "pending",
+    })
+    .select("id")
+    .single()
+
+  if (insertError || !inserted) {
+    return { success: false, error: insertError?.message || "تعذر حفظ طلب الطرح" }
+  }
+
+  const reasonLabel = DEDUCTION_REASON_LABELS[reasonType]?.label || reasonType
+  const productName = (item.product as any).name || "مادة"
+
+  // إشعار لصاحب المتجر (التاجر الأصلي)
+  await supabase.from("notifications").insert({
+    user_id: ctx.merchantId,
+    title: "طلب طرح مخزني بانتظار اعتمادك",
+    message: `طلب الموظف (${ctx.fullName || "موظف المخزن"}) طرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
+  })
+
+  // إشعار للشاهد إن كان مطلوباً
+  if (witnessId) {
+    await supabase.from("notifications").insert({
+      user_id: witnessId,
+      title: "طلب تأييد طرح مخزني",
+      message: `يطلب زميلك (${ctx.fullName || "موظف المخزن"}) تأييدك لطرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
+    })
+  }
+
+  refresh()
+  return { success: true, id: inserted.id }
+}
+
+/** اتخاذ قرار (تأييد / اعتماد / رفض) على طلب طرح مخزني */
+export async function decideWarehouseDeduction(
+  requestId: string,
+  decision: "approve" | "reject",
+  note?: string
+) {
+  const supabase = await createClient()
+  const ctx = await getActorContext()
+  if (!ctx) return { success: false, error: "غير مصرح" }
+
+  const { data, error } = await supabase.rpc("warehouse_process_deduction_decision", {
+    p_request_id: requestId,
+    p_actor_id: ctx.userId,
+    p_decision: decision,
+    p_note: (note || "").trim() || null,
+  })
+
+  if (error) return { success: false, error: error.message }
+  if (!data || !data.success) return { success: false, error: data?.error || "فشل معالجة القرار" }
+
+  // جلب بيانات الطلب لإشعار الأطراف
+  const { data: req } = await supabase
+    .from("warehouse_deduction_requests")
+    .select("requested_by_id, merchant_id, witness_id, quantity, unit, product:products(name)")
+    .eq("id", requestId)
+    .single()
+
+  if (req) {
+    const pName = (req.product as any)?.name || "مادة"
+    if (decision === "reject") {
+      await supabase.from("notifications").insert({
+        user_id: req.requested_by_id,
+        title: "تم رفض طلب الطرح المخزني",
+        message: `تم رفض طلب طرح ${req.quantity} ${req.unit} من (${pName}) من قبل ${ctx.fullName || "الإدارة"}.`,
+      })
+    } else if (data.executed) {
+      await supabase.from("notifications").insert({
+        user_id: req.requested_by_id,
+        title: "اكتمل اعتماد وتنفيذ الطرح المخزني",
+        message: `تم اعتماد وتنفيذ طرح ${req.quantity} ${req.unit} من (${pName}) وخصمها من رصيد المخزن بنجاح.`,
+      })
+      if (req.requested_by_id !== ctx.merchantId && ctx.userId !== ctx.merchantId) {
+        await supabase.from("notifications").insert({
+          user_id: ctx.merchantId,
+          title: "نُفّذ طرح مخزني معتمد",
+          message: `اكتمل اعتماد وطرح ${req.quantity} ${req.unit} من (${pName}).`,
+        })
+      }
+    } else if (ctx.userId === req.witness_id) {
+      await supabase.from("notifications").insert({
+        user_id: req.merchant_id,
+        title: "تم تأييد طلب الطرح من الزميل",
+        message: `أيد الموظف (${ctx.fullName}) طلب طرح ${req.quantity} ${req.unit} من (${pName})، الطلب جاهز لاعتمادك النهائي.`,
+      })
+    }
+  }
+
+  refresh()
+  return { success: true, message: data.message, status: data.status, executed: data.executed }
+}
+
+/** جلب طلبات الطرح المخزني الخاصة بالتاجر */
+export async function listWarehouseDeductionRequests(merchantId: string): Promise<WarehouseDeductionRequest[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("warehouse_deduction_requests")
+    .select(`
+      *,
+      product:products(name),
+      warehouse:warehouses(name)
+    `)
+    .eq("merchant_id", merchantId)
+    .order("created_at", { ascending: false })
+    .limit(60)
+
+  if (error || !data) return []
+
+  return data.map((d: any) => ({
+    ...d,
+    product_name: d.product?.name || "مادة",
+    warehouse_name: d.warehouse?.name || "المخزن",
+  }))
 }

@@ -193,6 +193,7 @@
         "src/features/warehouse/components/picking-dialog.tsx",
         "src/features/warehouse/components/warehouse-activity-tab.tsx",
         "src/features/warehouse/components/warehouse-add-item.tsx",
+        "src/features/warehouse/components/warehouse-deductions-tab.tsx",
         "src/features/warehouse/components/warehouse-hub.tsx",
         "src/features/warehouse/components/warehouse-item-dialog.tsx",
         "src/features/warehouse/components/warehouse-movements-tab.tsx",
@@ -206,7 +207,8 @@
       ],
       "db": [
         "merchant_billings",
-        "merchant_sequences"
+        "merchant_sequences",
+        "warehouse_deduction_requests"
       ]
     },
     "FE-DEBT-01": {

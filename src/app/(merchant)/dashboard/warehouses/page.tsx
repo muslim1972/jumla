@@ -8,6 +8,7 @@ import type {
   Warehouse,
   WarehouseItem,
   WarehouseMovement,
+  WarehouseDeductionRequest,
 } from "@/features/warehouse/lib/types"
 import type { StaffMember } from "@/features/warehouse/lib/types"
 
@@ -27,7 +28,7 @@ export default async function WarehousesPage() {
   const monthCutoff = new Date()
   monthCutoff.setDate(monthCutoff.getDate() - 30)
 
-  const [warehousesRes, merchantRes, staffRes, listsRes] = await Promise.all([
+  const [warehousesRes, merchantRes, staffRes, listsRes, deductionsRes] = await Promise.all([
     supabase
       .from("warehouses")
       .select("*")
@@ -35,14 +36,12 @@ export default async function WarehousesPage() {
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: true }),
     supabase.from("profiles").select("store_name, full_name").eq("id", ctx.merchantId).single(),
-    ctx.role === "merchant"
-      ? supabase
-          .from("profiles")
-          .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
-          .eq("role", "merchant_staff")
-          .eq("parent_merchant_id", ctx.merchantId)
-          .order("created_at", { ascending: true })
-      : Promise.resolve({ data: [] as never[] }),
+    supabase
+      .from("profiles")
+      .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
+      .eq("role", "merchant_staff")
+      .eq("parent_merchant_id", ctx.merchantId)
+      .order("created_at", { ascending: true }),
     supabase
       .from("picking_lists")
       .select("id, order_id, status, picker_name, issued_at, picked_at, orders(invoice_number, store_name)")
@@ -50,6 +49,16 @@ export default async function WarehousesPage() {
       .in("status", ["issued", "picked"])
       .order("created_at", { ascending: false })
       .limit(20),
+    supabase
+      .from("warehouse_deduction_requests")
+      .select(`
+        *,
+        product:products(name),
+        warehouse:warehouses(name)
+      `)
+      .eq("merchant_id", ctx.merchantId)
+      .order("created_at", { ascending: false })
+      .limit(60),
   ])
 
   const warehouses = (warehousesRes.data as Warehouse[]) || []
@@ -162,6 +171,12 @@ export default async function WarehousesPage() {
     store_name: l.orders?.store_name ?? null,
   }))
 
+  const deductionRequests = ((deductionsRes.data ?? []) as any[]).map(d => ({
+    ...d,
+    product_name: d.product?.name || "مادة",
+    warehouse_name: d.warehouse?.name || "المخزن",
+  })) as WarehouseDeductionRequest[]
+
   return (
     <WarehouseHub
       merchantId={ctx.merchantId}
@@ -181,6 +196,8 @@ export default async function WarehousesPage() {
       activeLists={activeLists}
       pickerStats={pickerStats}
       canManageStaff={!ctx.isStaff}
+      currentUserId={ctx.userId}
+      deductionRequests={deductionRequests}
     />
   )
 }

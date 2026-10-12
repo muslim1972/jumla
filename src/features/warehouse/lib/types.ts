@@ -164,3 +164,45 @@ export interface PickerStat {
   shortageItems: number
   avgPickMinutes: number | null
 }
+
+/** أسباب الطرح المخزني */
+export type DeductionReasonType = "damage" | "expired" | "external_sale" | "shortage" | "other"
+
+export const DEDUCTION_REASON_LABELS: Record<DeductionReasonType, { label: string; icon: string }> = {
+  damage: { label: "إتلاف / تلف بضاعة", icon: "🗑️" },
+  expired: { label: "انتهاء صلاحية", icon: "⏳" },
+  external_sale: { label: "بيع نقدي خارجي (بدون تطبيق)", icon: "💵" },
+  shortage: { label: "عجز جردي", icon: "📉" },
+  other: { label: "سبب آخر (موضح بالملاحظات)", icon: "📌" },
+}
+
+export interface WarehouseDeductionRequest {
+  id: string
+  merchant_id: string
+  warehouse_id: string
+  item_id: string
+  product_id: string
+  requested_by_id: string
+  requested_by_name: string
+  quantity: number
+  unit: string
+  base_quantity: number
+  reason_type: DeductionReasonType
+  notes: string | null
+  witness_id: string | null
+  witness_name: string | null
+  witness_status: "pending" | "approved" | "rejected" | "not_required"
+  witness_at: string | null
+  witness_note: string | null
+  merchant_status: "pending" | "approved" | "rejected"
+  merchant_at: string | null
+  merchant_note: string | null
+  status: "pending" | "approved" | "rejected" | "cancelled"
+  executed_at: string | null
+  executed_movement_id: string | null
+  created_at: string
+  updated_at: string
+  product_name?: string
+  warehouse_name?: string
+}
+
