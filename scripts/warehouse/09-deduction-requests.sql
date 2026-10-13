@@ -199,7 +199,7 @@ begin
     perform public.warehouse_apply_movement(
       p_item_id := v_req.item_id,
       p_kind := 'out',
-      p_quantity := - (v_req.base_quantity),
+      p_quantity := - (v_req.base_quantity)::integer,
       p_note := v_movement_note,
       p_reference_type := 'deduction_request',
       p_reference_id := v_req.id

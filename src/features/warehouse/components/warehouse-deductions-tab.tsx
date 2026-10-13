@@ -25,7 +25,8 @@ export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant }: 
   const [rejectNote, setRejectNote] = useState("")
 
   const filtered = useMemo(() => {
-    if (filter === "all") return requests
+    // إخفاء الطلبات المكتملة (المعتمدة أو المرفوضة) من العرض الافتراضي (الكل)
+    if (filter === "all") return requests.filter(r => r.status === "pending")
     if (filter === "pending") return requests.filter(r => r.status === "pending")
     if (filter === "approved") return requests.filter(r => r.status === "approved")
     if (filter === "rejected") return requests.filter(r => r.status === "rejected")
@@ -104,8 +105,7 @@ export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant }: 
       {/* فلاتر الحالة */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {([
-          { id: "all", label: `الكل (${requests.length})` },
-          { id: "pending", label: `قيد الاعتماد (${requests.filter(r => r.status === "pending").length})` },
+          { id: "all", label: `النشطة (${requests.filter(r => r.status === "pending").length})` },
           { id: "approved", label: `المعتمدة (${requests.filter(r => r.status === "approved").length})` },
           { id: "rejected", label: `المرفوضة (${requests.filter(r => r.status === "rejected").length})` },
         ] as { id: Filter; label: string }[]).map(btn => (

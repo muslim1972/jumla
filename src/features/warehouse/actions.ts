@@ -598,22 +598,39 @@ export async function createWarehouseDeductionRequest(formData: FormData) {
     return { success: false, error: insertError?.message || "تعذر حفظ طلب الطرح" }
   }
 
+  // إذا كان مقدم الطلب هو التاجر نفسه، نعتمد الطلب تلقائياً من طرفه
+  if (ctx.userId === ctx.merchantId) {
+    const { data: decisionData } = await supabase.rpc("warehouse_process_deduction_decision", {
+      p_request_id: inserted.id,
+      p_actor_id: ctx.userId,
+      p_decision: "approve",
+      p_note: "موافقة تلقائية (مقدم الطلب هو التاجر)",
+    })
+    
+    if (decisionData?.executed) {
+      revalidatePath("/(merchant)/dashboard/warehouses", "page")
+      return { success: true, message: "تم اعتماد وتنفيذ الطرح المخزني مباشرة (لا يوجد شهود مطلوبين)" }
+    }
+  }
+
   const reasonLabel = DEDUCTION_REASON_LABELS[reasonType]?.label || reasonType
   const productName = (item.product as any).name || "مادة"
 
-  // إشعار لصاحب المتجر (التاجر الأصلي)
-  await supabase.from("notifications").insert({
-    user_id: ctx.merchantId,
-    title: "طلب طرح مخزني بانتظار اعتمادك",
-    message: `طلب الموظف (${ctx.fullName || "موظف المخزن"}) طرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
-  })
+  // إشعار لصاحب المتجر (التاجر الأصلي) - فقط إذا لم يكن هو مقدم الطلب
+  if (ctx.userId !== ctx.merchantId) {
+    await supabase.from("notifications").insert({
+      user_id: ctx.merchantId,
+      title: "طلب طرح مخزني بانتظار اعتمادك",
+      message: `طلب الموظف (${ctx.fullName || "موظف المخزن"}) طرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
+    })
+  }
 
   // إشعار للشاهد إن كان مطلوباً
   if (witnessId) {
     await supabase.from("notifications").insert({
       user_id: witnessId,
       title: "طلب تأييد طرح مخزني",
-      message: `يطلب زميلك (${ctx.fullName || "موظف المخزن"}) تأييدك لطرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
+      message: `يطلب (${ctx.fullName || "موظف المخزن"}) تأييدك لطرح ${quantityRaw} ${unit} من (${productName}) لسبب: ${reasonLabel}`,
     })
   }
 
