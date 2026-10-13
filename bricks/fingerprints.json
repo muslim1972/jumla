@@ -132,7 +132,7 @@
   "src/features/warehouse/components/picking-dialog.tsx": "e65832683f5a96da17dc2600070f0d2d",
   "src/features/warehouse/components/warehouse-activity-tab.tsx": "6f32ed5f4a8011aed96649a60486d0c5",
   "src/features/warehouse/components/warehouse-add-item.tsx": "7116591f1be781ba21efe74b892b46c4",
-  "src/features/warehouse/components/warehouse-deductions-tab.tsx": "ee27714d316172c4f0e6238bc0480276",
+  "src/features/warehouse/components/warehouse-deductions-tab.tsx": "b77e590efc20b39f74756600344933de",
   "src/features/warehouse/components/warehouse-hub.tsx": "1ffce681913d73fef09eb9ab596acd31",
   "src/features/warehouse/components/warehouse-item-dialog.tsx": "d732363352db58328a66e4d71526b4bc",
   "src/features/warehouse/components/warehouse-movements-tab.tsx": "11a1e56d52cd2161cd39e40a9ebdf735",

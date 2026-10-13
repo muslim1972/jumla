@@ -129,7 +129,7 @@ export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant }: 
           <FileMinus className="w-8 h-8 mx-auto text-muted-foreground" />
           <p className="text-xs text-muted-foreground font-bold">لا توجد طلبات طرح مخزني في هذا القسم حالياً</p>
         </div>
-      ) : (
+      ) : filter === "all" || filter === "pending" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map(req => {
             const reasonMeta = DEDUCTION_REASON_LABELS[req.reason_type] || { label: req.reason_type, icon: "📌" }
@@ -300,6 +300,55 @@ export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant }: 
               </div>
             )
           })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-right">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="p-3 font-bold">المادة</th>
+                  <th className="p-3 font-bold">الكمية</th>
+                  <th className="p-3 font-bold">السبب</th>
+                  <th className="p-3 font-bold">طالب الطرح</th>
+                  <th className="p-3 font-bold">التاريخ</th>
+                  <th className="p-3 font-bold">الحالة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filtered.map(req => {
+                  const reasonMeta = DEDUCTION_REASON_LABELS[req.reason_type] || { label: req.reason_type, icon: "📌" }
+                  return (
+                    <tr key={req.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3 font-black">{req.product_name || "مادة"}</td>
+                      <td className="p-3 font-bold text-destructive" dir="ltr">-{req.quantity} {req.unit}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1.5">
+                          <span>{reasonMeta.icon}</span>
+                          <span className="font-bold">{reasonMeta.label}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 font-bold">{req.requested_by_name}</td>
+                      <td className="p-3 text-muted-foreground" dir="ltr">
+                        {new Date(req.created_at).toLocaleDateString("ar-IQ", { dateStyle: "short" })}
+                      </td>
+                      <td className="p-3">
+                        {req.status === "approved" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black">
+                            <CheckCircle2 className="w-3 h-3" /> معتمد
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-destructive/10 text-destructive font-black">
+                            <XCircle className="w-3 h-3" /> مرفوض
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
