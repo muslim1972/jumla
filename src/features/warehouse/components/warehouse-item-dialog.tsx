@@ -107,9 +107,10 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
   }
 
   const itemMovements = useMemo(
-    () => movements.filter(m => m.product_id === item?.product_id && m.warehouse_id === item?.warehouse_id).slice(0, 8),
+    () => movements.filter(m => m.product_id === item?.product_id && (!m.warehouse_id || m.warehouse_id === item?.warehouse_id)).slice(0, 20),
     [movements, item?.product_id, item?.warehouse_id]
   )
+
 
   const status: StockStatus = item ? (
     item.quantity <= 0 ? "out"
@@ -456,22 +457,37 @@ export function WarehouseItemDialog({ item, open, onOpenChange, canPricing, canW
             {itemMovements.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-4">لا حركات مسجلة لهذا الصنف بعد</p>
             ) : (
-              itemMovements.map(m => (
-                <div key={m.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/40 border border-border/60">
-                  <div className={`text-xs font-black shrink-0 w-24 ${kindMeta[m.kind]?.cls ?? ""}`}>
-                    {kindMeta[m.kind]?.label ?? m.kind}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold">
-                      {m.quantity > 0 ? "+" : ""}{formatIQD(m.quantity)} <span className="text-muted-foreground">← الرصيد {formatIQD(m.balance_after)}</span>
+              itemMovements.map(m => {
+                const isDeduction = m.reference_type === "deduction_request"
+                const meta = isDeduction
+                  ? { label: "طرح معتمد", cls: "text-red-600 dark:text-red-400" }
+                  : (kindMeta[m.kind] ?? { label: m.kind, cls: "text-foreground" })
+
+                const displayQty = defaultDisplayUnit
+                  ? baseToDisplay(m.quantity, defaultDisplayUnit, conversions)
+                  : m.quantity
+                const displayBalance = defaultDisplayUnit
+                  ? baseToDisplay(m.balance_after, defaultDisplayUnit, conversions)
+                  : m.balance_after
+                const unitSuffix = defaultDisplayUnit ? ` ${defaultDisplayUnit}` : ""
+
+                return (
+                  <div key={m.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-muted/40 border border-border/60">
+                    <div className={`text-xs font-black shrink-0 w-24 ${meta.cls}`}>
+                      {meta.label}
                     </div>
-                    {m.note && <div className="text-[11px] text-muted-foreground truncate">{m.note}</div>}
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {m.performed_by_name || "النظام"} · {new Date(m.created_at).toLocaleString("ar-IQ", { dateStyle: "short", timeStyle: "short" })}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold">
+                        {displayQty > 0 ? "+" : ""}{formatIQD(displayQty)}{unitSuffix} <span className="text-muted-foreground">← الرصيد {formatIQD(displayBalance)}{unitSuffix}</span>
+                      </div>
+                      {m.note && <div className="text-[11px] text-muted-foreground break-words leading-relaxed mt-0.5">{m.note}</div>}
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        {m.performed_by_name || "النظام"} · {new Date(m.created_at).toLocaleString("ar-IQ", { dateStyle: "short", timeStyle: "short" })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         )}

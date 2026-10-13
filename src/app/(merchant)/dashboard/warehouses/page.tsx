@@ -80,10 +80,11 @@ export default async function WarehousesPage() {
       .order("name", { ascending: true }),
     supabase
       .from("warehouse_movements")
-      .select("id, merchant_id, warehouse_id, product_id, kind, quantity, balance_after, reference_type, reference_id, note, performed_by, created_at, product:products(name, unit_conversions), actor:profiles(full_name)")
+      .select("id, merchant_id, warehouse_id, product_id, kind, quantity, balance_after, reference_type, reference_id, note, performed_by, created_at, product:products(name, unit_conversions), actor:profiles!warehouse_movements_performed_by_fkey(full_name)")
       .eq("merchant_id", ctx.merchantId)
       .order("created_at", { ascending: false })
       .limit(150),
+
     ctx.role === "merchant"
       ? supabase
           .from("picking_lists")
@@ -95,6 +96,10 @@ export default async function WarehousesPage() {
       : Promise.resolve({ data: [] as never[] }),
     supabase.from("categories").select("id, name").order("name"),
   ])
+
+  if (movementsRes.error) {
+    console.error("[warehouses] خطأ جلب حركات المخزن:", movementsRes.error.message)
+  }
 
   const items = ((itemsRes.data ?? []) as unknown) as Array<WarehouseItem & { product: Record<string, unknown> | null }>
   const normalizedItems: WarehouseItem[] = items.map(it => ({

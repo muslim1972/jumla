@@ -56,14 +56,16 @@ export function WarehouseMovementsTab({ movements, productNames }: Props) {
       ) : (
         <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
           {filtered.slice(0, 120).map(m => {
-            const meta = KIND_META[m.kind] ?? { label: m.kind, badge: "bg-muted text-muted-foreground" }
+            const meta = m.reference_type === "deduction_request"
+              ? { label: "طرح معتمد", badge: "bg-red-500/10 text-red-600 dark:text-red-400" }
+              : (KIND_META[m.kind] ?? { label: m.kind, badge: "bg-muted text-muted-foreground" })
             const info = productNames.get(m.product_id)
             return (
               <div key={m.id} className="flex items-start gap-3 p-3">
                 <span className={`text-[10px] font-black px-2 py-1 rounded-full shrink-0 ${meta.badge}`}>{meta.label}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold truncate">{info?.name ?? "مادة"}</div>
-                  {m.note && <div className="text-[11px] text-muted-foreground mt-0.5">{m.note}</div>}
+                  {m.note && <div className="text-[11px] text-muted-foreground break-words leading-relaxed mt-0.5">{m.note}</div>}
                   <div className="text-[10px] text-muted-foreground mt-0.5">
                     {m.performed_by_name || "النظام"} · {new Date(m.created_at).toLocaleString("ar-IQ", { dateStyle: "short", timeStyle: "short" })}
                   </div>
