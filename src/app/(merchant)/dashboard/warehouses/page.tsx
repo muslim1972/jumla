@@ -81,6 +81,7 @@ export default async function WarehousesPage() {
     supabase
       .from("warehouse_movements")
       .select("id, merchant_id, warehouse_id, product_id, kind, quantity, balance_after, reference_type, reference_id, note, performed_by, created_at, product:products(name, unit_conversions), actor:profiles(full_name)")
+      .eq("merchant_id", ctx.merchantId)
       .order("created_at", { ascending: false })
       .limit(150),
     ctx.role === "merchant"

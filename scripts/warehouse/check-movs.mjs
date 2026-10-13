@@ -18,10 +18,7 @@ const key = env.SUPABASE_SERVICE_ROLE_KEY
 const admin = createClient(url, key)
 
 async function main() {
-  const { data: reqs } = await admin.from('warehouse_deduction_requests').select('*').order('created_at', { ascending: false }).limit(5)
-  console.log('Requests:', reqs)
-
-  const { data: movs } = await admin.from('warehouse_movements').select('*').order('created_at', { ascending: false }).limit(5)
+  const { data: movs } = await admin.from('warehouse_movements').select('*').eq('merchant_id', '65fde2ad-9fd8-4a97-9b29-7bb67cf03540').order('created_at', { ascending: false })
   console.log('Movements:', movs)
 }
 
