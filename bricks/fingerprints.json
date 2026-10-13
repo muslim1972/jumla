@@ -41,7 +41,7 @@
   "src/app/(merchant)/dashboard/orders/page.tsx": "4a3ab5fbba996f3ffd8fe27078a8b0cd",
   "src/app/(merchant)/dashboard/page.tsx": "16eaea2b9efd0a4117e471ef09aa7877",
   "src/app/(merchant)/dashboard/trusted-buyers/page.tsx": "b2b89526f66509aa1bda3ae91509fa56",
-  "src/app/(merchant)/dashboard/warehouses/page.tsx": "0185131c27bd5169a098a3c10a4733bf",
+  "src/app/(merchant)/dashboard/warehouses/page.tsx": "07057248a0c79ce23c6bc5488b3169bc",
   "src/app/(merchant)/layout.tsx": "7914f7bf214ba03458be01f64f361318",
   "src/app/actions/auth-actions.ts": "e9f29203b1c1597fa98f5d28157dd438",
   "src/app/actions/buyer-orders-actions.ts": "d0e174c063a475458630f82f0a615645",
