@@ -95,7 +95,15 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     search_term: searchTerm,
     requested_by: auth.user.id,
   })
-  if (runLogError) return { success: false as const, error: "تعذر تسجيل محاولة البحث. حاول مجدداً." }
+  if (runLogError) {
+    console.error("[catalog-import] failed to record search run", {
+      code: runLogError.code,
+      message: runLogError.message,
+      details: runLogError.details,
+      hint: runLogError.hint,
+    })
+    return { success: false as const, error: "تعذر تسجيل محاولة البحث. تحقق من صلاحيات جدول سجل البحث وتطبيق ترحيل الكتالوج." }
+  }
   const endpoint = new URL(`https://${config.host}/cgi/search.pl`)
   endpoint.searchParams.set("search_terms", searchTerm)
   endpoint.searchParams.set("json", "1")

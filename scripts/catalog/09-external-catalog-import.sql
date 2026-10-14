@@ -55,6 +55,10 @@ create policy catalog_import_search_runs_admin_manage
   using (coalesce(public.get_user_role(auth.uid()), '') = 'admin')
   with check (coalesce(public.get_user_role(auth.uid()), '') = 'admin');
 
+-- RLS limits visible rows to admins; SQL privileges are still required separately.
+grant select, insert, update on public.catalog_import_candidates to authenticated;
+grant select, insert on public.catalog_import_search_runs to authenticated;
+
 -- حفظ الإسناد والترخيص مع المادة حتى لا تنفصل بيانات المصدر عند قبولها.
 alter table public.master_products
   add column if not exists source_provider text,
