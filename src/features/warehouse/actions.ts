@@ -244,15 +244,13 @@ export async function addOwnItemToWarehouse(formData: FormData) {
   let masterId: string | null = null
   let pool: "created" | "linked" = "created"
 
-  if (!addAsNew && barcode) {
-    const { data: byBarcode } = await supabase
-      .from("master_products").select("id").eq("barcode", barcode).maybeSingle()
-    masterId = byBarcode?.id ?? null
-  }
-  if (!addAsNew && !masterId) {
-    const { data: byName } = await supabase
-      .from("master_products").select("id").ilike("name", esc).maybeSingle()
-    masterId = byName?.id ?? null
+  if (!addAsNew) {
+    const { data: byName, error: matchError } = await supabase
+      .from("master_products").select("id, name, description").ilike("name", esc).limit(100)
+    if (matchError) return { success: false, error: "تعذّر البحث عن المادة في الكتالوج. أعد المحاولة لاحقاً." }
+    const normalize = (value: string | null | undefined) => (value ?? "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("ar")
+    const match = (byName || []).find(item => normalize(item.name) === normalize(cleanName) && normalize(item.description) === normalize(description))
+    masterId = match?.id ?? null
   }
   if (masterId) {
     pool = "linked"

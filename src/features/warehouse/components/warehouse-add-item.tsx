@@ -122,10 +122,6 @@ export function WarehouseAddItemPanel({ warehouses, pool, categories, linkedMast
       setErrorMsg("توجد مادة مطابقة للاسم والوصف في الكتالوج. اخترها من نتائج البحث أو عدّل الاسم أو الوصف.")
       return
     }
-    if (ownBarcode.trim() && pool.some(p => p.barcode === ownBarcode.trim())) {
-      setErrorMsg("هذا الباركود مستخدم لمادة أخرى. اتركه فارغاً أو أدخل باركوداً مختلفاً.")
-      return
-    }
     const units = ownUnits
       .map(u => ({ type: u.type.trim(), price: Number(u.price || 0) }))
       .filter(u => u.type && u.price > 0)

@@ -67,6 +67,11 @@ export function ProductCard({
               {product.description}
             </p>
           )}
+          {product.source_url && (
+            <a href={product.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-muted-foreground underline">
+              مصدر البيانات والصورة: {product.source_provider || "مصدر خارجي"}{product.source_license ? ` · ${product.source_license}` : ""}
+            </a>
+          )}
         </CardHeader>
 
         <CardContent className="p-3 pt-1 pb-2 flex-grow flex justify-between items-end gap-2">
@@ -144,6 +149,11 @@ export function ProductCard({
             <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
               {product.description}
             </p>
+          )}
+          {product.source_url && (
+            <a href={product.source_url} target="_blank" rel="noreferrer" className="mt-0.5 block text-[9px] text-muted-foreground underline">
+              مصدر البيانات والصورة: {product.source_provider || "مصدر خارجي"}{product.source_license ? ` · ${product.source_license}` : ""}
+            </a>
           )}
         </div>
       </div>

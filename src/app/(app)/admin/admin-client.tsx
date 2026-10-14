@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import dynamic from "next/dynamic"
 import { createClient } from "@/utils/supabase/client"
 import { 
   BarChart3, 
@@ -38,6 +39,11 @@ import { AdminActiveOrders } from "./admin-active-orders"
 import { AdminUserDetails } from "@/features/admin/components/admin-user-details"
 import { updateUserRoleWithSync, getAdminUserDetails, approveUser, rejectUser } from "@/features/admin/actions"
 import { MaterialsProductivity } from "@/features/admin/components/materials-productivity"
+
+const CatalogImportTab = dynamic(
+  () => import("@/features/admin/components/catalog-import-tab").then((module) => module.CatalogImportTab),
+  { loading: () => <div className="rounded-xl border p-6 text-sm text-muted-foreground">جارٍ تحميل إدارة استيراد الكتالوج...</div> }
+)
 
 export interface TopBanner {
   id: string
@@ -138,7 +144,7 @@ export function AdminClient({
   const searchParams = useSearchParams()
   const [isRefreshing, startTransition] = useTransition()
   
-  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling" | "productivity">(
+  const [activeTab, setActiveTab] = useState<"overview" | "banners" | "paidBanners" | "users" | "merchantBilling" | "productivity" | "catalogImport">(
     searchParams.get("tab") === "users" ? "users" : "overview"
   )
   const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">(
@@ -538,6 +544,16 @@ export function AdminClient({
             >
               <TrendingUp className="w-3.5 h-3.5" />
               أداء الموظفين
+            </button>
+            <button
+              onClick={() => setActiveTab("catalogImport")}
+              className={cn(
+                "flex-grow sm:flex-grow-0 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1",
+                activeTab === "catalogImport" ? "bg-card text-brand-blue dark:text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Package className="w-3.5 h-3.5" />
+              تعزيز الكتالوج
             </button>
           </div>
       </div>
@@ -1517,6 +1533,12 @@ export function AdminClient({
         {activeTab === "productivity" && (
           <div className="animate-in fade-in duration-300">
             <MaterialsProductivity />
+          </div>
+        )}
+
+        {activeTab === "catalogImport" && (
+          <div className="animate-in fade-in duration-300">
+            <CatalogImportTab />
           </div>
         )}
 

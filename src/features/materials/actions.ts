@@ -10,7 +10,7 @@ async function assertMaterialsRole(allowMerchant: boolean = false) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return { supabase, user: null, error: "Unauthorized" as const }
+    return { supabase, user: null, error: "Unauthorized" as const, role: "" }
   }
 
   const { data: profile } = await supabase
@@ -22,10 +22,10 @@ async function assertMaterialsRole(allowMerchant: boolean = false) {
   const role = profile?.role || ""
   const allowed = allowMerchant ? ['materials', 'admin', 'merchant'] : ['materials', 'admin']
   if (!allowed.includes(role)) {
-    return { supabase, user: null, error: "غير مصرح لك بإدارة المواد" as const }
+    return { supabase, user: null, error: "غير مصرح لك بإدارة المواد" as const, role }
   }
 
-  return { supabase, user, error: null }
+  return { supabase, user, error: null, role }
 }
 
 // رفع صورة مادة الكتالوج داخل مجلد المعرّف الشخصي للمستخدم — نفس نمط رفع منتجات
@@ -51,11 +51,19 @@ async function uploadMasterImage(supabase: Awaited<ReturnType<typeof createClien
 }
 
 function translateMasterError(error: { code?: string; message?: string } | null): string {
-  // 23505: انتهاك الفهرس الفريد للباركود في master_products
+  // المطابقة الفريدة تعتمد على الاسم والوصف؛ الباركود ليس مفتاح هوية.
   if (error?.code === '23505') {
-    return "هذا الباركود مسجل مسبقاً لمادة أخرى"
+    return "توجد مادة بالاسم والوصف نفسيهما في الكتالوج"
   }
   return error?.message || "حدث خطأ غير متوقع"
+}
+
+function normalizeCatalogText(value: string | null | undefined) {
+  return (value || "").normalize("NFKC").trim().toLocaleLowerCase("ar").replace(/\s+/g, " ")
+}
+
+function escapeLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, "\\$&")
 }
 
 /**
@@ -98,12 +106,35 @@ export async function createCategory(name: string) {
 }
 
 export async function createMasterProduct(formData: FormData) {
-  const { supabase, user, error: roleError } = await assertMaterialsRole(true)
+  const importCandidateId = (formData.get("catalog_import_candidate_id") as string || "").trim()
+  const { supabase, user, error: roleError, role } = await assertMaterialsRole(!importCandidateId)
   if (roleError || !user) return { success: false, error: roleError || "Unauthorized" }
+
+  let importCandidate: {
+    id: string
+    provider: string
+    source_url: string
+    source_license: string
+    image_url: string | null
+    status: string
+  } | null = null
+  if (importCandidateId) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+    if (profile?.role !== "admin") return { success: false, error: "اعتماد المرشحين متاح للمدير فقط" }
+    const { data, error } = await supabase
+      .from("catalog_import_candidates")
+      .select("id, provider, source_url, source_license, image_url, status")
+      .eq("id", importCandidateId)
+      .eq("status", "pending")
+      .maybeSingle()
+    if (error || !data) return { success: false, error: "المرشح غير موجود أو تمت مراجعته مسبقاً" }
+    importCandidate = data
+  }
 
   const name = (formData.get("name") as string || "").trim()
   const description = (formData.get("description") as string || "").trim()
-  const category_id = formData.get("category_id") as string | null
+  const categoryRaw = formData.get("category_id") as string | null
+  const category_id = categoryRaw && categoryRaw !== "none" ? categoryRaw : null
   const barcodeRaw = (formData.get("barcode") as string || "").trim()
   const basePriceRaw = (formData.get("base_price") as string || "").trim()
   const unitsJson = formData.get("units") as string
@@ -140,44 +171,56 @@ export async function createMasterProduct(formData: FormData) {
     return { success: false, error: "السعر الأساسي غير صحيح" }
   }
 
-  let image_url: string | null = null
+  let image_url: string | null = importCandidate?.image_url || null
   if (image && image.size > 0) {
     const upload = await uploadMasterImage(supabase, user.id, image)
     if (upload.error) return { success: false, error: `تعذر رفع الصورة: ${upload.error}` }
     image_url = upload.url
   }
 
-  // فحص حماية ضد التكرار المستحدث: التطابق التام في (الاسم + الوصف + الباركود)
-  let duplicateQuery = supabase.from('master_products').select('id').eq('name', name)
-  if (description) {
-    duplicateQuery = duplicateQuery.eq('description', description)
-  } else {
-    duplicateQuery = duplicateQuery.is('description', null)
-  }
-  if (barcodeRaw) {
-    duplicateQuery = duplicateQuery.eq('barcode', barcodeRaw)
-  } else {
-    duplicateQuery = duplicateQuery.is('barcode', null)
-  }
-  
-  const { data: duplicates } = await duplicateQuery.limit(1)
-  if (duplicates && duplicates.length > 0) {
-    return { success: false, error: "هذه المادة مسجلة مسبقاً بنفس الاسم والباركود." }
-  }
+  // الاسم هو مفتاح المطابقة الأول، ثم الوصف؛ الباركود لا يحدد هوية المادة.
+  const { data: sameNames, error: duplicateLookupError } = await supabase
+    .from('master_products')
+    .select('id, name, description')
+    .ilike('name', escapeLikePattern(name))
+    .limit(100)
+  if (duplicateLookupError) return { success: false, error: "تعذر التحقق من تكرار الاسم والوصف. أعد المحاولة." }
+  const duplicate = (sameNames || []).find((item) =>
+    normalizeCatalogText(item.name) === normalizeCatalogText(name) && normalizeCatalogText(item.description) === normalizeCatalogText(description)
+  )
+  if (duplicate) return { success: false, error: "توجد مادة بالاسم والوصف نفسيهما في الكتالوج؛ لم يُستخدم الباركود للمطابقة." }
 
-  const { error } = await supabase.from('master_products').insert({
-    name,
-    description: description || null,
-    category_id: category_id || null,
-    barcode: barcodeRaw || null,
-    base_price,
-    units: enrichedUnits,
-    unit_conversions: unit_conversions,
-    image_url,
-    created_by: user.id
-  })
-
-  if (error) return { success: false, error: translateMasterError(error) }
+  if (importCandidate) {
+    const { error } = await supabase.rpc("catalog_accept_import_candidate", {
+      p_candidate_id: importCandidate.id,
+      p_name: name,
+      p_description: description || null,
+      p_category_id: category_id,
+      p_barcode: barcodeRaw || null,
+      p_base_price: base_price,
+      p_units: enrichedUnits,
+      p_unit_conversions: unit_conversions,
+      p_image_url: image_url,
+    })
+    if (error) {
+      const duplicate = error.message.includes("duplicate name and description")
+      return { success: false, error: duplicate ? "توجد مادة بالاسم والوصف نفسيهما في الكتالوج." : "تعذر اعتماد المرشح؛ ربما تمت مراجعته في جلسة أخرى أو لم يُطبق الترحيل." }
+    }
+  } else {
+    const { error } = await supabase.from('master_products').insert({
+      name,
+      description: description || null,
+      category_id,
+      barcode: barcodeRaw || null,
+      base_price,
+      units: enrichedUnits,
+      unit_conversions: unit_conversions,
+      image_url,
+      created_by: user.id,
+      origin: role === 'merchant' ? 'merchant' : 'admin'
+    })
+    if (error) return { success: false, error: translateMasterError(error) }
+  }
 
   revalidatePath("/materials")
   revalidatePath("/dashboard")
@@ -240,22 +283,18 @@ export async function editMasterProduct(formData: FormData) {
     return { success: false, error: "السعر الأساسي غير صحيح" }
   }
 
-  // فحص حماية ضد التكرار (استثناء المادة الحالية)
-  let duplicateQuery = supabase.from('master_products').select('id').eq('name', name).neq('id', id)
-  if (description) {
-    duplicateQuery = duplicateQuery.eq('description', description)
-  } else {
-    duplicateQuery = duplicateQuery.is('description', null)
-  }
-  if (barcodeRaw) {
-    duplicateQuery = duplicateQuery.eq('barcode', barcodeRaw)
-  } else {
-    duplicateQuery = duplicateQuery.is('barcode', null)
-  }
-  
-  const { data: duplicates } = await duplicateQuery.limit(1)
-  if (duplicates && duplicates.length > 0) {
-    return { success: false, error: "هذه المادة مسجلة مسبقاً بنفس الاسم والباركود." }
+  // الاسم أولاً والوصف ثانياً؛ الباركود لا يدخل في كشف التكرار.
+  const { data: sameNames, error: duplicateLookupError } = await supabase
+    .from('master_products')
+    .select('id, name, description')
+    .ilike('name', escapeLikePattern(name))
+    .neq('id', id)
+    .limit(100)
+  if (duplicateLookupError) return { success: false, error: "تعذر التحقق من تكرار الاسم والوصف. أعد المحاولة." }
+  if ((sameNames || []).some((item) =>
+    normalizeCatalogText(item.name) === normalizeCatalogText(name) && normalizeCatalogText(item.description) === normalizeCatalogText(description)
+  )) {
+    return { success: false, error: "توجد مادة بالاسم والوصف نفسيهما في الكتالوج." }
   }
 
   const updates: {

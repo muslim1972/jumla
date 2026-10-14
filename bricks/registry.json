@@ -115,7 +115,8 @@
         "products",
         "categories",
         "master_products",
-        "sync_master_product_to_products"
+        "sync_master_product_to_products",
+        "master_products_name_description_unique"
       ]
     },
     "FE-CART-01": {
@@ -295,10 +296,12 @@
         "src/features/admin/actions.ts",
         "src/features/admin/actions/employee-productivity-actions.ts",
         "src/features/admin/actions/field-history-actions.ts",
+        "src/features/admin/actions/catalog-import-actions.ts",
         "src/features/admin/components/admin-user-details.tsx",
         "src/features/admin/components/audit-log-viewer.tsx",
         "src/features/admin/components/contact-settings-modal.tsx",
         "src/features/admin/components/field-history-popover.tsx",
+        "src/features/admin/components/catalog-import-tab.tsx",
         "src/features/admin/components/materials-productivity.tsx",
         "src/features/admin/components/merchant-billing-admin.tsx",
         "src/features/admin/hooks/use-field-history.ts",
@@ -308,6 +311,9 @@
         "ad_requests",
         "audit_logs",
         "notifications",
+        "catalog_import_candidates",
+        "catalog_import_search_runs",
+        "catalog_accept_import_candidate",
         "audit_log_trigger",
         "audit_trigger_func"
       ]

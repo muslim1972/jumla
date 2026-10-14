@@ -30,6 +30,9 @@ export type MasterProduct = {
   units: MasterUnit[]
   unit_conversions: { from: string, to: string, multiplier: number }[]
   updated_at?: string
+  source_provider?: string | null
+  source_url?: string | null
+  source_license?: string | null
   /** مصدر المادة: إدارة المواد أو مساهمة تاجر («الـ Pool هو المكان الموحد») */
   origin?: 'admin' | 'merchant' | null
 }
@@ -79,6 +82,8 @@ export function MasterProductForm({
   onSuccess,
   onCategoryCreated,
   onFieldHistoryClick,
+  requireExplicitUnit = false,
+  submitDisabled = false,
 }: {
   categories: { id: string, name: string }[]
   initial?: MasterProduct
@@ -88,6 +93,8 @@ export function MasterProductForm({
   onSuccess?: () => void
   onCategoryCreated?: (category: { id: string, name: string }) => void
   onFieldHistoryClick?: (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => void
+  requireExplicitUnit?: boolean
+  submitDisabled?: boolean
 }) {
   const [name, setName] = useState(initial?.name || "")
   const [description, setDescription] = useState(initial?.description || "")
@@ -134,7 +141,9 @@ export function MasterProductForm({
     initial?.units?.map(u => ({ type: u.type })) || []
   )
   const [currentUnitType, setCurrentUnitType] = useState(() =>
-    UNIT_OPTIONS.find(option => !initial?.units?.some(unit => unit.type === option)) || UNIT_OPTIONS[0]
+    requireExplicitUnit
+      ? "choose"
+      : UNIT_OPTIONS.find(option => !initial?.units?.some(unit => unit.type === option)) || UNIT_OPTIONS[0]
   )
   const [conversions, setConversions] = useState<Conversion[]>(() => buildConversionsFromInitial(initial))
   const [formError, setFormError] = useState("")
@@ -157,6 +166,10 @@ export function MasterProductForm({
   }, [units, conversions, hasSavedConversions])
 
   const handleAddUnit = () => {
+    if (!currentUnitType || currentUnitType === "choose") {
+      setFormError("اختر وحدة البيع أولاً")
+      return
+    }
     if (units.some(u => u.type === currentUnitType)) {
       setFormError("هذه الوحدة مضافة مسبقاً لهذه المادة")
       return
@@ -175,6 +188,10 @@ export function MasterProductForm({
   const toggleNoParts = () => {
     const next = !isNoPartsMaterial
     setIsNoPartsMaterial(next)
+    if (next && units.length === 0 && currentUnitType === "choose") {
+      setFormError("اختر وحدة البيع وأضفها قبل اعتماد المادة")
+      return
+    }
     if (next && units.length === 0) {
       setUnits([{ type: currentUnitType }])
     }
@@ -240,7 +257,9 @@ export function MasterProductForm({
 
     // القائمة المنسدلة تعرض اختياراً جاهزاً دائماً — إن نسي المستخدم ضغط «إضافة وحدة»
     // نعتبر الوحدة المختارة هي وحدة البيع بدل رفض الحفظ برسالة مربكة
-    const effectiveUnits = units.length === 0 && currentUnitType ? [{ type: currentUnitType }] : units
+    const effectiveUnits = requireExplicitUnit
+      ? units
+      : units.length === 0 && currentUnitType ? [{ type: currentUnitType }] : units
     if (effectiveUnits.length === 0) {
       setFormError("يجب إضافة وحدة واحدة على الأقل")
       return
@@ -412,7 +431,7 @@ export function MasterProductForm({
           {barcodeError ? (
             <p className="text-xs text-destructive font-bold">{barcodeError}</p>
           ) : (
-            <p className="text-xs text-muted-foreground">8 أو 12 أو 13 أو 14 رقماً — لا يمكن تكراره لمادتين</p>
+            <p className="text-xs text-muted-foreground">اختياري. لا يعتمد النظام عليه لكشف التكرار؛ المطابقة بالاسم ثم الوصف.</p>
           )}
         </div>
       </div>
@@ -462,11 +481,12 @@ export function MasterProductForm({
 
           <div className="flex gap-2 items-end mt-2">
             <div className="space-y-1.5 flex-1">
-              <Select value={currentUnitType} onValueChange={(val) => setCurrentUnitType(val || "")}>
+              <Select value={currentUnitType} onValueChange={(val) => setCurrentUnitType(val || "choose")}>
                 <SelectTrigger dir="rtl" className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
+                  {requireExplicitUnit && <SelectItem value="choose">اختر وحدة البيع</SelectItem>}
                   {UNIT_OPTIONS.map(u => (
                     <SelectItem key={u} value={u}>{u}</SelectItem>
                   ))}
@@ -590,7 +610,7 @@ export function MasterProductForm({
       )}
 
       <div className="sticky bottom-0 pt-4 pb-2 bg-background z-10 border-t mt-4 shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)]">
-        <Button type="submit" className="w-full bg-brand-blue hover:bg-brand-blue/90" disabled={isSubmitting}>
+        <Button type="submit" className="w-full bg-brand-blue hover:bg-brand-blue/90" disabled={isSubmitting || submitDisabled}>
           {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : submitLabel}
         </Button>
       </div>
@@ -648,6 +668,12 @@ function MasterProductRow({ product, onEdit, onDelete, onFieldHistoryClick }: {
             </div>
           )}
         </div>
+
+        {product.source_url && (
+          <a href={product.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-brand-blue underline">
+            مصدر بيانات وصورة المادة: {product.source_provider || "مصدر خارجي"} · {product.source_license || "راجع الترخيص"}
+          </a>
+        )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {product.units?.map((u, idx) => (

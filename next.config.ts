@@ -17,6 +17,26 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "hslpavldgvlpkvqgogcc.supabase.co",
       },
+      {
+        protocol: "https",
+        hostname: "images.openfoodfacts.org",
+        pathname: "/images/products/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.openbeautyfacts.org",
+        pathname: "/images/products/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.openpetfoodfacts.org",
+        pathname: "/images/products/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.openproductsfacts.org",
+        pathname: "/images/products/**",
+      },
     ],
   },
   turbopack: {},

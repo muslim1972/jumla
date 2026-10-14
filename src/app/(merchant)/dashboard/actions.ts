@@ -303,7 +303,7 @@ export async function linkMasterProduct(formData: FormData) {
   const conversions = master.unit_conversions || []
   const baseStockQuantity = getBaseStockQuantity(stock_quantity, stock_unit, conversions)
 
-  const { error } = await supabase.from('products').insert({
+  const linkedProduct: Record<string, unknown> = {
     merchant_id: user.id,
     master_product_id,
     name: master.name,
@@ -317,7 +317,14 @@ export async function linkMasterProduct(formData: FormData) {
     stock_unit: stock_unit,
     min_stock_alert: min_stock_alert,
     unit_conversions: conversions
-  })
+  }
+  if (master.source_provider && master.source_url) {
+    linkedProduct.source_provider = master.source_provider
+    linkedProduct.source_url = master.source_url
+    linkedProduct.source_license = master.source_license || null
+  }
+
+  const { error } = await supabase.from('products').insert(linkedProduct)
 
   if (error) return { success: false, error: error.message }
 
