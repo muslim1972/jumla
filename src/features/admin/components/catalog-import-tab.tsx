@@ -11,6 +11,7 @@ import { MasterProductForm, type MasterProduct } from "@/features/materials/comp
 import { createMasterProduct } from "@/features/materials/actions"
 import {
   loadPendingCatalogCandidates,
+  loadCatalogImportCategories,
   rejectCatalogImportCandidate,
   searchAndQueueCatalogCandidates,
 } from "@/features/admin/actions/catalog-import-actions"
@@ -20,6 +21,7 @@ type Candidate = {
   id: string
   provider: Provider
   provider_key: string
+  market_country: "iraq"
   name: string
   description: string | null
   barcode: string | null
@@ -43,6 +45,8 @@ export function CatalogImportTab() {
   const [provider, setProvider] = useState<Provider>("food")
   const [searchTerm, setSearchTerm] = useState("")
   const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [unavailableImageIds, setUnavailableImageIds] = useState<Set<string>>(() => new Set())
   const [selected, setSelected] = useState<Candidate | null>(null)
   const [licenseAcknowledged, setLicenseAcknowledged] = useState(false)
   const [error, setError] = useState("")
@@ -64,9 +68,14 @@ export function CatalogImportTab() {
 
   useEffect(() => {
     const load = async () => {
-      const result = await loadPendingCatalogCandidates()
-      if (result.success) setCandidates(result.candidates)
-      else setError(result.error)
+      const [candidateResult, categoryResult] = await Promise.all([
+        loadPendingCatalogCandidates(),
+        loadCatalogImportCategories(),
+      ])
+      if (candidateResult.success) setCandidates(candidateResult.candidates)
+      else setError(candidateResult.error)
+      if (categoryResult.success) setCategories(categoryResult.categories)
+      else setError(categoryResult.error)
     }
     void load()
   }, [])
@@ -81,7 +90,9 @@ export function CatalogImportTab() {
         return
       }
       setCandidates(result.candidates)
-      setInfo(`فُحصت ${result.found} نتيجة ووُضعت العناصر الجديدة في قائمة المراجعة. لم تُنشر أي مادة تلقائياً.`)
+      setInfo(result.found === 0
+        ? "لم يعثر المصدر على نتيجة موسومة للعراق بهذه العبارة. جرّب اسم العلامة التجارية بالعربية أو الإنجليزية؛ لا نعرض نتائج عالمية غير محددة للسوق العراقي."
+        : `فُحصت ${result.found} نتيجة موسومة للعراق ووُضعت العناصر الجديدة في قائمة المراجعة. لم تُنشر أي مادة تلقائياً.`)
     })
   }
 
@@ -102,7 +113,7 @@ export function CatalogImportTab() {
     name: selected.name,
     description: selected.description,
     category_id: null,
-    image_url: selected.image_url,
+    image_url: unavailableImageIds.has(selected.id) ? null : selected.image_url,
     barcode: selected.barcode,
     base_price: null,
     units: [],
@@ -141,7 +152,7 @@ export function CatalogImportTab() {
               ابحث وأضف للمراجعة
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{selectedProvider.note} — البحث يعيد حتى 10 نتائج للدفعة الواحدة.</p>
+          <p className="text-xs text-muted-foreground">{selectedProvider.note} — تظهر فقط المواد التي يوسمها المصدر بأنها متداولة في العراق، وبحد أقصى 10 نتائج للدفعة.</p>
           <p className="text-xs text-muted-foreground">
             يطابق النظام بالاسم أولاً ثم الوصف. الباركود معلومة مساعدة فقط ولا يستخدم لتحديد التكرار.
           </p>
@@ -162,12 +173,21 @@ export function CatalogImportTab() {
           {candidates.map((candidate) => (
             <Card key={candidate.id}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                {candidate.image_url ? (
+                {candidate.image_url && !unavailableImageIds.has(candidate.id) ? (
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-white">
-                    <Image src={candidate.image_url} alt={candidate.name} fill sizes="80px" className="object-contain p-1" />
+                    <Image
+                      src={candidate.image_url}
+                      alt={candidate.name}
+                      fill
+                      sizes="80px"
+                      className="object-contain p-1"
+                      onError={() => setUnavailableImageIds((current) => new Set(current).add(candidate.id))}
+                    />
                   </div>
                 ) : (
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border bg-muted text-xs text-muted-foreground">بلا صورة</div>
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border bg-muted p-1 text-center text-[10px] text-muted-foreground">
+                    {candidate.image_url ? "تعذر تحميل الصورة؛ ارفع صورة بديلة عند الاعتماد" : "لا توجد صورة من المصدر"}
+                  </div>
                 )}
                 <div className="min-w-0 flex-1 space-y-1">
                   <h3 className="font-bold">{candidate.name}</h3>
@@ -225,11 +245,12 @@ export function CatalogImportTab() {
               </label>
               <MasterProductForm
                 key={selected.id}
-                categories={[]}
+                categories={categories}
                 initial={initial}
                 formId={`catalog-import-${selected.id}`}
                 submitLabel="اعتماد وإضافة إلى Pool"
                 requireExplicitUnit
+                requireImage={!selected.image_url || unavailableImageIds.has(selected.id)}
                 submitDisabled={!licenseAcknowledged}
                 onSubmit={async (formData) => {
                   formData.append("catalog_import_candidate_id", selected.id)
@@ -240,6 +261,9 @@ export function CatalogImportTab() {
                   setLicenseAcknowledged(false)
                   setCandidates((current) => current.filter((item) => item.id !== selected.id))
                 }}
+                onCategoryCreated={(category) => setCategories((current) =>
+                  current.some((item) => item.id === category.id) ? current : [...current, category]
+                )}
               />
             </>
           )}

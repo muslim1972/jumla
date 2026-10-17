@@ -116,6 +116,7 @@ export async function createMasterProduct(formData: FormData) {
     source_url: string
     source_license: string
     image_url: string | null
+    market_country: string
     status: string
   } | null = null
   if (importCandidateId) {
@@ -123,11 +124,12 @@ export async function createMasterProduct(formData: FormData) {
     if (profile?.role !== "admin") return { success: false, error: "اعتماد المرشحين متاح للمدير فقط" }
     const { data, error } = await supabase
       .from("catalog_import_candidates")
-      .select("id, provider, source_url, source_license, image_url, status")
+      .select("id, provider, source_url, source_license, image_url, market_country, status")
       .eq("id", importCandidateId)
       .eq("status", "pending")
       .maybeSingle()
     if (error || !data) return { success: false, error: "المرشح غير موجود أو تمت مراجعته مسبقاً" }
+    if (data.market_country !== "iraq") return { success: false, error: "هذا المرشح قديم ولم يتم التحقق من تداوله في العراق؛ أعد البحث عنه أولاً." }
     importCandidate = data
   }
 
@@ -203,6 +205,12 @@ export async function createMasterProduct(formData: FormData) {
       p_image_url: image_url,
     })
     if (error) {
+      console.error("[catalog-import] candidate acceptance RPC failed", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      })
       const duplicate = error.message.includes("duplicate name and description")
       return { success: false, error: duplicate ? "توجد مادة بالاسم والوصف نفسيهما في الكتالوج." : "تعذر اعتماد المرشح؛ ربما تمت مراجعته في جلسة أخرى أو لم يُطبق الترحيل." }
     }

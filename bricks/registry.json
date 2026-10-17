@@ -116,7 +116,7 @@
         "categories",
         "master_products",
         "sync_master_product_to_products",
-        "master_products_name_description_unique"
+        "master_products_name_description_idx"
       ]
     },
     "FE-CART-01": {
@@ -313,6 +313,7 @@
         "notifications",
         "catalog_import_candidates",
         "catalog_import_search_runs",
+        "catalog_import_candidates.market_country",
         "catalog_accept_import_candidate",
         "audit_log_trigger",
         "audit_trigger_func"

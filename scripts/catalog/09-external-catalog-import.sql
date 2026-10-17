@@ -6,6 +6,7 @@ create table if not exists public.catalog_import_candidates (
   id uuid primary key default gen_random_uuid(),
   provider text not null check (provider in ('food', 'beauty', 'petfood', 'product')),
   provider_key text not null,
+  market_country text not null default 'unverified',
   name text not null,
   description text,
   barcode text,
@@ -21,6 +22,22 @@ create table if not exists public.catalog_import_candidates (
   reviewed_at timestamptz,
   unique (provider, provider_key)
 );
+
+alter table public.catalog_import_candidates
+  add column if not exists market_country text not null default 'unverified';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.catalog_import_candidates'::regclass
+      and conname = 'catalog_import_candidates_market_country_check'
+  ) then
+    alter table public.catalog_import_candidates
+      add constraint catalog_import_candidates_market_country_check
+      check (market_country in ('iraq', 'unverified'));
+  end if;
+end $$;
 
 create index if not exists catalog_import_candidates_status_created_idx
   on public.catalog_import_candidates (status, created_at desc);
@@ -97,22 +114,9 @@ create trigger trg_sync_master_product
   on public.master_products
   for each row execute function public.sync_master_product_to_products();
 
--- فحص التكرارات المقترحة: الاسم أولاً، ثم الوصف بعد توحيد حالة الأحرف والمسافات.
--- يوقف الترحيل قبل إنشاء الفهرس إن كان الكتالوج القديم يحتوي تعارضات تحتاج حسمًا.
-do $$
-begin
-  if exists (
-    select 1
-    from public.master_products
-    group by lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g')),
-             lower(regexp_replace(btrim(coalesce(description, '')), '[[:space:]]+', ' ', 'g'))
-    having count(*) > 1
-  ) then
-    raise exception 'catalog import migration stopped: duplicate normalized name + description rows exist; review them before adding the unique index';
-  end if;
-end $$;
-
-create unique index if not exists master_products_name_description_unique
+-- لا نرفض بيانات Pool القديمة بسبب تكرارات تاريخية؛ تُمنع التكرارات الجديدة داخل RPC بقفل ذري.
+drop index if exists public.master_products_name_description_unique;
+create index if not exists master_products_name_description_idx
   on public.master_products (
     lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g')),
     lower(regexp_replace(btrim(coalesce(description, '')), '[[:space:]]+', ' ', 'g'))
@@ -155,6 +159,16 @@ begin
     raise exception 'catalog_accept_import_candidate: candidate is no longer pending';
   end if;
 
+  if v_candidate.market_country <> 'iraq' then
+    raise exception 'catalog_accept_import_candidate: candidate is not verified for Iraq';
+  end if;
+
+  -- تسلسل اعتماد الاسم والوصف نفسيهما حتى لا ينجح طلبان متزامنان بإضافة نسخة جديدة.
+  perform pg_advisory_xact_lock(
+    hashtext(lower(regexp_replace(btrim(p_name), '[[:space:]]+', ' ', 'g'))),
+    hashtext(lower(regexp_replace(btrim(coalesce(p_description, '')), '[[:space:]]+', ' ', 'g')))
+  );
+
   if exists (
     select 1 from public.master_products
     where lower(regexp_replace(btrim(name), '[[:space:]]+', ' ', 'g')) =
@@ -189,12 +203,18 @@ grant execute on function public.catalog_accept_import_candidate(uuid, text, tex
 select json_build_object(
   'candidate_table', to_regclass('public.catalog_import_candidates') is not null,
   'candidate_rls', (select relrowsecurity from pg_class where oid = 'public.catalog_import_candidates'::regclass),
+  'market_country_column', exists (select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'catalog_import_candidates'
+      and column_name = 'market_country'),
   'accept_rpc', to_regprocedure('public.catalog_accept_import_candidate(uuid,text,text,uuid,text,numeric,jsonb,jsonb,text)') is not null,
   'source_columns', (select count(*) from information_schema.columns
     where table_schema = 'public' and table_name = 'master_products'
       and column_name in ('source_provider', 'source_url', 'source_license')),
-  'name_description_unique', exists (select 1 from pg_indexes
-    where schemaname = 'public' and indexname = 'master_products_name_description_unique'),
+  'name_description_lookup_index', exists (select 1 from pg_indexes
+    where schemaname = 'public' and indexname = 'master_products_name_description_idx'),
+  'name_description_duplicate_guard', exists (select 1 from pg_proc
+    where pronamespace = 'public'::regnamespace and proname = 'catalog_accept_import_candidate'
+      and prosrc like '%pg_advisory_xact_lock%'),
   'sync_trigger', exists (select 1 from pg_trigger
     where tgrelid = 'public.master_products'::regclass
       and tgname = 'trg_sync_master_product' and not tgisinternal)

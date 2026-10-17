@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
+import { validateBarcode } from "@/features/materials/lib/barcode"
 
 const PROVIDERS = {
   food: { label: "Open Food Facts", host: "world.openfoodfacts.org", imageHost: "images.openfoodfacts.org" },
@@ -15,6 +16,7 @@ type Candidate = {
   id: string
   provider: Provider
   provider_key: string
+  market_country: "iraq"
   name: string
   description: string | null
   barcode: string | null
@@ -57,6 +59,16 @@ function safeImageUrl(value: unknown, imageHost: string): string | null {
 
 function normalize(value: string | null | undefined) {
   return (value || "").normalize("NFKC").trim().toLocaleLowerCase("ar").replace(/\s+/g, " ")
+}
+
+function isTaggedForIraq(product: Record<string, unknown>) {
+  const tags = product.countries_tags
+  if (!Array.isArray(tags)) return false
+  return tags.some((tag) => {
+    if (typeof tag !== "string") return false
+    const normalizedTag = tag.toLocaleLowerCase("en").replace(/^[a-z]{2}:/, "").replace(/_/g, "-")
+    return normalizedTag === "iraq" || normalizedTag === "republic-of-iraq"
+  })
 }
 
 async function findNameMatch(supabase: Awaited<ReturnType<typeof createClient>>, name: string, description: string | null) {
@@ -109,7 +121,11 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
   endpoint.searchParams.set("json", "1")
   endpoint.searchParams.set("page_size", "10")
   endpoint.searchParams.set("page", "1")
-  endpoint.searchParams.set("fields", "code,product_name,product_name_ar,generic_name,brands,quantity,image_front_url")
+  // لا نكتفي بعبارة البحث: اشترط وسم التوفر في العراق، ثم نتحقق منه محلياً أيضاً.
+  endpoint.searchParams.set("tagtype_0", "countries")
+  endpoint.searchParams.set("tag_contains_0", "contains")
+  endpoint.searchParams.set("tag_0", "iraq")
+  endpoint.searchParams.set("fields", "code,product_name,product_name_ar,generic_name,brands,quantity,image_front_url,countries_tags")
 
   let payload: { products?: Record<string, unknown>[] }
   try {
@@ -124,7 +140,7 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     return { success: false as const, error: "تعذر الوصول إلى مصدر المنتجات. حاول لاحقاً." }
   }
 
-  const products = (payload.products || []).slice(0, 10)
+  const products = (payload.products || []).filter(isTaggedForIraq).slice(0, 10)
   const rows = products.flatMap((product) => {
     const name = cleanText(product.product_name_ar) || cleanText(product.product_name) || cleanText(product.generic_name)
     const providerKey = cleanText(product.code)
@@ -133,15 +149,16 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     const brands = cleanText(product.brands)
     const quantity = cleanText(product.quantity)
     const genericName = cleanText(product.generic_name)
-    const description = genericName && normalize(genericName) !== normalize(name)
-      ? genericName
-      : [brands, quantity].filter(Boolean).join(" · ") || null
+    const productDetails = [brands, quantity].filter(Boolean).join(" · ")
+    const description = productDetails || (genericName && normalize(genericName) !== normalize(name) ? genericName : null)
+    const barcode = /^\d{8,14}$/.test(providerKey) && !validateBarcode(providerKey) ? providerKey : null
     return [{
       provider,
       provider_key: providerKey,
+      market_country: "iraq" as const,
       name,
       description,
-      barcode: /^\d{8,14}$/.test(providerKey) ? providerKey : null,
+      barcode,
       image_url: safeImageUrl(product.image_front_url, config.imageHost),
       source_url: `https://${config.host}/product/${code}`,
       source_license: "Open Database License (ODbL); product images Creative Commons Attribution-ShareAlike (CC BY-SA)",
@@ -154,15 +171,23 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     const rowsWithMatches = rows.map((row, index) => ({ ...row, matched_master_product_id: matches[index].id }))
     const { error } = await auth.supabase.from("catalog_import_candidates").upsert(rowsWithMatches, {
       onConflict: "provider,provider_key",
-      ignoreDuplicates: true,
     })
-    if (error) return { success: false as const, error: "تعذر حفظ نتائج البحث. تحقق من تطبيق ترحيل استيراد الكتالوج." }
+    if (error) {
+      console.error("[catalog-import] failed to save search candidates", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      })
+      return { success: false as const, error: "تعذر حفظ نتائج البحث. تحقق من صلاحيات جدول المرشحين." }
+    }
   }
 
   const { data, error } = await auth.supabase
     .from("catalog_import_candidates")
-    .select("id, provider, provider_key, name, description, barcode, image_url, source_url, source_license, status, matched_master_product_id, accepted_master_product_id, created_at")
+    .select("id, provider, provider_key, market_country, name, description, barcode, image_url, source_url, source_license, status, matched_master_product_id, accepted_master_product_id, created_at")
     .eq("status", "pending")
+    .eq("market_country", "iraq")
     .order("created_at", { ascending: false })
     .limit(100)
   if (error) return { success: false as const, error: "حُفظ البحث لكن تعذر تحميل قائمة المراجعة" }
@@ -176,12 +201,21 @@ export async function loadPendingCatalogCandidates() {
   if (auth.error || !auth.user) return { success: false as const, error: auth.error }
   const { data, error } = await auth.supabase
     .from("catalog_import_candidates")
-    .select("id, provider, provider_key, name, description, barcode, image_url, source_url, source_license, status, matched_master_product_id, accepted_master_product_id, created_at")
+    .select("id, provider, provider_key, market_country, name, description, barcode, image_url, source_url, source_license, status, matched_master_product_id, accepted_master_product_id, created_at")
     .eq("status", "pending")
+    .eq("market_country", "iraq")
     .order("created_at", { ascending: false })
     .limit(100)
   if (error) return { success: false as const, error: "تعذر تحميل قائمة المراجعة. تحقق من تطبيق ترحيل استيراد الكتالوج." }
   return { success: true as const, candidates: (data || []) as Candidate[] }
+}
+
+export async function loadCatalogImportCategories() {
+  const auth = await requireAdmin()
+  if (auth.error || !auth.user) return { success: false as const, error: auth.error }
+  const { data, error } = await auth.supabase.from("categories").select("id, name").order("name")
+  if (error) return { success: false as const, error: "تعذر تحميل أقسام المواد" }
+  return { success: true as const, categories: data || [] }
 }
 
 export async function rejectCatalogImportCandidate(candidateId: string) {
@@ -192,6 +226,7 @@ export async function rejectCatalogImportCandidate(candidateId: string) {
     .update({ status: "rejected", reviewed_at: new Date().toISOString() })
     .eq("id", candidateId)
     .eq("status", "pending")
+    .eq("market_country", "iraq")
   if (error) return { success: false as const, error: "تعذر رفض المرشح" }
   revalidatePath("/admin")
   return { success: true as const }

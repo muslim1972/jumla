@@ -83,6 +83,7 @@ export function MasterProductForm({
   onCategoryCreated,
   onFieldHistoryClick,
   requireExplicitUnit = false,
+  requireImage = false,
   submitDisabled = false,
 }: {
   categories: { id: string, name: string }[]
@@ -94,6 +95,7 @@ export function MasterProductForm({
   onCategoryCreated?: (category: { id: string, name: string }) => void
   onFieldHistoryClick?: (tableName: string, recordId: string, fieldName: string, fieldLabel: string) => void
   requireExplicitUnit?: boolean
+  requireImage?: boolean
   submitDisabled?: boolean
 }) {
   const [name, setName] = useState(initial?.name || "")
@@ -252,6 +254,11 @@ export function MasterProductForm({
   const handleSubmit = async (formData: FormData) => {
     if (!name.trim()) {
       setFormError("اسم المادة مطلوب")
+      return
+    }
+
+    if (requireImage && !image) {
+      setFormError("تعذر تحميل صورة المصدر؛ ارفع صورة واضحة للمادة قبل اعتمادها")
       return
     }
 
