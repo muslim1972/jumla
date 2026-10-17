@@ -6,14 +6,13 @@ import { AlertCircle, ExternalLink, Loader2, Search, Trash2 } from "lucide-react
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { MasterProductForm, type MasterProduct } from "@/features/materials/components/materials-manager"
 import { createMasterProduct } from "@/features/materials/actions"
 import {
   loadPendingCatalogCandidates,
   loadCatalogImportCategories,
   rejectCatalogImportCandidate,
-  searchAndQueueCatalogCandidates,
+  browseIraqFoodCatalog,
 } from "@/features/admin/actions/catalog-import-actions"
 
 type Provider = "food" | "beauty" | "petfood" | "product"
@@ -42,8 +41,8 @@ const PROVIDERS: { value: Provider; label: string; note: string }[] = [
 ]
 
 export function CatalogImportTab() {
-  const [provider, setProvider] = useState<Provider>("food")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [nextPage, setNextPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [unavailableImageIds, setUnavailableImageIds] = useState<Set<string>>(() => new Set())
@@ -52,8 +51,6 @@ export function CatalogImportTab() {
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
   const [isPending, startTransition] = useTransition()
-  const selectedProvider = PROVIDERS.find((item) => item.value === provider)!
-
   const reloadCandidates = () => {
     startTransition(async () => {
       const result = await loadPendingCatalogCandidates()
@@ -80,19 +77,21 @@ export function CatalogImportTab() {
     void load()
   }, [])
 
-  const handleSearch = () => {
+  const handleBrowse = () => {
     setError("")
     setInfo("")
     startTransition(async () => {
-      const result = await searchAndQueueCatalogCandidates(searchTerm, provider)
+      const result = await browseIraqFoodCatalog(nextPage)
       if (!result.success) {
         setError(result.error)
         return
       }
       setCandidates(result.candidates)
+      setNextPage(result.page + 1)
+      setHasMore(result.hasMore)
       setInfo(result.found === 0
-        ? "لم يعثر المصدر على نتيجة موسومة للعراق بهذه العبارة. جرّب اسم العلامة التجارية بالعربية أو الإنجليزية؛ لا نعرض نتائج عالمية غير محددة للسوق العراقي."
-        : `فُحصت ${result.found} نتيجة موسومة للعراق ووُضعت العناصر الجديدة في قائمة المراجعة. لم تُنشر أي مادة تلقائياً.`)
+        ? "لم يعثر المصدر في هذه الدفعة على مواد موسومة للعراق. يبقى التصفح مقيداً بوسم البلد، ولا تُعرض مواد عالمية غير محددة للسوق العراقي."
+        : `فُحصت ${result.found} مادة موسومة للعراق من الدفعة ${result.page} ووُضعت في قائمة المراجعة. لن تدخل أي مادة إلى Pool قبل اعتمادك.`)
     })
   }
 
@@ -124,35 +123,20 @@ export function CatalogImportTab() {
     <div className="space-y-5" dir="rtl">
       <Card>
         <CardHeader>
-          <CardTitle>تعزيز الكتالوج من مصادر المنتجات المفتوحة</CardTitle>
+          <CardTitle>تصفح مواد غذائية لتعزيز الكتالوج</CardTitle>
           <CardDescription>
-            ابحث في مصدر واحد في كل مرة. النتائج تحفظ كمرشحين للمراجعة ولا تصل إلى Pool المواد إلا بعد اعتمادك.
+            تصفح دفعات من Open Food Facts من دون كتابة اسم مادة. النتائج تحفظ كمرشحين للمراجعة ولا تصل إلى Pool المواد إلا بعد اعتمادك.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
-            <select
-              value={provider}
-              onChange={(event) => setProvider(event.target.value as Provider)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-              aria-label="مصدر البحث"
-            >
-              {PROVIDERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-            <Input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") handleSearch() }}
-              placeholder="مثال: رز، زيت، منظف، شامبو"
-              maxLength={80}
-              aria-label="عبارة البحث"
-            />
-            <Button onClick={handleSearch} disabled={isPending || searchTerm.trim().length < 2}>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={handleBrowse} disabled={isPending || (!hasMore && nextPage > 1)}>
               {isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Search className="ml-2 h-4 w-4" />}
-              ابحث وأضف للمراجعة
+              {nextPage === 1 ? "تصفح أول دفعة" : hasMore ? `جلب الدفعة التالية (${nextPage})` : "انتهت دفعات المصدر"}
             </Button>
+            <span className="text-xs text-muted-foreground">Open Food Facts — أغذية ومشروبات</span>
           </div>
-          <p className="text-xs text-muted-foreground">{selectedProvider.note} — تظهر فقط المواد التي يوسمها المصدر بأنها متداولة في العراق، وبحد أقصى 10 نتائج للدفعة.</p>
+          <p className="text-xs text-muted-foreground">تظهر المواد التي يوسمها المصدر بأنها متداولة في العراق، بحد أقصى 10 نتائج في كل دفعة مرتبة بالأحدث تحديثاً.</p>
           <p className="text-xs text-muted-foreground">
             يطابق النظام بالاسم أولاً ثم الوصف. الباركود معلومة مساعدة فقط ولا يستخدم لتحديد التكرار.
           </p>

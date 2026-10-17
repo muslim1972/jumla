@@ -71,7 +71,7 @@ function isTaggedForIraq(product: Record<string, unknown>) {
   })
 }
 
-async function readProviderErrorExcerpt(response: Response, searchTerm: string) {
+async function readProviderErrorExcerpt(response: Response, searchTerm?: string) {
   const reader = response.body?.getReader()
   if (!reader) return null
 
@@ -99,8 +99,10 @@ async function readProviderErrorExcerpt(response: Response, searchTerm: string) 
     offset += chunk.byteLength
   }
   const excerpt = new TextDecoder().decode(bytes).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
-  const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return excerpt.replace(new RegExp(escapedSearchTerm, "giu"), "[عبارة البحث]").slice(0, 400) || null
+  const redactedExcerpt = searchTerm
+    ? excerpt.replace(new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "giu"), "[عبارة البحث]")
+    : excerpt
+  return redactedExcerpt.slice(0, 400) || null
 }
 
 async function findNameMatch(supabase: Awaited<ReturnType<typeof createClient>>, name: string, description: string | null) {
@@ -114,18 +116,16 @@ async function findNameMatch(supabase: Awaited<ReturnType<typeof createClient>>,
   return { id: exact?.id || null, error: null }
 }
 
-export async function searchAndQueueCatalogCandidates(searchValue: string, providerValue: string) {
+export async function browseIraqFoodCatalog(pageValue: number) {
   const auth = await requireAdmin()
   if (auth.error || !auth.user) return { success: false as const, error: auth.error }
 
-  const searchTerm = (searchValue || "").trim()
-  if (searchTerm.length < 2 || searchTerm.length > 80) {
-    return { success: false as const, error: "اكتب عبارة بحث من حرفين إلى 80 حرفاً" }
+  if (!Number.isInteger(pageValue) || pageValue < 1 || pageValue > 10_000) {
+    return { success: false as const, error: "رقم دفعة التصفح غير صالح" }
   }
-  if (!Object.hasOwn(PROVIDERS, providerValue)) return { success: false as const, error: "مصدر البحث غير صالح" }
 
-  const provider = providerValue as Provider
-  const config = PROVIDERS[provider]
+  const provider = "food" as const
+  const config = PROVIDERS.food
   const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString()
   const { count: recentSearchCount, error: rateLimitLookupError } = await auth.supabase
     .from("catalog_import_search_runs")
@@ -136,7 +136,7 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
   if ((recentSearchCount || 0) >= 10) return { success: false as const, error: "وصلت إلى حد البحث المؤقت. انتظر دقيقة ثم حاول مجدداً." }
   const { error: runLogError } = await auth.supabase.from("catalog_import_search_runs").insert({
     provider,
-    search_term: searchTerm,
+    search_term: `تصفح مواد العراق - الدفعة ${pageValue}`,
     requested_by: auth.user.id,
   })
   if (runLogError) {
@@ -148,28 +148,33 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     })
     return { success: false as const, error: "تعذر تسجيل محاولة البحث. تحقق من صلاحيات جدول سجل البحث وتطبيق ترحيل الكتالوج." }
   }
-  const endpoint = new URL(`https://${config.host}/cgi/search.pl`)
-  endpoint.searchParams.set("search_terms", searchTerm)
-  endpoint.searchParams.set("json", "1")
-  endpoint.searchParams.set("page_size", "10")
-  endpoint.searchParams.set("page", "1")
-  // لا نكتفي بعبارة البحث: اشترط وسم التوفر في العراق، ثم نتحقق منه محلياً أيضاً.
-  endpoint.searchParams.set("tagtype_0", "countries")
-  endpoint.searchParams.set("tag_contains_0", "contains")
-  endpoint.searchParams.set("tag_0", "iraq")
-  endpoint.searchParams.set("fields", "code,product_name,product_name_ar,generic_name,brands,quantity,image_front_url,countries_tags")
+  const searchFields = ["code", "product_name", "generic_name", "brands", "quantity", "image_front_url", "countries_tags"]
+  const endpoint = new URL("https://search.openfoodfacts.org/search")
 
-  let payload: { products?: Record<string, unknown>[] }
+  let payload: { hits?: Record<string, unknown>[]; page_count?: number }
   try {
     const response = await fetch(endpoint, {
-      headers: { "User-Agent": "JumlaCatalog/1.0 (https://github.com/muslim1972/jumla)", Accept: "application/json" },
+      method: "POST",
+      headers: {
+        "User-Agent": "JumlaCatalog/1.0 (https://github.com/muslim1972/jumla)",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        q: 'countries_tags:"en:iraq"',
+        sort_by: "-last_modified_t",
+        fields: searchFields,
+        page_size: 10,
+        page: pageValue,
+        langs: ["ar", "en"],
+      }),
       signal: AbortSignal.timeout(12_000),
       cache: "no-store",
     })
     if (!response.ok) {
       if (response.status === 503) {
         const diagnosticId = crypto.randomUUID()
-        const responseExcerpt = await readProviderErrorExcerpt(response, searchTerm)
+        const responseExcerpt = await readProviderErrorExcerpt(response)
         console.error("[catalog-import] provider returned 503", {
           diagnosticId,
           provider,
@@ -196,7 +201,7 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     return { success: false as const, error: "تعذر الوصول إلى مصدر المنتجات. حاول لاحقاً." }
   }
 
-  const products = (payload.products || []).filter(isTaggedForIraq).slice(0, 10)
+  const products = (payload.hits || []).filter(isTaggedForIraq).slice(0, 10)
   const rows = products.flatMap((product) => {
     const name = cleanText(product.product_name_ar) || cleanText(product.product_name) || cleanText(product.generic_name)
     const providerKey = cleanText(product.code)
@@ -249,7 +254,15 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
   if (error) return { success: false as const, error: "حُفظ البحث لكن تعذر تحميل قائمة المراجعة" }
 
   revalidatePath("/admin")
-  return { success: true as const, found: rows.length, candidates: (data || []) as Candidate[] }
+  const pageCount = Number.isInteger(payload.page_count) ? payload.page_count! : pageValue
+  return {
+    success: true as const,
+    found: rows.length,
+    page: pageValue,
+    pageCount,
+    hasMore: pageValue < pageCount,
+    candidates: (data || []) as Candidate[],
+  }
 }
 
 export async function loadPendingCatalogCandidates() {
