@@ -71,6 +71,38 @@ function isTaggedForIraq(product: Record<string, unknown>) {
   })
 }
 
+async function readProviderErrorExcerpt(response: Response, searchTerm: string) {
+  const reader = response.body?.getReader()
+  if (!reader) return null
+
+  const chunks: Uint8Array[] = []
+  let byteLength = 0
+  try {
+    while (byteLength < 1_024) {
+      const { done, value } = await reader.read()
+      if (done || !value) break
+      const chunk = value.subarray(0, 1_024 - byteLength)
+      chunks.push(chunk)
+      byteLength += chunk.byteLength
+      if (chunk.byteLength < value.byteLength) break
+    }
+  } catch {
+    return null
+  } finally {
+    await reader.cancel().catch(() => undefined)
+  }
+
+  const bytes = new Uint8Array(byteLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  const excerpt = new TextDecoder().decode(bytes).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
+  const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return excerpt.replace(new RegExp(escapedSearchTerm, "giu"), "[عبارة البحث]").slice(0, 400) || null
+}
+
 async function findNameMatch(supabase: Awaited<ReturnType<typeof createClient>>, name: string, description: string | null) {
   const escaped = name.replace(/[\\%_]/g, "\\$&")
   const { data, error } = await supabase.from("master_products").select("id, name, description").ilike("name", escaped).limit(100)
@@ -137,11 +169,13 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     if (!response.ok) {
       if (response.status === 503) {
         const diagnosticId = crypto.randomUUID()
+        const responseExcerpt = await readProviderErrorExcerpt(response, searchTerm)
         console.error("[catalog-import] provider returned 503", {
           diagnosticId,
           provider,
           status: response.status,
           statusText: response.statusText,
+          responseExcerpt,
           contentType: response.headers.get("content-type"),
           retryAfter: response.headers.get("retry-after"),
           server: response.headers.get("server"),
