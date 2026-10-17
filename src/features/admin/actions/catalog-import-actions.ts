@@ -61,6 +61,10 @@ function normalize(value: string | null | undefined) {
   return (value || "").normalize("NFKC").trim().toLocaleLowerCase("ar").replace(/\s+/g, " ")
 }
 
+function hasArabicName(value: string | null) {
+  return !!value && /[\u0600-\u06FF]/u.test(value)
+}
+
 function isTaggedForIraq(product: Record<string, unknown>) {
   const tags = product.countries_tags
   if (!Array.isArray(tags)) return false
@@ -148,7 +152,7 @@ export async function browseIraqFoodCatalog(pageValue: number) {
     })
     return { success: false as const, error: "تعذر تسجيل محاولة البحث. تحقق من صلاحيات جدول سجل البحث وتطبيق ترحيل الكتالوج." }
   }
-  const searchFields = ["code", "product_name", "generic_name", "brands", "quantity", "image_front_url", "countries_tags"]
+  const searchFields = ["code", "product_name", "product_name_ar", "generic_name", "generic_name_ar", "brands", "quantity", "image_front_url", "countries_tags"]
   const endpoint = new URL("https://search.openfoodfacts.org/search")
 
   let payload: { hits?: Record<string, unknown>[]; page_count?: number }
@@ -162,7 +166,7 @@ export async function browseIraqFoodCatalog(pageValue: number) {
       },
       body: JSON.stringify({
         q: 'countries_tags:"en:iraq"',
-        sort_by: "-last_modified_t",
+        sort_by: "-popularity_key",
         fields: searchFields,
         page_size: 10,
         page: pageValue,
@@ -203,7 +207,9 @@ export async function browseIraqFoodCatalog(pageValue: number) {
 
   const products = (payload.hits || []).filter(isTaggedForIraq).slice(0, 10)
   const rows = products.flatMap((product) => {
-    const name = cleanText(product.product_name_ar) || cleanText(product.product_name) || cleanText(product.generic_name)
+    const name = [product.product_name_ar, product.product_name, product.generic_name_ar, product.generic_name]
+      .map(cleanText)
+      .find(hasArabicName) || null
     const providerKey = cleanText(product.code)
     if (!name || !providerKey) return []
     const code = encodeURIComponent(providerKey)
@@ -255,13 +261,14 @@ export async function browseIraqFoodCatalog(pageValue: number) {
 
   revalidatePath("/admin")
   const pageCount = Number.isInteger(payload.page_count) ? payload.page_count! : pageValue
+  const reviewCandidates = (data || []).filter((candidate) => hasArabicName(candidate.name))
   return {
     success: true as const,
     found: rows.length,
     page: pageValue,
     pageCount,
     hasMore: pageValue < pageCount,
-    candidates: (data || []) as Candidate[],
+    candidates: reviewCandidates as Candidate[],
   }
 }
 
@@ -276,7 +283,8 @@ export async function loadPendingCatalogCandidates() {
     .order("created_at", { ascending: false })
     .limit(100)
   if (error) return { success: false as const, error: "تعذر تحميل قائمة المراجعة. تحقق من تطبيق ترحيل استيراد الكتالوج." }
-  return { success: true as const, candidates: (data || []) as Candidate[] }
+  const reviewCandidates = (data || []).filter((candidate) => hasArabicName(candidate.name))
+  return { success: true as const, candidates: reviewCandidates as Candidate[] }
 }
 
 export async function loadCatalogImportCategories() {

@@ -91,8 +91,8 @@ export function CatalogImportTab() {
       setNextPage(result.page + 1)
       setHasMore(result.hasMore)
       setInfo(result.found === 0
-        ? "لم يعثر المصدر في هذه الدفعة على مواد موسومة للعراق. يبقى التصفح مقيداً بوسم البلد، ولا تُعرض مواد عالمية غير محددة للسوق العراقي."
-        : `فُحصت ${result.found} مادة موسومة للعراق من الدفعة ${result.page} ووُضعت في قائمة المراجعة. لن تدخل أي مادة إلى Pool قبل اعتمادك.`)
+        ? "لم تتضمن هذه الدفعة مادةً مكتملةً باسم مكتوب بالأحرف العربية ووسم العراق. يمكنك الانتقال إلى الدفعة التالية."
+        : `أضيفت ${result.found} مادة باسم عربي ووسم العراق من الدفعة ${result.page} إلى قائمة المراجعة. تحقق من ملاءمتها محلياً قبل اعتمادها إلى Pool.`)
     })
   }
 
@@ -137,7 +137,7 @@ export function CatalogImportTab() {
             </Button>
             <span className="text-xs text-muted-foreground">Open Food Facts — أغذية ومشروبات</span>
           </div>
-          <p className="text-xs text-muted-foreground">تظهر المواد التي يوسمها المصدر بأنها متداولة في العراق، بحد أقصى 10 نتائج في كل دفعة مرتبة بالأحدث تحديثاً.</p>
+          <p className="text-xs text-muted-foreground">تُعرض السجلات ذات الاسم العربي ووسم العراق فقط، بحد أقصى 10 سجلات في الدفعة. الترتيب حسب شعبية المصدر، والوسم لا يثبت وحده توفر المادة محلياً.</p>
           <p className="text-xs text-muted-foreground">
             يطابق النظام بالاسم أولاً ثم الوصف. الباركود معلومة مساعدة فقط ولا يستخدم لتحديد التكرار.
           </p>
