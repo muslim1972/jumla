@@ -250,13 +250,12 @@ export async function browseIraqFoodCatalog(pageValue: number) {
     }
   }
 
-  const { data, error } = await auth.supabase
+  const { data, error } = rows.length ? await auth.supabase
     .from("catalog_import_candidates")
     .select("id, provider, provider_key, market_country, name, description, barcode, image_url, source_url, source_license, status, matched_master_product_id, accepted_master_product_id, created_at")
     .eq("status", "pending")
     .eq("market_country", "iraq")
-    .order("created_at", { ascending: false })
-    .limit(100)
+    .in("provider_key", rows.map((row) => row.provider_key)) : { data: [], error: null }
   if (error) return { success: false as const, error: "حُفظ البحث لكن تعذر تحميل قائمة المراجعة" }
 
   revalidatePath("/admin")
@@ -293,6 +292,26 @@ export async function loadCatalogImportCategories() {
   const { data, error } = await auth.supabase.from("categories").select("id, name").order("name")
   if (error) return { success: false as const, error: "تعذر تحميل أقسام المواد" }
   return { success: true as const, categories: data || [] }
+}
+
+export async function checkExternalProductRows(rows: { name: string; description: string | null }[]) {
+  const auth = await requireAdmin()
+  if (auth.error || !auth.user) return { success: false as const, error: auth.error }
+  if (!Array.isArray(rows) || rows.length > 200) return { success: false as const, error: "الحد الأقصى للمعاينة 200 سجل في الملف" }
+  const duplicateIndexes: number[] = []
+  const seen = new Set<string>()
+  for (const [index, row] of rows.entries()) {
+    const name = cleanText(row?.name)
+    const description = cleanText(row?.description)
+    if (!name) continue
+    const identity = `${normalize(name)}\\u0000${normalize(description)}`
+    if (seen.has(identity)) duplicateIndexes.push(index)
+    seen.add(identity)
+    const match = await findNameMatch(auth.supabase, name, description)
+    if (match.error) return { success: false as const, error: match.error }
+    if (match.id) duplicateIndexes.push(index)
+  }
+  return { success: true as const, duplicateIndexes: [...new Set(duplicateIndexes)] }
 }
 
 export async function rejectCatalogImportCandidate(candidateId: string) {

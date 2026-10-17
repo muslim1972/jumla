@@ -302,6 +302,7 @@
         "src/features/admin/components/contact-settings-modal.tsx",
         "src/features/admin/components/field-history-popover.tsx",
         "src/features/admin/components/catalog-import-tab.tsx",
+        "src/features/admin/components/catalog-file-import.tsx",
         "src/features/admin/components/materials-productivity.tsx",
         "src/features/admin/components/merchant-billing-admin.tsx",
         "src/features/admin/hooks/use-field-history.ts",

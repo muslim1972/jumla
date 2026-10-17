@@ -2,10 +2,18 @@
 
 import { useEffect, useState, useTransition } from "react"
 import Image from "next/image"
-import { AlertCircle, ExternalLink, Loader2, Search, Trash2 } from "lucide-react"
+import { AlertCircle, ExternalLink, FileUp, Loader2, Search, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import { MasterProductForm, type MasterProduct } from "@/features/materials/components/materials-manager"
 import { createMasterProduct } from "@/features/materials/actions"
 import {
@@ -14,6 +22,7 @@ import {
   rejectCatalogImportCandidate,
   browseIraqFoodCatalog,
 } from "@/features/admin/actions/catalog-import-actions"
+import { CatalogFileImport } from "./catalog-file-import"
 
 type Provider = "food" | "beauty" | "petfood" | "product"
 type Candidate = {
@@ -41,6 +50,8 @@ const PROVIDERS: { value: Provider; label: string; note: string }[] = [
 ]
 
 export function CatalogImportTab() {
+  const [activeSubTab, setActiveSubTab] = useState<"auto" | "file">("auto")
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all")
   const [nextPage, setNextPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [candidates, setCandidates] = useState<Candidate[]>([])
@@ -87,7 +98,11 @@ export function CatalogImportTab() {
         setError(result.error)
         return
       }
-      setCandidates(result.candidates)
+      setCandidates((prev) => {
+        const existingIds = new Set(prev.map(c => c.id))
+        const newCandidates = result.candidates.filter(c => !existingIds.has(c.id))
+        return [...prev, ...newCandidates]
+      })
       setNextPage(result.page + 1)
       setHasMore(result.hasMore)
       setInfo(result.found === 0
@@ -122,94 +137,146 @@ export function CatalogImportTab() {
 
   return (
     <div className="space-y-5" dir="rtl">
-      <Card>
-        <CardHeader>
-          <CardTitle>تصفح مواد غذائية لتعزيز الكتالوج</CardTitle>
-          <CardDescription>
-            تصفح دفعات من Open Food Facts من دون كتابة اسم مادة. النتائج تحفظ كمرشحين للمراجعة ولا تصل إلى Pool المواد إلا بعد اعتمادك.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={handleBrowse} disabled={isPending || (!hasMore && nextPage > 1)}>
-              {isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Search className="ml-2 h-4 w-4" />}
-              {nextPage === 1 ? "تصفح أول دفعة" : hasMore ? `جلب الدفعة التالية (${nextPage})` : "انتهت دفعات المصدر"}
-            </Button>
-            <span className="text-xs text-muted-foreground">Open Food Facts — أغذية ومشروبات</span>
+      <div className="flex border-b">
+        <button
+          onClick={() => setActiveSubTab("auto")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium transition-colors",
+            activeSubTab === "auto"
+              ? "border-b-2 border-brand-blue text-brand-blue"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            <span>تعزيز الكتالوج تلقائياً</span>
           </div>
-          <p className="text-xs text-muted-foreground">تُعرض السجلات ذات الاسم العربي ووسم العراق فقط، بحد أقصى 10 سجلات في الدفعة. الترتيب حسب شعبية المصدر، والوسم لا يثبت وحده توفر المادة محلياً.</p>
-          <p className="text-xs text-muted-foreground">
-            يطابق النظام بالاسم أولاً ثم الوصف. الباركود معلومة مساعدة فقط ولا يستخدم لتحديد التكرار.
-          </p>
-          {error && <p role="alert" className="text-sm font-bold text-destructive">{error}</p>}
-          {info && <p role="status" className="text-sm font-semibold text-emerald-700">{info}</p>}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">قائمة المراجعة ({candidates.length})</h2>
-        <Button variant="outline" size="sm" onClick={reloadCandidates} disabled={isPending}>تحديث القائمة</Button>
+        </button>
+        <button
+          onClick={() => setActiveSubTab("file")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium transition-colors",
+            activeSubTab === "file"
+              ? "border-b-2 border-brand-blue text-brand-blue"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <FileUp className="h-4 w-4" />
+            <span>استيراد مواد من ملف خارجي</span>
+          </div>
+        </button>
       </div>
 
-      {candidates.length === 0 ? (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">لا توجد مواد بانتظار المراجعة.</div>
+      {activeSubTab === "auto" ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>تصفح مواد غذائية لتعزيز الكتالوج</CardTitle>
+              <CardDescription>
+                تصفح دفعات من Open Food Facts من دون كتابة اسم مادة. النتائج تحفظ كمرشحين للمراجعة ولا تصل إلى Pool المواد إلا بعد اعتمادك.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={handleBrowse} disabled={isPending || (!hasMore && nextPage > 1)}>
+                  {isPending ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Search className="ml-2 h-4 w-4" />}
+                  {nextPage === 1 ? "تصفح أول دفعة" : hasMore ? `جلب الدفعة التالية (${nextPage})` : "انتهت دفعات المصدر"}
+                </Button>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">المصدر:</span>
+                  <Select value={selectedCategoryId} onValueChange={(val) => setSelectedCategoryId(val || "all")}>
+                    <SelectTrigger size="sm" className="min-w-[150px]">
+                      <SelectValue placeholder="اختر القسم" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل الأقسام</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-xs text-muted-foreground">— Open Food Facts</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">تُعرض السجلات ذات الاسم العربي ووسم العراق فقط، بحد أقصى 10 سجلات في الدفعة. الترتيب حسب شعبية المصدر، والوسم لا يثبت وحده توفر المادة محلياً.</p>
+              <p className="text-xs text-muted-foreground">
+                يطابق النظام بالاسم أولاً ثم الوصف. الباركود معلومة مساعدة فقط ولا يستخدم لتحديد التكرار.
+              </p>
+              {error && <p role="alert" className="text-sm font-bold text-destructive">{error}</p>}
+              {info && <p role="status" className="text-sm font-semibold text-emerald-700">{info}</p>}
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">قائمة المراجعة ({candidates.length})</h2>
+            <Button variant="outline" size="sm" onClick={reloadCandidates} disabled={isPending}>تحديث القائمة</Button>
+          </div>
+
+          {candidates.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">لا توجد مواد بانتظار المراجعة.</div>
+          ) : (
+            <div className="grid gap-3">
+              {candidates.map((candidate) => (
+                <Card key={candidate.id}>
+                  <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                    {candidate.image_url && !unavailableImageIds.has(candidate.id) ? (
+                      <button
+                        type="button"
+                        className="relative h-20 w-20 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border bg-white transition hover:ring-2 hover:ring-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                        aria-label={`تكبير صورة ${candidate.name}`}
+                        title="انقر لتكبير الصورة"
+                        onClick={() => setImagePreview(candidate)}
+                      >
+                        <Image
+                          src={candidate.image_url}
+                          alt={candidate.name}
+                          fill
+                          sizes="80px"
+                          className="object-contain p-1"
+                          onError={() => setUnavailableImageIds((current) => new Set(current).add(candidate.id))}
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border bg-muted p-1 text-center text-[10px] text-muted-foreground">
+                        {candidate.image_url ? "تعذر تحميل الصورة؛ ارفع صورة بديلة عند الاعتماد" : "لا توجد صورة من المصدر"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h3 className="font-bold">{candidate.name}</h3>
+                      {candidate.description && <p className="text-sm text-muted-foreground">{candidate.description}</p>}
+                      {candidate.barcode && <p className="font-mono text-xs text-muted-foreground" dir="ltr">{candidate.barcode}</p>}
+                      {candidate.matched_master_product_id && (
+                        <p className="flex items-center gap-1 text-xs font-semibold text-amber-700">
+                          <AlertCircle className="h-3.5 w-3.5" /> تطابق الاسم والوصف مع مادة موجودة؛ راجعها قبل الاعتماد.
+                        </p>
+                      )}
+                      <a href={candidate.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-blue underline">
+                        المصدر والترخيص <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <p className="text-[10px] text-muted-foreground">{candidate.source_license}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        size="sm"
+                        disabled={isPending || !!candidate.matched_master_product_id}
+                        onClick={() => { setSelected(candidate); setLicenseAcknowledged(false); setError("") }}
+                      >
+                        {candidate.matched_master_product_id ? "موجودة في Pool" : "مراجعة واعتماد"}
+                      </Button>
+                      <Button size="icon" variant="outline" aria-label="رفض المرشح" onClick={() => handleReject(candidate)} disabled={isPending}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="grid gap-3">
-          {candidates.map((candidate) => (
-            <Card key={candidate.id}>
-              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                {candidate.image_url && !unavailableImageIds.has(candidate.id) ? (
-                  <button
-                    type="button"
-                    className="relative h-20 w-20 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border bg-white transition hover:ring-2 hover:ring-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
-                    aria-label={`تكبير صورة ${candidate.name}`}
-                    title="انقر لتكبير الصورة"
-                    onClick={() => setImagePreview(candidate)}
-                  >
-                    <Image
-                      src={candidate.image_url}
-                      alt={candidate.name}
-                      fill
-                      sizes="80px"
-                      className="object-contain p-1"
-                      onError={() => setUnavailableImageIds((current) => new Set(current).add(candidate.id))}
-                    />
-                  </button>
-                ) : (
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border bg-muted p-1 text-center text-[10px] text-muted-foreground">
-                    {candidate.image_url ? "تعذر تحميل الصورة؛ ارفع صورة بديلة عند الاعتماد" : "لا توجد صورة من المصدر"}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1 space-y-1">
-                  <h3 className="font-bold">{candidate.name}</h3>
-                  {candidate.description && <p className="text-sm text-muted-foreground">{candidate.description}</p>}
-                  {candidate.barcode && <p className="font-mono text-xs text-muted-foreground" dir="ltr">{candidate.barcode}</p>}
-                  {candidate.matched_master_product_id && (
-                    <p className="flex items-center gap-1 text-xs font-semibold text-amber-700">
-                      <AlertCircle className="h-3.5 w-3.5" /> تطابق الاسم والوصف مع مادة موجودة؛ راجعها قبل الاعتماد.
-                    </p>
-                  )}
-                  <a href={candidate.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-blue underline">
-                    المصدر والترخيص <ExternalLink className="h-3 w-3" />
-                  </a>
-                  <p className="text-[10px] text-muted-foreground">{candidate.source_license}</p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button
-                    size="sm"
-                    disabled={isPending || !!candidate.matched_master_product_id}
-                    onClick={() => { setSelected(candidate); setLicenseAcknowledged(false); setError("") }}
-                  >
-                    {candidate.matched_master_product_id ? "موجودة في Pool" : "مراجعة واعتماد"}
-                  </Button>
-                  <Button size="icon" variant="outline" aria-label="رفض المرشح" onClick={() => handleReject(candidate)} disabled={isPending}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <CatalogFileImport categories={categories} />
       )}
 
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setLicenseAcknowledged(false) } }}>
