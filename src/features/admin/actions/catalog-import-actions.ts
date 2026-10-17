@@ -136,9 +136,23 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
     })
     if (!response.ok) {
       if (response.status === 503) {
+        const diagnosticId = crypto.randomUUID()
+        console.error("[catalog-import] provider returned 503", {
+          diagnosticId,
+          provider,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get("content-type"),
+          retryAfter: response.headers.get("retry-after"),
+          server: response.headers.get("server"),
+          via: response.headers.get("via"),
+          cfRay: response.headers.get("cf-ray"),
+          requestId: response.headers.get("x-request-id") || response.headers.get("x-correlation-id"),
+          finalHost: new URL(response.url).host,
+        })
         return {
           success: false as const,
-          error: `أوقف ${config.label} البحث مؤقتاً (503)، وقد يكون ذلك بسبب حد الطلبات المشترك بين مستخدمي الخادم. لا تكرر المحاولة الآن؛ انتظر دقيقة كاملة ثم جرّب بحثاً واحداً. إذا استمر الخطأ فالمصدر غير متاح مؤقتاً.`,
+          error: `أعاد ${config.label} الحالة 503، ولا تكفي هذه الحالة وحدها لمعرفة السبب. معرّف التشخيص: ${diagnosticId}. راجع سجل خادم Vercel بهذا المعرّف لتحديد رد المصدر بدقة.`,
         }
       }
       return { success: false as const, error: `رفض المصدر الطلب (${response.status})` }
