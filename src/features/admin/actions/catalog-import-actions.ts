@@ -134,7 +134,15 @@ export async function searchAndQueueCatalogCandidates(searchValue: string, provi
       signal: AbortSignal.timeout(12_000),
       cache: "no-store",
     })
-    if (!response.ok) return { success: false as const, error: `رفض المصدر الطلب (${response.status})` }
+    if (!response.ok) {
+      if (response.status === 503) {
+        return {
+          success: false as const,
+          error: `أوقف ${config.label} البحث مؤقتاً (503)، وقد يكون ذلك بسبب حد الطلبات المشترك بين مستخدمي الخادم. لا تكرر المحاولة الآن؛ انتظر دقيقة كاملة ثم جرّب بحثاً واحداً. إذا استمر الخطأ فالمصدر غير متاح مؤقتاً.`,
+        }
+      }
+      return { success: false as const, error: `رفض المصدر الطلب (${response.status})` }
+    }
     payload = await response.json()
   } catch {
     return { success: false as const, error: "تعذر الوصول إلى مصدر المنتجات. حاول لاحقاً." }
