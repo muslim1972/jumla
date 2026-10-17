@@ -46,6 +46,7 @@ export function CatalogImportTab() {
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [unavailableImageIds, setUnavailableImageIds] = useState<Set<string>>(() => new Set())
+  const [imagePreview, setImagePreview] = useState<Candidate | null>(null)
   const [selected, setSelected] = useState<Candidate | null>(null)
   const [licenseAcknowledged, setLicenseAcknowledged] = useState(false)
   const [error, setError] = useState("")
@@ -158,7 +159,13 @@ export function CatalogImportTab() {
             <Card key={candidate.id}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                 {candidate.image_url && !unavailableImageIds.has(candidate.id) ? (
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-white">
+                  <button
+                    type="button"
+                    className="relative h-20 w-20 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border bg-white transition hover:ring-2 hover:ring-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                    aria-label={`تكبير صورة ${candidate.name}`}
+                    title="انقر لتكبير الصورة"
+                    onClick={() => setImagePreview(candidate)}
+                  >
                     <Image
                       src={candidate.image_url}
                       alt={candidate.name}
@@ -167,7 +174,7 @@ export function CatalogImportTab() {
                       className="object-contain p-1"
                       onError={() => setUnavailableImageIds((current) => new Set(current).add(candidate.id))}
                     />
-                  </div>
+                  </button>
                 ) : (
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border bg-muted p-1 text-center text-[10px] text-muted-foreground">
                     {candidate.image_url ? "تعذر تحميل الصورة؛ ارفع صورة بديلة عند الاعتماد" : "لا توجد صورة من المصدر"}
@@ -249,6 +256,35 @@ export function CatalogImportTab() {
                   current.some((item) => item.id === category.id) ? current : [...current, category]
                 )}
               />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!imagePreview} onOpenChange={(open) => { if (!open) setImagePreview(null) }}>
+        <DialogContent dir="rtl" className="max-h-[94dvh] w-[95vw] max-w-5xl overflow-y-auto p-4 sm:p-6">
+          {imagePreview && (
+            <>
+              <DialogHeader className="pl-9">
+                <DialogTitle>{imagePreview.name}</DialogTitle>
+                {imagePreview.description && <p className="text-sm text-muted-foreground">{imagePreview.description}</p>}
+              </DialogHeader>
+              <div className="relative h-[70dvh] min-h-64 w-full overflow-hidden rounded-lg bg-white">
+                {imagePreview.image_url && !unavailableImageIds.has(imagePreview.id) ? (
+                  <Image
+                    src={imagePreview.image_url}
+                    alt={`صورة ${imagePreview.name}`}
+                    fill
+                    sizes="(max-width: 768px) 95vw, 1050px"
+                    className="object-contain"
+                    onError={() => setUnavailableImageIds((current) => new Set(current).add(imagePreview.id))}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    تعذر تحميل الصورة من المصدر.
+                  </div>
+                )}
+              </div>
             </>
           )}
         </DialogContent>

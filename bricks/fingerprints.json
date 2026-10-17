@@ -79,7 +79,7 @@
   "src/features/admin/actions.ts": "547b3e9c999247f88b988b1f93a4f0be",
   "src/features/admin/components/admin-user-details.tsx": "41e6672d87d087469a7128e0ca827ded",
   "src/features/admin/components/audit-log-viewer.tsx": "496270717c87fc33f6e4e60fd0297ea6",
-  "src/features/admin/components/catalog-import-tab.tsx": "837341f55cbf39c03bfda1efdf65c2e1",
+  "src/features/admin/components/catalog-import-tab.tsx": "c403e31afffc6b4cc0d5bcc57047e778",
   "src/features/admin/components/contact-settings-modal.tsx": "823919f1c6d074bf509e23549afde61f",
   "src/features/admin/components/field-history-popover.tsx": "18ea05d36b150a8cdd2937c2aeb798f0",
   "src/features/admin/components/materials-productivity.tsx": "d4a219b8eb302dd38db200b89aa8cfda",
