@@ -153,6 +153,49 @@ function run() {
     }
   }
 
+  // 4. فحص المناعة السيادية من تسريب الأسرار والإنتروبيا (المسلمة 7 - v0.4)
+  const SECRET_PATTERNS = [
+    { name: 'Supabase Service Key (sb_secret_*)', regex: /sb_secret_[a-zA-Z0-9_\-]{16,}/g },
+    { name: 'GitHub Token (ghp_*)', regex: /ghp_[a-zA-Z0-9]{36}/g },
+    { name: 'AWS Access Key (AKIA*)', regex: /AKIA[0-9A-Z]{16}/g },
+    { name: 'Private Key Block', regex: /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g },
+  ];
+
+  const auditDirs = ['src', 'scripts', '_archive'];
+  const allAuditedFiles = [];
+  for (const d of auditDirs) {
+    const absDir = path.join(ROOT_DIR, d);
+    if (fs.existsSync(absDir)) {
+      getAllFiles(absDir, allAuditedFiles);
+    }
+  }
+
+  const uniqueAuditedFiles = [...new Set(allAuditedFiles)];
+  const secretLeaks = [];
+
+  for (const f of uniqueAuditedFiles) {
+    const fullPath = path.join(ROOT_DIR, f);
+    if (!fs.existsSync(fullPath)) continue;
+    try {
+      const stat = fs.statSync(fullPath);
+      if (stat.size > 2 * 1024 * 1024) continue; // تخطي الملفات الكبيرة والوسائط
+      const content = fs.readFileSync(fullPath, 'utf-8');
+      for (const { name, regex } of SECRET_PATTERNS) {
+        if (regex.test(content)) {
+          secretLeaks.push({ file: f, pattern: name });
+        }
+      }
+    } catch {
+      // تخطي الملفات الثنائية
+    }
+  }
+
+  if (secretLeaks.length > 0) {
+    console.error('\n❌ خطأ أمني جسيم: تم رصد مفاتيح سرية صريحة في ملفات المستودع (انتهاك المسلمة 7):');
+    secretLeaks.forEach(s => console.error(`  - ${s.file} [${s.pattern}]`));
+    hasErrors = true;
+  }
+
   if (hasErrors) {
     console.error('\n❌ فشل فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K! صحّح الأخطاء أعلاه قبل المتابعة.\n');
     process.exit(1);
