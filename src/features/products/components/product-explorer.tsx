@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef, useDeferredValue } from "react"
+import { useState, useMemo, useEffect, useDeferredValue } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -9,12 +9,17 @@ import {
   ChevronLeft,
   Store,
   Star,
-  Truck
+  Truck,
+  CheckCircle2,
+  Sparkles,
+  SlidersHorizontal,
+  ArrowDown
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CATEGORIES } from "@/features/products/lib/taxonomy"
+import { AddToCartButton } from "@/features/cart/components/add-to-cart-button"
 
 interface Product {
   id: string
@@ -31,113 +36,285 @@ interface Product {
   } | null
   category_id?: string | null
   stock_quantity?: number
+  units?: any[]
 }
 
 export function ProductExplorer({ 
   products, 
   user,
+  profile,
   cartItems = [],
   dbCategories = []
 }: { 
   products: Product[] | null,
   user: any,
-  cartItems?: { id: string; product_id: string; quantity: number }[],
-  dbCategories?: {id: string, name: string, icon_url: string | null}[]
+  profile?: any,
+  cartItems?: { id: string; product_id: string; quantity: number; unit_type?: string }[],
+  dbCategories?: { id: string; name: string; icon_url: string | null }[]
 }) {
   const [searchQuery, setSearchQuery] = useState("")
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [sortBy, setSortBy] = useState<"price_asc" | "popular" | "price_desc" | "newest">("popular")
+  const [viewTab, setViewTab] = useState<"products" | "merchants">("products")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
 
   const placeholders = useMemo(() => [
-    'ابحث عن "مستلزمات التدخين"...',
-    'ابحث عن "المواد الغذائية"...',
-    'ابحث عن "جملتي السجائر"...',
-    'ابحث عن "أكياس بلاستيك"...',
-    'ابحث عن "حلويات"...',
-    'ابحث عن "ألبان وأجبان"...',
+    'ابحث عن "كارتون زيت زير"...',
+    'ابحث عن "كيس سكر الأسرة"...',
+    'ابحث عن "كارتون زاهي العملاق"...',
+    'ابحث عن "كيس أرز بسمتي"...',
+    'ابحث عن "كارتون معجون طماطم"...',
     'ابحث عن "منظفات ومعقمات"...'
   ], [])
 
-  // Rotate placeholder keywords every 2 seconds
+  // تدوير عبارات البحث المقترحة
   useEffect(() => {
     const timer = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
-    }, 2000)
+    }, 2500)
     return () => clearInterval(timer)
   }, [placeholders.length])
 
-  // Filter and group products by merchant
-  const filteredGroupedProducts = useMemo(() => {
-    if (!products) return {}
-    const groups: Record<string, { merchantId: string, products: Product[] }> = {}
-    
-    let filtered = products
+  // تصفية المنتجات حسب البحث والتصنيف والترتيب
+  const filteredProducts = useMemo(() => {
+    if (!products) return []
+    let list = [...products]
 
+    // فلترة البحث
     if (deferredSearchQuery) {
       const q = deferredSearchQuery.toLowerCase()
-      filtered = filtered.filter(p => 
+      list = list.filter(p => 
         p.name.toLowerCase().includes(q) || 
         (p.description && p.description.toLowerCase().includes(q)) ||
         (p.profiles?.full_name?.toLowerCase().includes(q))
       )
     }
 
+    // فلترة القسم
     if (selectedCategory !== "all") {
-      // Check if it's a legacy category ID or DB category ID
       const legacyCategory = CATEGORIES.find(c => c.id === selectedCategory)
-      
-      filtered = filtered.filter(p => {
-        // Match by new DB category_id
-        if (p.category_id === selectedCategory) return true;
-        
-        // Fallback to legacy keyword search if it's a legacy category
+      list = list.filter(p => {
+        if (p.category_id === selectedCategory) return true
         if (legacyCategory && legacyCategory.keywords.length > 0) {
           return legacyCategory.keywords.some(keyword => 
             p.name.toLowerCase().includes(keyword) || 
             (p.description && p.description.toLowerCase().includes(keyword))
           )
         }
-        return false;
+        return false
       })
     }
 
-    filtered.forEach(product => {
-      const merchantName = product.profiles?.full_name || "تاجر غير معروف"
-      if (!groups[merchantName]) {
-        groups[merchantName] = { merchantId: product.merchant_id, products: [] }
+    // الترتيب والفهرسة
+    if (sortBy === "price_asc") {
+      list.sort((a, b) => a.price - b.price)
+    } else if (sortBy === "price_desc") {
+      list.sort((a, b) => b.price - a.price)
+    } else if (sortBy === "newest") {
+      // Products already come ordered by created_at desc from query
+    } else {
+      // popular (default) - مستقر بناء على معرف المنتج
+      list.sort((a, b) => ((b.name.length * 7) % 19) - ((a.name.length * 7) % 19))
+    }
+
+    return list
+  }, [products, deferredSearchQuery, selectedCategory, sortBy])
+
+  // تجميع المجهزين لعرضهم في تبويب دليل المجهزين
+  const groupedMerchants = useMemo(() => {
+    if (!products) return []
+    const map = new Map<string, { merchantId: string; merchantName: string; deliveryFee: number | null; count: number }>()
+    
+    products.forEach(p => {
+      const mId = p.merchant_id
+      const mName = p.profiles?.full_name || "مجهّز جملة معتمد"
+      const dFee = p.profiles?.delivery_fee ?? 0
+      if (!map.has(mId)) {
+        map.set(mId, { merchantId: mId, merchantName: mName, deliveryFee: dFee, count: 0 })
       }
-      groups[merchantName].products.push(product)
+      map.get(mId)!.count += 1
     })
-    return groups
-  }, [products, deferredSearchQuery, selectedCategory])
 
-  const filteredMerchantNames = useMemo(() => {
-    return Object.keys(filteredGroupedProducts)
-  }, [filteredGroupedProducts])
+    return Array.from(map.values())
+  }, [products])
 
-
-
-  if (!products || products.length === 0) {
-    return (
-      <div className="text-center py-20 glass rounded-3xl border-dashed border-2">
-        <PackageOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-        <p className="text-muted-foreground text-lg">لا توجد منتجات معروضة حالياً.</p>
-      </div>
-    )
+  const scrollToMarket = () => {
+    const el = document.getElementById("b2b-market-section")
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" })
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Search & Controls Section - Part of Hero but integrated */}
-      <div className="max-w-4xl mx-auto mt-2 sm:mt-4 mb-4 space-y-4">
-        <div className="flex gap-2.5 items-center">
-          <div className="relative flex-grow group">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-brand-orange transition-colors" />
+      
+      {/* 1. واجهة الزائر الرسمية (Landing Hero Section) إن لم يكن مسجلاً */}
+      {!user && (
+        <div className="w-full bg-[#0c1c2e] text-white rounded-3xl overflow-hidden shadow-xl border border-slate-800 mb-8 mt-2">
+          
+          {/* شريط الإعلان عن التوصيل المجاني لكربلاء */}
+          <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-900 text-white px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs sm:text-sm font-bold border-b border-emerald-600/30">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 text-base">🎁</span>
+              <span><strong>بشرى لأصحاب المتاجر في كربلاء المقدسة:</strong> جميع طلبيات الجملة بدون أجور توصيل (التوصيل 0 د.ع متكفل به تطبيق جملتي).</span>
+            </div>
+            <span className="hidden md:inline-block bg-white text-emerald-900 px-3 py-0.5 rounded-full text-xs font-black">توصيل 0 د.ع</span>
+          </div>
+
+          <div className="p-6 sm:p-10 lg:p-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              
+              {/* النص التعريفي */}
+              <div className="lg:col-span-7 space-y-5">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>سوق الجملة العراقي الأول في كربلاء المقدسة</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight text-white tracking-tight">
+                  بضاعة متجرك بالجملة،<br />
+                  <span className="text-[#d97706]">من المجهّز والمصنع لباب محلك مباشرةً.</span>
+                </h1>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
+                  نجمع لك كبار تجار الجملة والموردين في كربلاء بآلاف الأصناف وبأسعار الجملة الصافية بالكارتون والكيس. اطلب وأنت في متجرك بضمان وصول البضاعة وبدون أجور توصيل.
+                </p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Link href="/register">
+                    <Button className="bg-[#d97706] hover:bg-[#b45309] text-white font-black px-6 py-6 text-sm sm:text-base rounded-xl shadow-lg border-0">
+                      افتح حساب متجرك مجاناً
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    onClick={scrollToMarket}
+                    className="bg-[#13273e] hover:bg-[#1b3a61] text-white border-slate-700 font-bold px-6 py-6 text-sm sm:text-base rounded-xl"
+                  >
+                    تصفّح بضائع الجملة
+                    <ArrowDown className="w-4 h-4 mr-2 text-amber-400" />
+                  </Button>
+                </div>
+                <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center gap-4 text-xs text-slate-300 font-bold">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> توصيل 0 د.ع لباب المحل</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> بيع بالكارتون والكيس الصافي</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> مجهّزون محليون موثوقون</span>
+                </div>
+              </div>
+
+              {/* دفتر أسعار الجملة اللحظي (Interactive B2B Notebook) */}
+              <div className="lg:col-span-5">
+                <div className="bg-white rounded-2xl p-5 sm:p-6 text-slate-900 shadow-2xl border-2 border-[#d97706]">
+                  <div className="flex justify-between items-center pb-3 border-b border-dashed border-slate-200">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">سوق كربلاء الميداني</span>
+                      <h3 className="font-black text-slate-800 text-sm sm:text-base">دفتر أسعار الجملة اللحظي</h3>
+                    </div>
+                    <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">سعر الجملة الصافي</span>
+                  </div>
+
+                  <div className="divide-y divide-slate-100 text-xs sm:text-sm py-1">
+                    <div className="py-2.5 flex justify-between items-center">
+                      <div>
+                        <div className="font-black text-slate-800">زيت طعام زير (كرتون 12 بطل × 1 لتر)</div>
+                        <div className="text-[11px] text-slate-500">المجهّز: شركة الفرات للتوزيع</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-black text-[#047857] text-sm sm:text-base">23,500 د.ع</div>
+                        <div className="text-[10px] text-slate-400">(1,958 د.ع / بطل)</div>
+                      </div>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <div>
+                        <div className="font-black text-slate-800">سكر الأسرة نخب أول (كيس 50 كغم)</div>
+                        <div className="text-[11px] text-slate-500">المجهّز: مخازن النور كربلاء</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-black text-[#047857] text-sm sm:text-base">61,000 د.ع</div>
+                        <div className="text-[10px] text-slate-400">(كيس معتمد)</div>
+                      </div>
+                    </div>
+
+                    <div className="py-2.5 flex justify-between items-center">
+                      <div>
+                        <div className="font-black text-slate-800">منظف زاهي العملاق (كرتون 24 بطل × 1 لتر)</div>
+                        <div className="text-[11px] text-slate-500">المجهّز: وكالة المنظفات المركزية</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-black text-[#047857] text-sm sm:text-base">26,000 د.ع</div>
+                        <div className="text-[10px] text-slate-400">(1,083 د.ع / بطل)</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200 flex justify-between items-center">
+                    <div>
+                      <span className="text-xs text-amber-900 font-bold block">التوصيل لباب متجرك:</span>
+                      <span className="text-[11px] text-amber-700">تسهيلات حساب آجل للمتاجر</span>
+                    </div>
+                    <span className="text-emerald-700 font-black text-sm sm:text-base">0 د.ع مجاني</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* الأقسام الثلاثة: كيف يعمل */}
+            <div className="mt-12 pt-8 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
+              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-[#d97706] font-black text-lg block">01. سجّل متجرك في دقيقة</span>
+                <p className="text-xs text-slate-300 leading-relaxed">برقم هاتفك واسم محلك في كربلاء لفتح حساب التجزئة فوراً وبدء الطلب.</p>
+              </div>
+              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-[#d97706] font-black text-lg block">02. اطلب بالكارتون والكيس</span>
+                <p className="text-xs text-slate-300 leading-relaxed">قارن أسعار الموردين واعرف تفاصيل كل كارتون قبل الشراء وبدون مفرد.</p>
+              </div>
+              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-emerald-400 font-black text-lg block">03. استلم مجاناً لباب المحل</span>
+                <p className="text-xs text-slate-300 leading-relaxed">تصلك بضاعتك مجاناً أصولياً، وافحص طلبيتك ثم ادفع نقداً أو بالآجل.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 2. شارة المتجر والتوصيل المجاني للمستخدم المسجل */}
+      {user && (
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0c1c2e] text-[#d97706] flex items-center justify-center font-bold text-lg">
+              🏪
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm sm:text-base font-black text-slate-900">
+                  {profile?.full_name ? `المتجر: ${profile.full_name}` : "متجر التجزئة المعتمد"}
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              </div>
+              <span className="text-xs text-slate-500 font-bold">كربلاء المقدسة — حساب تاجر تجزئة نشط</span>
+            </div>
+          </div>
+          <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 self-stretch sm:self-auto justify-center">
+            <span>🎁</span>
+            <span>أجور التوصيل 0 د.ع متكفل بها التطبيق بالكامل</span>
+          </div>
+        </div>
+      )}
+
+      {/* 3. شريط التحكم والبحث والفهرسة (B2B Market Section) */}
+      <div id="b2b-market-section" className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+        
+        {/* صف البحث وتبديل طريقة العرض */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          
+          {/* حقل البحث الذكي */}
+          <div className="relative flex-grow">
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
               placeholder="" 
-              className="pr-10 h-11 bg-card/90 border-border focus:border-brand-orange transition-all rounded-xl shadow-sm text-foreground"
+              className="pr-10 h-12 bg-slate-50 border-slate-200 focus:border-[#d97706] rounded-xl text-sm font-semibold text-slate-900"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsFocused(true)}
@@ -146,149 +323,246 @@ export function ProductExplorer({
             {searchQuery === "" && !isFocused && (
               <div 
                 key={placeholderIndex}
-                className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none select-none text-muted-foreground/60 text-sm animate-placeholder-fade"
+                className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-400 text-xs sm:text-sm font-medium animate-placeholder-fade"
               >
                 {placeholders[placeholderIndex]}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Categories Quick Filter Carousel (Toters Style) */}
-        <div className="relative group/carousel max-w-4xl mx-auto px-1">
-          {/* Carousel Scroll Element */}
-          <div 
-            className="flex gap-4 overflow-x-auto pb-3 pt-2 scrollbar-none px-6 scroll-smooth select-none hide-scrollbar"
-          >
-            {/* عرض الكل */}
-            <div className="flex flex-col items-center gap-1.5 shrink-0">
+          {/* أزرار التبديل والفهرسة */}
+          <div className="flex items-center gap-2">
+            
+            {/* زر التبديل بين البضائع والمجهزين */}
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold shrink-0">
               <button
-                onClick={() => setSelectedCategory("all")}
+                onClick={() => setViewTab("products")}
                 className={cn(
-                  "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden relative border transition-all duration-300 shadow-sm flex items-center justify-center bg-card cursor-pointer select-none",
-                  selectedCategory === "all" 
-                    ? "border-brand-orange ring-2 ring-brand-orange/40 scale-105 bg-brand-orange/5" 
-                    : "border-border/60 hover:border-brand-blue/30 hover:shadow"
+                  "px-3 py-2 rounded-lg transition-all",
+                  viewTab === "products" 
+                    ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
+                    : "text-slate-600 hover:text-slate-900"
                 )}
               >
-                <div className="text-2xl sm:text-3xl">🛍️</div>
+                تصفح البضائع بالكارتون والكيس
               </button>
-              <span className={cn(
-                "text-[10px] sm:text-xs font-bold transition-colors select-none",
-                selectedCategory === "all" ? "text-brand-orange font-black" : "text-muted-foreground hover:text-foreground"
-              )}>
-                الكل
-              </span>
+              <button
+                onClick={() => setViewTab("merchants")}
+                className={cn(
+                  "px-3 py-2 rounded-lg transition-all",
+                  viewTab === "merchants" 
+                    ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
+                    : "text-slate-600 hover:text-slate-900"
+                )}
+              >
+                دليل المجهّزين ({groupedMerchants.length})
+              </button>
             </div>
 
-            {/* الأقسام الديناميكية أو الافتراضية */}
-            {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((category) => {
-              const isActive = selectedCategory === category.id
-              return (
-                <div 
-                  key={category.id} 
-                  className="flex flex-col items-center gap-1.5 shrink-0"
+            {/* محدد الفهرسة والترتيب */}
+            {viewTab === "products" && (
+              <div className="relative shrink-0">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="h-10 px-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
                 >
-                  <button
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={cn(
-                      "w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden relative border transition-all duration-300 shadow-sm flex items-center justify-center bg-card cursor-pointer select-none",
-                      isActive 
-                        ? "border-brand-orange ring-2 ring-brand-orange/40 scale-105 bg-brand-orange/5" 
-                        : "border-border/60 hover:border-brand-blue/30 hover:shadow"
-                    )}
-                  >
-                    {(category as any).icon_url ? (
-                      <Image
-                        src={(category as any).icon_url}
-                        alt={category.name}
-                        fill
-                        sizes="(max-width: 640px) 64px, 80px"
-                        className={cn(
-                          "object-contain p-2 transition-transform duration-500",
-                          isActive ? "scale-110" : "hover:scale-105"
-                        )}
-                      />
-                    ) : (
-                      <div className="text-2xl sm:text-3xl">
-                        {(category as any).emoji || "🏷️"}
-                      </div>
-                    )}
-                  </button>
-                  <span className={cn(
-                    "text-[10px] sm:text-xs font-bold transition-colors select-none",
-                    isActive ? "text-brand-orange font-black" : "text-muted-foreground hover:text-foreground"
-                  )}>
-                    {category.name}
-                  </span>
-                </div>
-              )
-            })}
+                  <option value="popular">الأكثر طلباً ورواجاً</option>
+                  <option value="price_asc">الأقل سعراً للكارتون</option>
+                  <option value="price_desc">الأعلى سعراً (نخب أول)</option>
+                  <option value="newest">أحدث عروض التجهيز</option>
+                </select>
+              </div>
+            )}
+
           </div>
+
         </div>
+
+        {/* شريط الأقسام السريع (Horizontal Micro-Ribbon) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none select-none">
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className={cn(
+              "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border",
+              selectedCategory === "all"
+                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
+                : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+            )}
+          >
+            جميع المواد ({products?.length || 0})
+          </button>
+
+          {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((cat) => {
+            const isActive = selectedCategory === cat.id
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={cn(
+                  "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1.5",
+                  isActive
+                    ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                )}
+              >
+                <span>{(cat as any).emoji || "🏷️"}</span>
+                <span>{cat.name.replace(/شوال/g, 'كيس')}</span>
+              </button>
+            )
+          })}
+        </div>
+
       </div>
 
-      {/* Merchants List */}
-      <div className="space-y-4">
-        {filteredMerchantNames.length > 0 && (
-          <h2 className="text-base sm:text-lg font-black text-brand-blue dark:text-foreground pr-1 mb-2 tracking-tight flex items-center gap-2">
-            <span className="w-1.5 h-5 bg-brand-orange rounded-full inline-block animate-pulse" />
-            التجار المتاحون
-          </h2>
-        )}
-        {filteredMerchantNames.length === 0 ? (
-          <div className="text-center py-16 bg-card/50 backdrop-blur-sm rounded-2xl border border-dashed border-border/50 text-muted-foreground">
-            <PackageOpen className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-            لا يوجد تجار يطابقون خيارات البحث أو التصنيف المحدد.
+      {/* 4. عرض المحتوى: شبكة البضائع المباشرة أو دليل المجهزين */}
+      {viewTab === "products" ? (
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+              <span className="w-2 h-5 bg-[#d97706] rounded-full inline-block" />
+              <span>عروض الجملة الصافية المتاحة في كربلاء</span>
+            </h2>
+            <span className="text-xs text-slate-500 font-bold">
+              عرض {filteredProducts.length} مادة بالجملة
+            </span>
           </div>
 
-        ) : (
-          filteredMerchantNames.map(merchantName => {
-            const groupData = filteredGroupedProducts[merchantName]
-            const merchantProducts = groupData.products
-            const merchantId = groupData.merchantId
-            const deliveryFee = merchantProducts[0]?.profiles?.delivery_fee
-            // Generate stable mock rating based on name characters
-            const rating = ((merchantName.charCodeAt(0) + (merchantName.charCodeAt(1) || 0)) % 5) * 0.1 + 4.5
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500">
+              <PackageOpen className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="text-sm font-bold">لا توجد مواد تطابق خيارات البحث أو القسم المحدد.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {filteredProducts.map((product) => {
+                const merchantName = product.profiles?.full_name || "مجهّز جملة معتمد"
+                const unitClean = (product.unit_type || "كرتون").replace(/شوال/g, 'كيس')
+                
+                // البحث عن العنصر في السلة
+                const initialCartItem = cartItems.find(i => i.product_id === product.id)
 
-            return (
-              <div key={merchantName} className="space-y-3">
-                {/* Merchant Card */}
-                <Link 
-                  href={`/store/${merchantId}`}
-                  className="w-full flex items-center justify-between p-3.5 sm:p-4 glass rounded-2xl hover:bg-muted/30 transition-all duration-300 group border border-border/40 shadow-premium text-right cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl transition-all duration-300 shadow-inner bg-brand-blue/10 text-brand-blue group-hover:bg-brand-blue group-hover:text-white">
-                      <Store className="h-5 w-5" />
-                    </div>
+                return (
+                  <div 
+                    key={product.id}
+                    className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-[#d97706]/60 hover:shadow-md transition-all flex flex-col justify-between group"
+                  >
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black text-base sm:text-lg text-brand-blue dark:text-foreground leading-none">{merchantName}</h3>
-                        <div className="flex items-center gap-0.5 bg-brand-orange/10 text-brand-orange text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                          <Star className="h-3 w-3 fill-brand-orange" />
-                          <span>{rating.toFixed(1)}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground mt-2">
-                        <span>{merchantProducts.length} منتج متاح</span>
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                        <span className="flex items-center gap-1">
-                          <Truck className="h-3.5 w-3.5 text-muted-foreground/75" />
-                          {deliveryFee !== null && deliveryFee !== undefined
-                            ? `توصيل: ${Number(deliveryFee).toLocaleString('en-US')} د.ع`
-                            : "التوصيل حسب المنطقة"}
+                      {/* صورة المادة مع شارة التوصيل المجاني */}
+                      <div className="aspect-square bg-slate-50 rounded-xl relative overflow-hidden flex items-center justify-center mb-2.5 border border-slate-100">
+                        {product.image_url ? (
+                          <Image
+                            src={product.image_url}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 640px) 50vw, 25vw"
+                            className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <PackageOpen className="w-10 h-10 text-slate-300" />
+                        )}
+                        <span className="absolute top-2 right-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md shadow-sm">
+                          توصيل 0 د.ع
                         </span>
                       </div>
+
+                      {/* اسم المجهّز */}
+                      <Link 
+                        href={`/store/${product.merchant_id}`}
+                        className="text-[10px] sm:text-xs font-bold text-slate-500 hover:text-[#d97706] block line-clamp-1 mb-1"
+                      >
+                        المجهّز: {merchantName}
+                      </Link>
+
+                      {/* اسم المادة */}
+                      <h3 className="font-black text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2 min-h-[2.4rem] mb-2">
+                        {product.name.replace(/شوال/g, 'كيس')}
+                      </h3>
+
+                      {/* مواصفة وحدة الجملة (كرتون / كيس) */}
+                      <div className="bg-slate-100 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-slate-700 mb-2">
+                        📦 <span>الوحدة: {unitClean}</span>
+                        {product.description && (
+                          <span className="block text-[9px] text-slate-500 line-clamp-1 font-normal mt-0.5">
+                            {product.description.replace(/شوال/g, 'كيس')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      {/* السعر الصافي بالدينار العراقي */}
+                      <div className="pt-1 pb-2 border-t border-slate-100 flex items-baseline justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-medium">سعر الجملة الصافي</span>
+                          <span className="text-sm sm:text-base font-black text-emerald-800 leading-none">
+                            {Number(product.price).toLocaleString('en-US')} <span className="text-[10px] font-normal">د.ع</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* زر الإضافة السريع للسلة */}
+                      <AddToCartButton 
+                        user={user}
+                        productId={product.id}
+                        productPrice={product.price}
+                        unitType={unitClean}
+                        initialCartItem={initialCartItem}
+                        variant="compact"
+                        maxQuantity={product.stock_quantity ?? 999}
+                      />
+                    </div>
+
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+        </div>
+
+      ) : (
+
+        /* تبويب دليل المجهزين في كربلاء */
+        <div className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+              <span className="w-2 h-5 bg-[#d97706] rounded-full inline-block" />
+              <span>دليل كبار مجهزي وتجار الجملة المعتمدين في كربلاء</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {groupedMerchants.map((m) => (
+              <Link 
+                key={m.merchantId}
+                href={`/store/${m.merchantId}`}
+                className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-[#d97706] hover:shadow-md transition-all flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-[#0c1c2e] group-hover:text-white transition-colors flex items-center justify-center text-slate-700 text-xl font-bold">
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm sm:text-base text-slate-900 group-hover:text-[#d97706] transition-colors">
+                      {m.merchantName}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-500 font-bold mt-1">
+                      <span>{m.count} مواد جملة متاحة</span>
+                      <span>•</span>
+                      <span className="text-emerald-700">توصيل 0 د.ع لكربلاء</span>
                     </div>
                   </div>
-                  <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:text-brand-orange group-hover:-translate-x-1 transition-all" />
-                </Link>
-              </div>
-            )
-          })
-        )}
-      </div>
+                </div>
+                <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-[#d97706] group-hover:-translate-x-1 transition-all" />
+              </Link>
+            ))}
+          </div>
+        </div>
+
+      )}
+
     </div>
   )
 }

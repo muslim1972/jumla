@@ -123,7 +123,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
     setIsModalOpen(true)
   }
 
-  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard')) return null
+  if (pathname === '/' || pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard')) return null
 
   if (activeItems.length === 0) return null
 

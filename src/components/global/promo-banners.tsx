@@ -77,7 +77,7 @@ export function PromoBanners({ initialBanners }: { initialBanners?: Banner[] }) 
   }
 
   // إخفاء الإعلان السفلي في صفحات المتجر ولوحات التحكم وصفحات الدخول وإنشاء الحساب
-  if (pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard') || pathname === '/login' || pathname === '/register') return null
+  if (pathname === '/' || pathname?.startsWith('/store/') || pathname?.startsWith('/dashboard') || pathname === '/login' || pathname === '/register') return null
 
   if (banners.length === 0) return null
 

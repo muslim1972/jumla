@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 /**
- * حارس الطابوق المعماري لنظام جملتي (Jumla Brick Guard)
- * ======================================================
- * يفحص:
- * 1. تغطية 100% لكافة ملفات `src/` داخل سجل الطابوق (registry.json)
- * 2. عدم وجود أي ملف يتيم أو متكرر الملكية بين طابوقتين
- * 3. وجود كافة الملفات المسجلة فعلياً على القرص
- * 4. مقارنة البصمات (fingerprints.json) لكشف التغييرات غير المعتمدة
+ * محرك الإنفاذ الحتمي لإطار B.R.I.C.K (The Deterministic Sentinel Engine - OPS-03)
+ * تطبيق منصة جملتي (Jumla) — استناداً إلى الورقة البحثية للباحث م. مسلم عقيل عبد الحسن العنزي
+ * =========================================================================================
+ * يفحص المسلمات الحتمية:
+ * 1. مسلمة شمولية التغطية (Zero Orphans): تغطية 100% لكافة ملفات `src/` داخل سجل الأنوية (registry.json)
+ * 2. مسلمة الحيازة الأحادية المطلقة (Exclusive Ownership): عدم وجود أي ملف يتيم أو متكرر الملكية بين نواتين
+ * 3. التحقق الهيكلي من وجود كافة الملفات المسجلة فعلياً على القرص
+ * 4. مسلمة مطابقة الحالة التشفيرية (Cryptographic State Invariant): مقارنة البصمات (fingerprints.json)
  *
  * الاستخدام:
  *   node scripts/verify-bricks.mjs
- *   node scripts/verify-bricks.mjs --snapshot  (لتحديث بصمات الملفات بعد الاعتماد)
+ *   node scripts/verify-bricks.mjs --snapshot  (لتحديث البصمات المعتمدة بعد إقرار التعديل)
  */
 
 import fs from 'node:fs';
@@ -54,10 +55,10 @@ function computeMd5(filePath) {
 }
 
 function run() {
-  console.log('\n=== حارس الطابوق لنظام جملتي (OPS-JUMLA-01) ===');
+  console.log('\n=== محرك الإنفاذ الحتمي لإطار B.R.I.C.K (OPS-03 / Jumla) ===');
 
   if (!fs.existsSync(REGISTRY_FILE)) {
-    console.error(`❌ خطأ جسيم: سجل الطابوق غير موجود: ${REGISTRY_FILE}`);
+    console.error(`❌ خطأ جسيم: سجل الأنوية المعمارية غير موجود: ${REGISTRY_FILE}`);
     process.exit(1);
   }
 
@@ -65,7 +66,7 @@ function run() {
   const bricks = registry.bricks || {};
   const brickIds = Object.keys(bricks);
 
-  console.log(`عدد الطابوقات المسجلة: ${brickIds.length}`);
+  console.log(`عدد الأنوية المعمارية B.R.I.C.K المسجلة: ${brickIds.length}`);
 
   const registeredFiles = new Map();
   const fileOwnershipCount = new Map();
@@ -85,7 +86,7 @@ function run() {
     }
   }
 
-  // 1. فحص الملكية المزدوجة
+  // 1. فحص الحيازة الأحادية ومنع الملكية المزدوجة (المسلمة 2)
   const duplicates = [];
   for (const [file, count] of fileOwnershipCount.entries()) {
     if (count > 1) {
@@ -93,7 +94,7 @@ function run() {
     }
   }
 
-  // 2. فحص ملفات src الحالية
+  // 2. فحص شمولية التغطية وانعدام الأيتام (المسلمة 1)
   const actualSrcFiles = getAllFiles(SRC_DIR);
   const orphanFiles = [];
 
@@ -109,31 +110,31 @@ function run() {
   let hasErrors = false;
 
   if (duplicates.length > 0) {
-    console.error('\n❌ خطأ: ملفات تتنازع عليها أكثر من طابوقة:');
+    console.error('\n❌ خطأ: ملفات تتنازع عليها أكثر من نواة معمارية B.R.I.C.K (انتهاك المسلمة 2):');
     duplicates.forEach(d => console.error(`  - ${d}`));
     hasErrors = true;
   }
 
   if (missingFiles.length > 0) {
-    console.error('\n❌ خطأ: ملفات مسجلة في الطابوق ولكنها غير موجودة على القرص:');
+    console.error('\n❌ خطأ: ملفات معلنة في سجل الأنوية ولكنها غير موجودة على القرص:');
     missingFiles.forEach(m => console.error(`  - [${m.brickId}] ${m.file}`));
     hasErrors = true;
   }
 
   if (orphanFiles.length > 0) {
-    console.error('\n❌ خطأ: ملفات جديدة في src غير منسوبة لأي طابوقة في bricks/registry.json:');
+    console.error('\n❌ خطأ: ملفات جديدة في src غير منسوبة لأي نواة معمارية في bricks/registry.json (انتهاك المسلمة 1):');
     orphanFiles.forEach(o => console.error(`  - ${o}`));
     hasErrors = true;
   }
 
-  // 3. فحص البصمات
+  // 3. فحص البصمات ومطابقة الحالة التشفيرية (المسلمة 3)
   if (updateSnapshot) {
     const newFingerprints = {};
     for (const f of actualSrcFiles) {
       newFingerprints[f] = computeMd5(f);
     }
     fs.writeFileSync(FINGERPRINTS_FILE, JSON.stringify(newFingerprints, null, 2), 'utf-8');
-    console.log(`\n📸 تم تحديث البصمات بنجاح (${actualSrcFiles.length} ملف) في bricks/fingerprints.json`);
+    console.log(`\n📸 تم تحديث البصمات التشفيرية بنجاح (${actualSrcFiles.length} ملف) في bricks/fingerprints.json`);
   } else {
     if (fs.existsSync(FINGERPRINTS_FILE)) {
       const savedFingerprints = JSON.parse(fs.readFileSync(FINGERPRINTS_FILE, 'utf-8'));
@@ -153,11 +154,11 @@ function run() {
   }
 
   if (hasErrors) {
-    console.error('\n❌ فشل فحص حارس الطابوق! صحّح الأخطاء أعلاه قبل المتابعة.\n');
+    console.error('\n❌ فشل فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K! صحّح الأخطاء أعلاه قبل المتابعة.\n');
     process.exit(1);
   }
 
-  console.log('\n✓ نجح فحص حارس الطابوق: كافة ملفات النظام محصية ومعزولة بدون أي تداخل.\n');
+  console.log('\n✓ نجح فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K: كافة ملفات النظام محصية ومعزولة سيادياً دون أي تداخل.\n');
 }
 
 run();
