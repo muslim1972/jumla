@@ -62,7 +62,10 @@ export function AddToCartButton({
       const result = await addToCart(productId, localQuantity, unitType)
       
       if (result?.error) {
-        alert("فشل الإضافة: " + result.error)
+        const errorMsg = result.error.includes("<!DOCTYPE") || result.error.includes("<html")
+          ? "تعذر الاتصال المؤقت بقاعدة البيانات. جرى استئناف الاتصال، يرجى الضغط مرة أخرى للإضافة."
+          : result.error
+        alert(errorMsg)
       } else {
         // Optimistically set it as in cart (it will be updated by server revalidation anyway)
         setInCartItem({ id: 'temp', product_id: productId, quantity: localQuantity, unit_type: unitType })
