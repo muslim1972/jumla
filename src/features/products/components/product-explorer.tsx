@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Sparkles,
   SlidersHorizontal,
-  ArrowDown
+  ArrowDown,
+  X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,17 @@ interface Product {
   units?: any[]
 }
 
+// دالة تسوية الحروف العربية للبحث الذكي المرن (الهمزات، التاء المربوطة، التشكيل)
+function normalizeArabic(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/[\u064B-\u065F]/g, "")
+    .trim()
+}
+
 export function ProductExplorer({ 
   products, 
   user,
@@ -60,20 +72,24 @@ export function ProductExplorer({
   const [viewTab, setViewTab] = useState<"products" | "merchants">("products")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // اقتراحات البحث والفلترة اللحظية (AutoComplete)
   const searchSuggestions = useMemo(() => {
     if (!searchQuery.trim() || !products) return []
-    const q = searchQuery.trim().toLowerCase()
+    const rawQ = searchQuery.trim().toLowerCase()
+    const normQ = normalizeArabic(searchQuery)
     
     const startsWithMatches: Product[] = []
     const includesMatches: Product[] = []
 
     for (const p of products) {
-      const name = p.name.toLowerCase()
-      if (name.startsWith(q)) {
+      const rawName = p.name.toLowerCase()
+      const normName = normalizeArabic(p.name)
+
+      if (rawName.startsWith(rawQ) || (normQ && normName.startsWith(normQ))) {
         startsWithMatches.push(p)
-      } else if (name.includes(q)) {
+      } else if (rawName.includes(rawQ) || (normQ && normName.includes(normQ))) {
         includesMatches.push(p)
       }
       if (startsWithMatches.length + includesMatches.length >= 20) break
@@ -142,12 +158,22 @@ export function ProductExplorer({
 
     // فلترة البحث
     if (deferredSearchQuery) {
-      const q = deferredSearchQuery.toLowerCase()
-      list = list.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.profiles?.full_name?.toLowerCase().includes(q))
-      )
+      const rawQ = deferredSearchQuery.toLowerCase()
+      const normQ = normalizeArabic(deferredSearchQuery)
+      list = list.filter(p => {
+        const rawName = p.name.toLowerCase()
+        const normName = normalizeArabic(p.name)
+        const rawDesc = p.description ? p.description.toLowerCase() : ""
+        const normDesc = p.description ? normalizeArabic(p.description) : ""
+        const rawMerchant = p.profiles?.full_name ? p.profiles.full_name.toLowerCase() : ""
+        const normMerchant = p.profiles?.full_name ? normalizeArabic(p.profiles.full_name) : ""
+
+        return (
+          rawName.includes(rawQ) || (normQ && normName.includes(normQ)) ||
+          rawDesc.includes(rawQ) || (normQ && normDesc.includes(normQ)) ||
+          rawMerchant.includes(rawQ) || (normQ && normMerchant.includes(normQ))
+        )
+      })
     }
 
     // فلترة القسم
@@ -347,13 +373,32 @@ export function ProductExplorer({
           <div className="relative flex-grow min-w-0">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
             <Input 
+              ref={searchInputRef}
               placeholder="" 
-              className="pr-8.5 pl-3 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
+              className="pr-8.5 pl-8 sm:pl-9 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setIsFocused(true)
+              }}
+              onClick={() => setIsFocused(true)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
             />
+            {searchQuery.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("")
+                  setIsFocused(true)
+                  searchInputRef.current?.focus()
+                }}
+                aria-label="مسح حقل البحث"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200/90 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-500 hover:text-slate-800 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer z-10"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
             {searchQuery === "" && !isFocused && (
               <div 
                 key={placeholderIndex}
