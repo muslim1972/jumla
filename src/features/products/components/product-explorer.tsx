@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo, useEffect, useDeferredValue } from "react"
+import { useState, useMemo, useEffect, useDeferredValue, useRef, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
   PackageOpen,
   Search,
   ChevronLeft,
+  ChevronRight,
   Store,
   Star,
   Truck,
@@ -59,6 +60,68 @@ export function ProductExplorer({
   const [viewTab, setViewTab] = useState<"products" | "merchants">("products")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
+
+  // مراجع وإشارات التحكم بالتمرير الأفقي لقوائم التبويبات والأقسام
+  const tabsContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false)
+  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false)
+  const [hasTabsOverflow, setHasTabsOverflow] = useState(false)
+
+  const categoriesContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollCategoriesRight, setCanScrollCategoriesRight] = useState(false)
+  const [canScrollCategoriesLeft, setCanScrollCategoriesLeft] = useState(false)
+  const [hasCategoriesOverflow, setHasCategoriesOverflow] = useState(false)
+
+  // تحديث حالة أزرار تمرير تبويبات الفهرسة
+  const updateTabsScrollState = useCallback(() => {
+    const el = tabsContainerRef.current
+    if (!el) return
+    const currentScroll = Math.abs(el.scrollLeft)
+    const maxScroll = el.scrollWidth - el.clientWidth
+    const hasOverflow = maxScroll > 4
+    setHasTabsOverflow(hasOverflow)
+    setCanScrollTabsRight(hasOverflow && currentScroll > 6)
+    setCanScrollTabsLeft(hasOverflow && currentScroll < maxScroll - 6)
+  }, [])
+
+  const scrollTabs = useCallback((direction: 'right' | 'left') => {
+    const el = tabsContainerRef.current
+    if (!el) return
+    const delta = direction === 'left' ? -180 : 180
+    el.scrollBy({ left: delta, behavior: 'smooth' })
+  }, [])
+
+  // تحديث حالة أزرار تمرير الأقسام السريعة
+  const updateCategoriesScrollState = useCallback(() => {
+    const el = categoriesContainerRef.current
+    if (!el) return
+    const currentScroll = Math.abs(el.scrollLeft)
+    const maxScroll = el.scrollWidth - el.clientWidth
+    const hasOverflow = maxScroll > 4
+    setHasCategoriesOverflow(hasOverflow)
+    setCanScrollCategoriesRight(hasOverflow && currentScroll > 6)
+    setCanScrollCategoriesLeft(hasOverflow && currentScroll < maxScroll - 6)
+  }, [])
+
+  const scrollCategories = useCallback((direction: 'right' | 'left') => {
+    const el = categoriesContainerRef.current
+    if (!el) return
+    const delta = direction === 'left' ? -220 : 220
+    el.scrollBy({ left: delta, behavior: 'smooth' })
+  }, [])
+
+  useEffect(() => {
+    updateTabsScrollState()
+    updateCategoriesScrollState()
+
+    const handleResize = () => {
+      updateTabsScrollState()
+      updateCategoriesScrollState()
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [updateTabsScrollState, updateCategoriesScrollState, viewTab, dbCategories.length, products?.length])
 
   const placeholders = useMemo(() => [
     'ابحث عن "كارتون زيت زير"...',
@@ -330,87 +393,163 @@ export function ProductExplorer({
             )}
           </div>
 
-          {/* أزرار التبديل والفهرسة */}
-          <div className="flex items-center gap-2">
-            
-            {/* زر التبديل بين البضائع والمجهزين */}
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold shrink-0">
-              <button
-                onClick={() => setViewTab("products")}
-                className={cn(
-                  "px-3 py-2 rounded-lg transition-all",
-                  viewTab === "products" 
-                    ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
-                    : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                تصفح البضائع بالكارتون والكيس
-              </button>
-              <button
-                onClick={() => setViewTab("merchants")}
-                className={cn(
-                  "px-3 py-2 rounded-lg transition-all",
-                  viewTab === "merchants" 
-                    ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
-                    : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                دليل المجهّزين ({groupedMerchants.length})
-              </button>
+          {/* أزرار التبديل والفهرسة مع دعم أسهم التمرير في الموبايل */}
+          <div className="relative flex items-center gap-1.5 w-full sm:w-auto">
+            {/* سهم يمين (يظهر في الموبايل عند وجود تمرير) */}
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              disabled={!canScrollTabsRight}
+              aria-label="تمرير التبويبات لليمين"
+              className={cn(
+                "sm:hidden shrink-0 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-700 transition-all cursor-pointer",
+                !hasTabsOverflow && "hidden",
+                !canScrollTabsRight ? "opacity-30 pointer-events-none" : "opacity-100 shadow-sm"
+              )}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {/* الحاوية القابلة للتمرير */}
+            <div 
+              ref={tabsContainerRef}
+              onScroll={updateTabsScrollState}
+              className="flex items-center gap-2 overflow-x-auto scrollbar-none select-none scroll-smooth py-0.5 flex-1 sm:flex-initial"
+            >
+              {/* زر التبديل بين البضائع والمجهزين */}
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewTab("products")}
+                  className={cn(
+                    "px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap",
+                    viewTab === "products" 
+                      ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  تصفح البضائع بالكارتون والكيس
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewTab("merchants")}
+                  className={cn(
+                    "px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap",
+                    viewTab === "merchants" 
+                      ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  دليل المجهّزين ({groupedMerchants.length})
+                </button>
+              </div>
+
+              {/* محدد الفهرسة والترتيب */}
+              {viewTab === "products" && (
+                <div className="relative shrink-0">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="h-10 px-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer whitespace-nowrap"
+                  >
+                    <option value="popular">الأكثر طلباً ورواجاً</option>
+                    <option value="price_asc">الأقل سعراً للكارتون</option>
+                    <option value="price_desc">الأعلى سعراً (نخب أول)</option>
+                    <option value="newest">أحدث عروض التجهيز</option>
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* محدد الفهرسة والترتيب */}
-            {viewTab === "products" && (
-              <div className="relative shrink-0">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="h-10 px-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
-                >
-                  <option value="popular">الأكثر طلباً ورواجاً</option>
-                  <option value="price_asc">الأقل سعراً للكارتون</option>
-                  <option value="price_desc">الأعلى سعراً (نخب أول)</option>
-                  <option value="newest">أحدث عروض التجهيز</option>
-                </select>
-              </div>
-            )}
-
+            {/* سهم يسار (يظهر في الموبايل عند وجود تمرير) */}
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              disabled={!canScrollTabsLeft}
+              aria-label="تمرير التبويبات لليسار"
+              className={cn(
+                "sm:hidden shrink-0 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-700 transition-all cursor-pointer",
+                !hasTabsOverflow && "hidden",
+                !canScrollTabsLeft ? "opacity-30 pointer-events-none" : "opacity-100 shadow-sm"
+              )}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
 
-        {/* شريط الأقسام السريع (Horizontal Micro-Ribbon) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none select-none">
+        {/* شريط الأقسام السريع مع أسهم التمرير الأفقية الذكية (Horizontal Micro-Ribbon with Scroll Controls) */}
+        <div className="relative flex items-center gap-1.5 w-full">
+          {/* سهم التمرير الأيمن (نحو البداية) */}
           <button
-            onClick={() => setSelectedCategory("all")}
+            type="button"
+            onClick={() => scrollCategories('right')}
+            disabled={!canScrollCategoriesRight}
+            aria-label="تمرير الأقسام لليمين"
             className={cn(
-              "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border",
-              selectedCategory === "all"
-                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
-                : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              "shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer",
+              !hasCategoriesOverflow && "hidden",
+              !canScrollCategoriesRight ? "opacity-30 pointer-events-none" : "opacity-100"
             )}
           >
-            جميع المواد ({products?.length || 0})
+            <ChevronRight className="w-4 h-4" />
           </button>
 
-          {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((cat) => {
-            const isActive = selectedCategory === cat.id
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={cn(
-                  "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1.5",
-                  isActive
-                    ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-                )}
-              >
-                <span>{(cat as any).emoji || "🏷️"}</span>
-                <span>{cat.name.replace(/شوال/g, 'كيس')}</span>
-              </button>
-            )
-          })}
+          {/* حاوية الأقسام القابلة للتمرير */}
+          <div 
+            ref={categoriesContainerRef}
+            onScroll={updateCategoriesScrollState}
+            className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none select-none scroll-smooth flex-1"
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className={cn(
+                "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border",
+                selectedCategory === "all"
+                  ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+              )}
+            >
+              جميع المواد ({products?.length || 0})
+            </button>
+
+            {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((cat) => {
+              const isActive = selectedCategory === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1.5",
+                    isActive
+                      ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  <span>{(cat as any).emoji || "🏷️"}</span>
+                  <span>{cat.name.replace(/شوال/g, 'كيس')}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* سهم التمرير الأيسر (نحو المزيد من الأقسام) */}
+          <button
+            type="button"
+            onClick={() => scrollCategories('left')}
+            disabled={!canScrollCategoriesLeft}
+            aria-label="تمرير الأقسام لليسار"
+            className={cn(
+              "shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer",
+              !hasCategoriesOverflow && "hidden",
+              !canScrollCategoriesLeft ? "opacity-30 pointer-events-none" : "opacity-100"
+            )}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
         </div>
 
       </div>
