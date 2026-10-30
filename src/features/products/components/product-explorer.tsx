@@ -352,9 +352,7 @@ export function ProductExplorer({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsFocused(true)}
-              onBlur={() => {
-                // إغلاق الاقتراحات بعد فقدان التركيز
-              }}
+              onBlur={() => setIsFocused(false)}
             />
             {searchQuery === "" && !isFocused && (
               <div 
@@ -365,10 +363,10 @@ export function ProductExplorer({
               </div>
             )}
 
-            {/* القائمة المنسدلة الذكية للاقتراحات المصفاة لحظياً */}
+            {/* القائمة المنسدلة الذكية للاقتراحات المصفاة لحظياً (تأخذ 80% من عرض الشاشة لعدم اقتصاص الأسماء) */}
             {isFocused && searchQuery.trim().length > 0 && searchSuggestions.length > 0 && (
               <div 
-                className="absolute top-full mt-1.5 inset-x-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                className="absolute top-full mt-1.5 right-0 w-[80vw] sm:w-[480px] max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {searchSuggestions.slice(0, 15).map((item) => (
@@ -379,16 +377,18 @@ export function ProductExplorer({
                       setSearchQuery(item.name)
                       setIsFocused(false)
                     }}
-                    className="w-full text-right px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
+                    className="w-full text-right px-3.5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between gap-3 text-xs cursor-pointer group"
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="text-slate-400 group-hover:text-[#d97706] shrink-0">🔍</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-slate-400 group-hover:text-[#d97706] shrink-0 text-sm">🔍</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 truncate text-xs sm:text-sm">
                         {item.name.replace(/شوال/g, 'كيس')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
-                      <span className="text-slate-400 font-medium">{item.unit_type || "كرتون"}</span>
+                    <div className="flex items-center gap-1.5 shrink-0 text-[11px] whitespace-nowrap">
+                      <span className="text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        {item.unit_type || "كرتون"}
+                      </span>
                       <span className="font-black text-emerald-700 dark:text-emerald-400">
                         {Number(item.price).toLocaleString('en-US')} د.ع
                       </span>
