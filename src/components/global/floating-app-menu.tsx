@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition } from "react"
-import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun, Wallet, PackagePlus } from "lucide-react"
+import { Menu, X, ShoppingCart, LogOut, LogIn, LayoutDashboard, UserCheck, HeadphonesIcon, Moon, Sun, Wallet, PackagePlus, PhoneCall } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useTheme } from "next-themes"
@@ -12,11 +12,13 @@ import { signOut } from "@/app/(auth)/actions"
 export function FloatingAppMenu({
   userRole,
   fullName,
-  cartCount = 0
+  cartCount = 0,
+  settings
 }: {
   userRole?: string | null
   fullName?: string | null
   cartCount?: number
+  settings?: any
 }) {
   const { openMenu, setOpenMenu } = useFloatingMenu()
   const isOpen = openMenu === 'app'
@@ -212,6 +214,23 @@ export function FloatingAppMenu({
             {mounted && theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </div>
         </button>
+
+        {/* الاتصال بالدعم الفني */}
+        {settings?.support_phone && (
+          <a
+            href={`tel:${settings.support_phone}`}
+            onClick={() => setOpenMenu(null)}
+            className="flex items-center gap-2 bg-white dark:bg-card p-1.5 rounded-full shadow-lg border hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors group"
+            title="الاتصال بالدعم الفني"
+          >
+            <span className="flex flex-col items-start opacity-0 group-hover:opacity-100 w-0 overflow-hidden group-hover:w-auto group-hover:pl-1.5 transition-all duration-300 whitespace-nowrap">
+              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">الاتصال بالدعم</span>
+            </span>
+            <div className="bg-emerald-500/20 p-1 rounded-full text-emerald-600 shrink-0">
+              <PhoneCall className="w-4 h-4" />
+            </div>
+          </a>
+        )}
 
         {/* Debts */}
         {(!userRole || !['admin', 'merchant', 'delivery', 'support', 'call_center'].includes(userRole)) && (

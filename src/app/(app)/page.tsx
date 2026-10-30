@@ -98,8 +98,8 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex-1 w-full bg-slate-50/50 pb-28 sm:pb-36 pt-14 sm:pt-16">
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6">
+    <div className="flex-1 w-full bg-slate-50/50 pb-20 sm:pb-28 pt-11 sm:pt-13">
+      <div className="w-full max-w-7xl mx-auto px-2.5 sm:px-6">
         {userRole === "delivery" ? (
           <div className="container mx-auto px-3 sm:px-4 pt-4">
             <DeliveryDashboard />
@@ -115,22 +115,23 @@ export default async function Home() {
             />
             
             {cartItems.length > 0 && (
-              <div className="fixed bottom-6 left-4 right-4 z-50 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-6 duration-300">
-                <Link href="/cart" className="block shadow-2xl rounded-2xl overflow-hidden group">
-                  <div className="bg-[#0c1c2e] hover:bg-[#13273e] text-white p-3.5 sm:p-4 rounded-2xl flex items-center justify-between border-2 border-[#d97706]/40 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#d97706] text-white flex items-center justify-center font-bold">
-                        <ShoppingCart className="w-5 h-5" />
+              <div className="fixed bottom-3 sm:bottom-5 left-3 sm:left-4 right-3 sm:right-4 z-50 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <Link href="/cart" className="block shadow-xl rounded-xl sm:rounded-2xl overflow-hidden group">
+                  <div className="bg-[#0c1c2e] hover:bg-[#13273e] text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl flex items-center justify-between border-2 border-[#d97706]/40 transition-all">
+                    {/* اليمين: علامة سلة المشتريات وبجانبها لديك مشتريات في السلة */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#d97706] text-white flex items-center justify-center font-bold shrink-0">
+                        <ShoppingCart className="w-4 h-4" />
                       </div>
-                      <div>
-                        <div className="text-xs text-slate-300 font-bold">سلة مشتريات الجملة</div>
-                        <div className="text-sm sm:text-base font-black text-white flex items-center gap-2">
-                          <span>{cartItems.reduce((acc, item) => acc + item.quantity, 0)} وحدات جملة</span>
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">توصيل 0 د.ع</span>
-                        </div>
+                      <div className="text-xs sm:text-sm font-black text-slate-100 truncate">
+                        لديك مشتريات في السلة
+                        <span className="text-[10px] text-amber-300 font-bold mr-1.5">
+                          ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-[#d97706] group-hover:bg-[#b45309] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-colors">
+                    {/* أقصى اليسار: زر إتمام الطلب */}
+                    <div className="flex items-center gap-1.5 bg-[#d97706] group-hover:bg-[#b45309] text-white px-3 py-1.5 rounded-lg text-xs font-black transition-colors shrink-0">
                       <span>إتمام الطلب</span>
                       <span>←</span>
                     </div>

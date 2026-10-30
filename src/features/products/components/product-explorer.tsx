@@ -61,6 +61,27 @@ export function ProductExplorer({
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
 
+  // اقتراحات البحث والفلترة اللحظية (AutoComplete)
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim() || !products) return []
+    const q = searchQuery.trim().toLowerCase()
+    
+    const startsWithMatches: Product[] = []
+    const includesMatches: Product[] = []
+
+    for (const p of products) {
+      const name = p.name.toLowerCase()
+      if (name.startsWith(q)) {
+        startsWithMatches.push(p)
+      } else if (name.includes(q)) {
+        includesMatches.push(p)
+      }
+      if (startsWithMatches.length + includesMatches.length >= 20) break
+    }
+
+    return [...startsWithMatches, ...includesMatches]
+  }, [searchQuery, products])
+
   // مراجع وإشارات التحكم بالتمرير الأفقي لشريط الأقسام السريع
   const categoriesContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollCategoriesRight, setCanScrollCategoriesRight] = useState(false)
@@ -316,42 +337,24 @@ export function ProductExplorer({
         </div>
       )}
 
-      {/* 2. شارة المتجر والتوصيل المجاني للمستخدم المسجل (Ultra-Compact Micro-Banner) */}
-      {user && (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-card rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs text-xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base shrink-0">🏪</span>
-            <div className="flex items-center gap-1.5 truncate">
-              <span className="font-black text-slate-900 dark:text-foreground text-xs sm:text-sm truncate">
-                {profile?.full_name ? profile.full_name : "متجر التجزئة المعتمد"}
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">• كربلاء المقدسة</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-black shrink-0">
-            <span>🎁</span>
-            <span>توصيل 0 د.ع مجاني</span>
-          </div>
-        </div>
-      )}
-
-      {/* 3. شريط التحكم والبحث الموحد المدمج (Unified Compact Command Center) */}
+      {/* 2. شريط التحكم والبحث الموحد المدمج (Unified Compact Command Center) */}
       <div id="b2b-market-section" className="bg-white dark:bg-card rounded-2xl p-2 sm:p-3 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-1.5 sm:space-y-2">
         
         {/* صف البحث الرشيق مع محدد الفرز وزر المجهزين المدمج */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           
-          {/* حقل البحث الذكي الرشيق */}
+          {/* حقل البحث الذكي الرشيق مع الإكمال والفلترة اللحظية (AutoComplete) */}
           <div className="relative flex-grow min-w-0">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
             <Input 
               placeholder="" 
               className="pr-8.5 pl-3 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              onBlur={() => {
+                // إغلاق الاقتراحات بعد فقدان التركيز
+              }}
             />
             {searchQuery === "" && !isFocused && (
               <div 
@@ -359,6 +362,39 @@ export function ProductExplorer({
                 className="absolute right-8.5 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-400 text-xs font-medium animate-placeholder-fade truncate max-w-[180px] sm:max-w-none"
               >
                 {placeholders[placeholderIndex]}
+              </div>
+            )}
+
+            {/* القائمة المنسدلة الذكية للاقتراحات المصفاة لحظياً */}
+            {isFocused && searchQuery.trim().length > 0 && searchSuggestions.length > 0 && (
+              <div 
+                className="absolute top-full mt-1.5 inset-x-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 max-h-52 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {searchSuggestions.slice(0, 15).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(item.name)
+                      setIsFocused(false)
+                    }}
+                    className="w-full text-right px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-between gap-2 text-xs cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="text-slate-400 group-hover:text-[#d97706] shrink-0">🔍</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {item.name.replace(/شوال/g, 'كيس')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 text-[11px]">
+                      <span className="text-slate-400 font-medium">{item.unit_type || "كرتون"}</span>
+                      <span className="font-black text-emerald-700 dark:text-emerald-400">
+                        {Number(item.price).toLocaleString('en-US')} د.ع
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -481,19 +517,10 @@ export function ProductExplorer({
 
       </div>
 
-      {/* 4. عرض المحتوى: شبكة البضائع المباشرة أو دليل المجهزين */}
+      {/* 3. عرض المحتوى: شبكة البضائع المباشرة أو دليل المجهزين */}
       {viewTab === "products" ? (
         
         <div className="space-y-2 sm:space-y-3">
-          <div className="flex justify-between items-center px-1">
-            <h2 className="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-foreground flex items-center gap-1.5">
-              <span className="w-1.5 h-4 bg-[#d97706] rounded-full inline-block" />
-              <span>عروض الجملة الصافية في كربلاء</span>
-            </h2>
-            <span className="text-[11px] text-slate-400 font-bold">
-              عرض {filteredProducts.length} مادة بالجملة
-            </span>
-          </div>
 
           {filteredProducts.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500">
@@ -546,29 +573,17 @@ export function ProductExplorer({
                         {product.name.replace(/شوال/g, 'كيس')}
                       </h3>
 
-                      {/* مواصفة وحدة الجملة (كرتون / كيس) */}
-                      <div className="bg-slate-100 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-slate-700 mb-2">
-                        📦 <span>الوحدة: {unitClean}</span>
-                        {product.description && (
-                          <span className="block text-[9px] text-slate-500 line-clamp-1 font-normal mt-0.5">
-                            {product.description.replace(/شوال/g, 'كيس')}
-                          </span>
-                        )}
+                      {/* مواصفة وحدة الجملة وسعر القطعة الصافي */}
+                      <div className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                        <span>📦 الوحدة: {unitClean}</span>
+                        <span className="font-black text-emerald-700 dark:text-emerald-400">
+                          {Number(product.price).toLocaleString('en-US')} د.ع
+                        </span>
                       </div>
                     </div>
 
                     <div>
-                      {/* السعر الصافي بالدينار العراقي */}
-                      <div className="pt-1 pb-2 border-t border-slate-100 flex items-baseline justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-medium">سعر الجملة الصافي</span>
-                          <span className="text-sm sm:text-base font-black text-emerald-800 leading-none">
-                            {Number(product.price).toLocaleString('en-US')} <span className="text-[10px] font-normal">د.ع</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* زر الإضافة السريع للسلة */}
+                      {/* زر الإضافة السريع للسلة مع عداد الكميات */}
                       <AddToCartButton 
                         user={user}
                         productId={product.id}
