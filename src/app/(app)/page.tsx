@@ -98,7 +98,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex-1 w-full bg-slate-50/50 pb-28 sm:pb-36 pt-16 sm:pt-20">
+    <div className="flex-1 w-full bg-slate-50/50 pb-28 sm:pb-36 pt-14 sm:pt-16">
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6">
         {userRole === "delivery" ? (
           <div className="container mx-auto px-3 sm:px-4 pt-4">

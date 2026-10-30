@@ -61,35 +61,11 @@ export function ProductExplorer({
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
 
-  // مراجع وإشارات التحكم بالتمرير الأفقي لقوائم التبويبات والأقسام
-  const tabsContainerRef = useRef<HTMLDivElement>(null)
-  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false)
-  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false)
-  const [hasTabsOverflow, setHasTabsOverflow] = useState(false)
-
+  // مراجع وإشارات التحكم بالتمرير الأفقي لشريط الأقسام السريع
   const categoriesContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollCategoriesRight, setCanScrollCategoriesRight] = useState(false)
   const [canScrollCategoriesLeft, setCanScrollCategoriesLeft] = useState(false)
   const [hasCategoriesOverflow, setHasCategoriesOverflow] = useState(false)
-
-  // تحديث حالة أزرار تمرير تبويبات الفهرسة
-  const updateTabsScrollState = useCallback(() => {
-    const el = tabsContainerRef.current
-    if (!el) return
-    const currentScroll = Math.abs(el.scrollLeft)
-    const maxScroll = el.scrollWidth - el.clientWidth
-    const hasOverflow = maxScroll > 4
-    setHasTabsOverflow(hasOverflow)
-    setCanScrollTabsRight(hasOverflow && currentScroll > 6)
-    setCanScrollTabsLeft(hasOverflow && currentScroll < maxScroll - 6)
-  }, [])
-
-  const scrollTabs = useCallback((direction: 'right' | 'left') => {
-    const el = tabsContainerRef.current
-    if (!el) return
-    const delta = direction === 'left' ? -180 : 180
-    el.scrollBy({ left: delta, behavior: 'smooth' })
-  }, [])
 
   // تحديث حالة أزرار تمرير الأقسام السريعة
   const updateCategoriesScrollState = useCallback(() => {
@@ -111,17 +87,15 @@ export function ProductExplorer({
   }, [])
 
   useEffect(() => {
-    updateTabsScrollState()
     updateCategoriesScrollState()
 
     const handleResize = () => {
-      updateTabsScrollState()
       updateCategoriesScrollState()
     }
 
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
-  }, [updateTabsScrollState, updateCategoriesScrollState, viewTab, dbCategories.length, products?.length])
+  }, [updateCategoriesScrollState, viewTab, dbCategories.length, products?.length])
 
   const placeholders = useMemo(() => [
     'ابحث عن "كارتون زيت زير"...',
@@ -211,7 +185,7 @@ export function ProductExplorer({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2.5 sm:space-y-3.5">
       
       {/* 1. واجهة الزائر الرسمية (Landing Hero Section) إن لم يكن مسجلاً */}
       {!user && (
@@ -342,42 +316,38 @@ export function ProductExplorer({
         </div>
       )}
 
-      {/* 2. شارة المتجر والتوصيل المجاني للمستخدم المسجل */}
+      {/* 2. شارة المتجر والتوصيل المجاني للمستخدم المسجل (Ultra-Compact Micro-Banner) */}
       {user && (
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0c1c2e] text-[#d97706] flex items-center justify-center font-bold text-lg">
-              🏪
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm sm:text-base font-black text-slate-900">
-                  {profile?.full_name ? `المتجر: ${profile.full_name}` : "متجر التجزئة المعتمد"}
-                </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              </div>
-              <span className="text-xs text-slate-500 font-bold">كربلاء المقدسة — حساب تاجر تجزئة نشط</span>
+        <div className="flex items-center justify-between px-3 py-1.5 bg-white dark:bg-card rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">🏪</span>
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-black text-slate-900 dark:text-foreground text-xs sm:text-sm truncate">
+                {profile?.full_name ? profile.full_name : "متجر التجزئة المعتمد"}
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-[10px] text-slate-400 font-bold hidden sm:inline">• كربلاء المقدسة</span>
             </div>
           </div>
-          <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 self-stretch sm:self-auto justify-center">
+          <div className="flex items-center gap-1 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-black shrink-0">
             <span>🎁</span>
-            <span>أجور التوصيل 0 د.ع متكفل بها التطبيق بالكامل</span>
+            <span>توصيل 0 د.ع مجاني</span>
           </div>
         </div>
       )}
 
-      {/* 3. شريط التحكم والبحث والفهرسة (B2B Market Section) */}
-      <div id="b2b-market-section" className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+      {/* 3. شريط التحكم والبحث الموحد المدمج (Unified Compact Command Center) */}
+      <div id="b2b-market-section" className="bg-white dark:bg-card rounded-2xl p-2 sm:p-3 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-1.5 sm:space-y-2">
         
-        {/* صف البحث وتبديل طريقة العرض */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* صف البحث الرشيق مع محدد الفرز وزر المجهزين المدمج */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
           
-          {/* حقل البحث الذكي */}
-          <div className="relative flex-grow">
-            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          {/* حقل البحث الذكي الرشيق */}
+          <div className="relative flex-grow min-w-0">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input 
               placeholder="" 
-              className="pr-10 h-12 bg-slate-50 border-slate-200 focus:border-[#d97706] rounded-xl text-sm font-semibold text-slate-900"
+              className="pr-8.5 pl-3 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsFocused(true)}
@@ -386,101 +356,52 @@ export function ProductExplorer({
             {searchQuery === "" && !isFocused && (
               <div 
                 key={placeholderIndex}
-                className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-400 text-xs sm:text-sm font-medium animate-placeholder-fade"
+                className="absolute right-8.5 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-400 text-xs font-medium animate-placeholder-fade truncate max-w-[180px] sm:max-w-none"
               >
                 {placeholders[placeholderIndex]}
               </div>
             )}
           </div>
 
-          {/* أزرار التبديل والفهرسة مع دعم أسهم التمرير في الموبايل */}
-          <div className="relative flex items-center gap-1.5 w-full sm:w-auto">
-            {/* سهم يمين (يظهر في الموبايل عند وجود تمرير) */}
-            <button
-              type="button"
-              onClick={() => scrollTabs('right')}
-              disabled={!canScrollTabsRight}
-              aria-label="تمرير التبويبات لليمين"
-              className={cn(
-                "sm:hidden shrink-0 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-700 transition-all cursor-pointer",
-                !hasTabsOverflow && "hidden",
-                !canScrollTabsRight ? "opacity-30 pointer-events-none" : "opacity-100 shadow-sm"
-              )}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            {/* الحاوية القابلة للتمرير */}
-            <div 
-              ref={tabsContainerRef}
-              onScroll={updateTabsScrollState}
-              className="flex items-center gap-2 overflow-x-auto scrollbar-none select-none scroll-smooth py-0.5 flex-1 sm:flex-initial"
-            >
-              {/* زر التبديل بين البضائع والمجهزين */}
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setViewTab("products")}
-                  className={cn(
-                    "px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap",
-                    viewTab === "products" 
-                      ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
-                      : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  تصفح البضائع بالكارتون والكيس
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("merchants")}
-                  className={cn(
-                    "px-3 py-2 rounded-lg transition-all cursor-pointer whitespace-nowrap",
-                    viewTab === "merchants" 
-                      ? "bg-[#0c1c2e] text-white shadow-sm font-black" 
-                      : "text-slate-600 hover:text-slate-900"
-                  )}
-                >
-                  دليل المجهّزين ({groupedMerchants.length})
-                </button>
-              </div>
-
-              {/* محدد الفهرسة والترتيب */}
-              {viewTab === "products" && (
-                <div className="relative shrink-0">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="h-10 px-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer whitespace-nowrap"
-                  >
-                    <option value="popular">الأكثر طلباً ورواجاً</option>
-                    <option value="price_asc">الأقل سعراً للكارتون</option>
-                    <option value="price_desc">الأعلى سعراً (نخب أول)</option>
-                    <option value="newest">أحدث عروض التجهيز</option>
-                  </select>
-                </div>
-              )}
+          {/* محدد الفرز والترتيب المدمج */}
+          {viewTab === "products" && (
+            <div className="relative shrink-0">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                aria-label="ترتيب عروض الجملة"
+                className="h-9 sm:h-10 px-2 sm:px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] sm:text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
+              >
+                <option value="popular">⚡ الأكثر رواجاً</option>
+                <option value="price_asc">💰 الأقل سعراً</option>
+                <option value="price_desc">💎 الأعلى سعراً</option>
+                <option value="newest">✨ الأحدث</option>
+              </select>
             </div>
+          )}
 
-            {/* سهم يسار (يظهر في الموبايل عند وجود تمرير) */}
-            <button
-              type="button"
-              onClick={() => scrollTabs('left')}
-              disabled={!canScrollTabsLeft}
-              aria-label="تمرير التبويبات لليسار"
-              className={cn(
-                "sm:hidden shrink-0 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-700 transition-all cursor-pointer",
-                !hasTabsOverflow && "hidden",
-                !canScrollTabsLeft ? "opacity-30 pointer-events-none" : "opacity-100 shadow-sm"
-              )}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
+          {/* زر التبديل بين البضائع ودليل المجهزين */}
+          <button
+            type="button"
+            onClick={() => setViewTab(viewTab === "products" ? "merchants" : "products")}
+            className={cn(
+              "h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border text-[11px] sm:text-xs font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5",
+              viewTab === "merchants" 
+                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs" 
+                : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100"
+            )}
+            title={viewTab === "products" ? "عرض دليل المجهزين" : "تصفح بضائع الجملة"}
+          >
+            <Store className="w-3.5 h-3.5 text-[#d97706]" />
+            <span className="hidden xs:inline sm:inline">
+              {viewTab === "products" ? `المجهّزون (${groupedMerchants.length})` : "البضائع"}
+            </span>
+          </button>
 
         </div>
 
         {/* شريط الأقسام السريع مع أسهم التمرير الأفقية الذكية (Horizontal Micro-Ribbon with Scroll Controls) */}
-        <div className="relative flex items-center gap-1.5 w-full">
+        <div className="relative flex items-center gap-1 w-full pt-0.5">
           {/* سهم التمرير الأيمن (نحو البداية) */}
           <button
             type="button"
@@ -488,48 +409,54 @@ export function ProductExplorer({
             disabled={!canScrollCategoriesRight}
             aria-label="تمرير الأقسام لليمين"
             className={cn(
-              "shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer",
+              "shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer",
               !hasCategoriesOverflow && "hidden",
-              !canScrollCategoriesRight ? "opacity-30 pointer-events-none" : "opacity-100"
+              !canScrollCategoriesRight ? "opacity-25 pointer-events-none" : "opacity-100"
             )}
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
 
           {/* حاوية الأقسام القابلة للتمرير */}
           <div 
             ref={categoriesContainerRef}
             onScroll={updateCategoriesScrollState}
-            className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none select-none scroll-smooth flex-1"
+            className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-0.5 scrollbar-none select-none scroll-smooth flex-1"
           >
             <button
               type="button"
-              onClick={() => setSelectedCategory("all")}
+              onClick={() => {
+                setViewTab("products")
+                setSelectedCategory("all")
+              }}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border",
-                selectedCategory === "all"
-                  ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                "px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border whitespace-nowrap",
+                viewTab === "products" && selectedCategory === "all"
+                  ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs font-black"
+                  : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300"
               )}
             >
               جميع المواد ({products?.length || 0})
             </button>
 
             {(dbCategories.length > 0 ? dbCategories : CATEGORIES.slice(1)).map((cat) => {
-              const isActive = selectedCategory === cat.id
+              const isActive = viewTab === "products" && selectedCategory === cat.id
               return (
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => {
+                    setViewTab("products")
+                    setSelectedCategory(cat.id)
+                  }}
                   className={cn(
-                    "px-4 py-2 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1.5",
+                    "px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer border flex items-center gap-1 whitespace-nowrap",
                     isActive
-                      ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-sm font-black"
-                      : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                      ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs font-black"
+                      : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300"
                   )}
                 >
-                  <span>{(cat as any).emoji || "🏷️"}</span>
+                  <span className="text-xs">{(cat as any).emoji || "🏷️"}</span>
                   <span>{cat.name.replace(/شوال/g, 'كيس')}</span>
                 </button>
               )
@@ -543,12 +470,12 @@ export function ProductExplorer({
             disabled={!canScrollCategoriesLeft}
             aria-label="تمرير الأقسام لليسار"
             className={cn(
-              "shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer",
+              "shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-center text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer",
               !hasCategoriesOverflow && "hidden",
-              !canScrollCategoriesLeft ? "opacity-30 pointer-events-none" : "opacity-100"
+              !canScrollCategoriesLeft ? "opacity-25 pointer-events-none" : "opacity-100"
             )}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -557,13 +484,13 @@ export function ProductExplorer({
       {/* 4. عرض المحتوى: شبكة البضائع المباشرة أو دليل المجهزين */}
       {viewTab === "products" ? (
         
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-3">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-              <span className="w-2 h-5 bg-[#d97706] rounded-full inline-block" />
-              <span>عروض الجملة الصافية المتاحة في كربلاء</span>
+            <h2 className="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-foreground flex items-center gap-1.5">
+              <span className="w-1.5 h-4 bg-[#d97706] rounded-full inline-block" />
+              <span>عروض الجملة الصافية في كربلاء</span>
             </h2>
-            <span className="text-xs text-slate-500 font-bold">
+            <span className="text-[11px] text-slate-400 font-bold">
               عرض {filteredProducts.length} مادة بالجملة
             </span>
           </div>
