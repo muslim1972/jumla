@@ -2,7 +2,7 @@
   "src/app/(app)/admin/admin-active-orders.tsx": "1899a24829bca30a95d977ccd14bc4cb",
   "src/app/(app)/admin/admin-client.tsx": "89376bd1ec48304bf82bb73916621f6a",
   "src/app/(app)/admin/page.tsx": "1956f1a2335c6568665f65290acea32d",
-  "src/app/(app)/cart/cart-client.tsx": "3cfe32dd3b8457d9af514676b3a8c5c4",
+  "src/app/(app)/cart/cart-client.tsx": "68867482b1717ecc4ef3b2e33204f016",
   "src/app/(app)/cart/page.tsx": "1a5e18a59f107c6ba605fc3b94c0e324",
   "src/app/(app)/debts/page.tsx": "3d5bf3f936c4739d27560c1c3966625a",
   "src/app/(app)/layout.tsx": "9c22e5057d39f6a40c4df7c8597a4929",
