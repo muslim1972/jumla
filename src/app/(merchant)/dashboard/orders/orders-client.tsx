@@ -36,16 +36,19 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
   const [errorMsg, setErrorMsg] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [pickingOrderId, setPickingOrderId] = useState<string | null>(null)
-  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
-    pending: true,
-    preparing: false,
-    approved: false,
-    delivered: false,
-    cancellation: false,
-  })
+  const [activeSection, setActiveSection] = useState<string>("pending")
 
   const toggleSection = (key: string) => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+    setActiveSection(prev => prev === key ? "" : key)
+  }
+
+  // أكورديون أحادي حصري: بطاقة واحدة فقط تبقى مفتوحة دائماً وتغلق البقية
+  const openSections = {
+    pending: activeSection === "pending",
+    preparing: activeSection === "preparing",
+    approved: activeSection === "approved",
+    delivered: activeSection === "delivered",
+    cancellation: activeSection === "cancellation",
   }
 
   useEffect(() => {

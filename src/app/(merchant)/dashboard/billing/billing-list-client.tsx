@@ -17,13 +17,18 @@ export function BillingListClient({ billings }: { billings: any[] }) {
   const paidBillings = billings.filter(b => b.status === 'paid')
   const pendingBillings = billings.filter(b => b.status !== 'paid')
   const [selectedBill, setSelectedBill] = useState<any | null>(null)
-  const [openSections, setOpenSections] = useState<{ pending: boolean, paid: boolean }>({
-    pending: pendingBillings.length > 0,
-    paid: pendingBillings.length === 0,
-  })
+  const [activeSection, setActiveSection] = useState<'pending' | 'paid' | null>(
+    pendingBillings.length > 0 ? 'pending' : 'paid'
+  )
 
   const toggleSection = (key: 'pending' | 'paid') => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+    setActiveSection(prev => prev === key ? null : key)
+  }
+
+  // أكورديون أحادي حصري: فتح إحداهما يغلق الأخرى تلقائياً
+  const openSections = {
+    pending: activeSection === 'pending',
+    paid: activeSection === 'paid',
   }
 
   const handleOpenDialog = (bill: any) => {

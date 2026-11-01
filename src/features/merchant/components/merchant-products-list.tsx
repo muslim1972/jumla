@@ -1,19 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LayoutGrid, List } from "lucide-react"
+import { CardTitle } from "@/components/ui/card"
+import { LayoutGrid, List, Search, X } from "lucide-react"
 import Image from "next/image"
 import { EditProductModal } from "@/features/merchant/components/edit-product-modal"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 export function MerchantProductsList({ products, categories }: { products: any[], categories: any[] }) {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const filteredProducts = (products || []).filter(product => {
+    if (!searchQuery.trim()) return true
+    return product.name?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  })
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2.5">
-        <h2 className="text-base sm:text-lg font-black text-foreground">منتجاتي ({products?.length || 0})</h2>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-base sm:text-lg font-black text-foreground">
+          منتجاتي ({products?.length || 0})
+          {searchQuery && (
+            <span className="text-xs font-bold text-muted-foreground mr-1.5">
+              (نتائج البحث: {filteredProducts.length})
+            </span>
+          )}
+        </h2>
         <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setViewMode('list')}
@@ -37,17 +51,46 @@ export function MerchantProductsList({ products, categories }: { products: any[]
           </button>
         </div>
       </div>
+
+      {/* حقل البحث في منتجات التاجر بالاسم لمنع التكديس والتمرير المرهق */}
+      <div className="relative mb-2.5">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          type="text"
+          placeholder="ابحث في منتجاتك باسم المنتج..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="h-9 pr-9 pl-8 text-xs sm:text-sm bg-card border-border/80 rounded-xl"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer rounded-md"
+            title="مسح البحث"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
       
       {!products || products.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-xl border border-dashed">
-          <p className="text-muted-foreground">لم تقم بإضافة أي منتجات بعد.</p>
+        <div className="text-center py-10 bg-white dark:bg-zinc-900 rounded-xl border border-dashed">
+          <p className="text-muted-foreground text-xs sm:text-sm">لم تقم بإضافة أي منتجات بعد.</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-8 bg-card rounded-xl border border-dashed border-border/70">
+          <p className="text-xs sm:text-sm text-muted-foreground">لا توجد منتجات مطابقة لـ «{searchQuery}»</p>
         </div>
       ) : (
+        /* حاوية محددة الارتفاع تستوعب 4 إلى 5 بطاقات فقط مع سكرول داخلي */
         <div className={cn(
-          "grid gap-3",
-          viewMode === 'grid' ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
+          "max-h-[350px] overflow-y-auto pr-0.5 [scrollbar-width:thin]",
+          viewMode === 'grid' 
+            ? "grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5" 
+            : "space-y-2"
         )}>
-          {products.map((product) => {
+          {filteredProducts.map((product) => {
             const stockQty = product.stock_quantity !== undefined 
               ? Math.floor(product.stock_quantity / (product.units?.find((u: any) => u.type === (product.stock_unit || "كارتون"))?.multiplier_to_base || 1))
               : 0
@@ -58,18 +101,18 @@ export function MerchantProductsList({ products, categories }: { products: any[]
                 "overflow-hidden border border-border/80 bg-card transition-all",
                 viewMode === 'grid' 
                   ? "flex flex-col rounded-xl shadow-2xs hover:shadow-md" 
-                  : "flex flex-row items-center justify-between p-2.5 sm:p-3 rounded-xl gap-2.5 sm:gap-3.5 shadow-2xs hover:shadow-sm"
+                  : "flex flex-row items-center justify-between p-2 sm:p-2.5 rounded-xl gap-2 sm:gap-3 shadow-2xs hover:shadow-sm"
               )}>
                 {viewMode === 'list' ? (
                   <>
                     {/* الصورة الدلالية المصغرة لتاجر الجملة على اليمين */}
-                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-muted/50 rounded-lg overflow-hidden border border-border/60 flex items-center justify-center">
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 bg-muted/50 rounded-lg overflow-hidden border border-border/60 flex items-center justify-center">
                       {product.image_url ? (
                         <Image
                           src={product.image_url}
                           alt={product.name}
                           fill
-                          sizes="64px"
+                          sizes="56px"
                           className="object-contain p-1"
                         />
                       ) : (
@@ -78,7 +121,7 @@ export function MerchantProductsList({ products, categories }: { products: any[]
                     </div>
 
                     {/* بيانات المادة في المنتصف */}
-                    <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <h3 className="text-xs sm:text-sm font-bold text-foreground truncate max-w-[190px] sm:max-w-none">
                           {product.name}
