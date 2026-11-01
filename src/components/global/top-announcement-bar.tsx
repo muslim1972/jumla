@@ -132,7 +132,7 @@ export function TopAnnouncementBar({ initialBanners }: { initialBanners: TopBann
       {/* Creative Hero Billboard Banner */}
       <div 
         onClick={handleBannerClick}
-        className="w-full max-w-4xl mx-auto px-3 sm:px-4 cursor-pointer z-40 py-2 bg-background/90 sm:backdrop-blur-md mt-16 sm:mt-20"
+        className="w-full max-w-4xl mx-auto px-3 sm:px-4 cursor-pointer z-40 py-2 bg-background/90 sm:backdrop-blur-md mt-14 sm:mt-16"
       >
         <div className="relative overflow-hidden rounded-3xl h-36 sm:h-44 border border-border/40 shadow-premium bg-card/60 backdrop-blur-sm group flex items-center justify-center transition-all duration-300 hover:border-primary/30">
           {/* Creative ambient glows */}

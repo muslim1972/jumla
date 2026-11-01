@@ -128,7 +128,7 @@ export function LoginClient({ message }: { message?: string }) {
   }
 
   return (
-    <div className="w-full max-w-md p-4">
+    <div className="w-full max-w-md py-1">
       <Card className="shadow-lg border-muted">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">{mode === "staff" ? "دخول الموظفين" : "تسجيل الدخول"}</CardTitle>

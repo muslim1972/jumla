@@ -3,12 +3,11 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode
 }) {
-  // تخطيط عرض فقط — لا استعلامات قاعدة بيانات هنا (كانت النتائج تُهمَل)
   return (
-    <div className="flex flex-col flex-1 w-full min-h-[calc(100vh-140px)] items-center justify-center p-4">
-      <main className="w-full max-w-md flex flex-col items-center justify-center">
+    <div className="flex flex-col flex-1 w-full items-center justify-start px-3 py-1 sm:px-4 sm:py-2 -mb-28 sm:-mb-36 pb-6">
+      <div className="w-full max-w-md flex flex-col items-center">
         {children}
-      </main>
+      </div>
     </div>
   )
 }
