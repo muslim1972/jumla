@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Plus, Warehouse as WarehouseIcon, Search, AlertTriangle, Gem, Boxes, Activity, ClipboardList, Users, ScrollText, RefreshCw, FileMinus } from "lucide-react"
+import { ChevronRight, ChevronLeft, Loader2, Plus, Warehouse as WarehouseIcon, Search, AlertTriangle, Gem, Boxes, Activity, ClipboardList, Users, ScrollText, RefreshCw, FileMinus } from "lucide-react"
 import { enableWarehouseModule, createWarehouse } from "@/features/warehouse/actions"
 import { useWarehouseRealtime } from "@/features/warehouse/hooks/use-warehouse-realtime"
 import { WarehouseAddItemPanel } from "@/features/warehouse/components/warehouse-add-item"
@@ -135,7 +135,7 @@ export function WarehouseHub(props: Props) {
   const visibleKpis = isStaff ? kpis.filter(k => k.label !== "حركة مخزنية اليوم") : kpis
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl space-y-4">
+    <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3.5 max-w-6xl space-y-2.5 sm:space-y-3">
       {/* الترويسة */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -191,14 +191,14 @@ export function WarehouseHub(props: Props) {
         </div>
       ) : (
         <>
-          {/* المؤشرات */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* المؤشرات المحسنة عالية التباين والمدمجة */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
             {visibleKpis.map(k => (
-              <div key={k.label} className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
-                <div className={`p-2.5 rounded-xl shrink-0 ${k.cls}`}><k.icon className="w-4 h-4" /></div>
-                <div className="min-w-0">
-                  <div className="font-black text-base sm:text-lg truncate">{k.value}</div>
-                  <div className="text-[10px] text-muted-foreground">{k.label}</div>
+              <div key={k.label} className="rounded-xl border border-border/80 bg-card p-2 sm:p-2.5 flex items-center gap-2 shadow-2xs">
+                <div className={`p-1.5 rounded-lg shrink-0 ${k.cls}`}><k.icon className="w-4 h-4" /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-xs sm:text-sm text-foreground truncate">{k.value}</div>
+                  <div className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">{k.label}</div>
                 </div>
               </div>
             ))}
@@ -253,32 +253,59 @@ export function WarehouseHub(props: Props) {
             </div>
           )}
 
-          {/* تبويبات المركز */}
-          <div className="flex gap-1 border-b border-border/60 overflow-x-auto">
-            {([
-              { id: "items", label: "المواد", icon: Boxes, show: true },
-              { id: "add", label: "إضافة مواد", icon: Plus, show: true },
-              { id: "deductions", label: "طلبات الطرح", icon: FileMinus, show: canWarehouse, badge: pendingDeductionsCount },
-              { id: "staff", label: "فريق العمل", icon: Users, show: canManageStaff },
-              { id: "movements", label: "دفتر الحركات", icon: Activity, show: !isStaff },
-              { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: !isStaff },
-            ] as { id: HubTab; label: string; icon: typeof Users; show: boolean; badge?: number }[]).filter(t => t.show).map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
-                  tab === t.id ? "border-brand-orange text-brand-orange" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <t.icon className="w-4 h-4" />
-                {t.label}
-                {t.badge != null && t.badge > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-brand-orange text-white font-black">
-                    {t.badge}
-                  </span>
-                )}
-              </button>
-            ))}
+          {/* تبويبات المركز مع أسهم تحريك ذكية بدون سكرولبار */}
+          <div className="relative flex items-center gap-1 border-b border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("wh-tabs-container");
+                if (el) el.scrollBy({ left: 140, behavior: "smooth" });
+              }}
+              aria-label="تمرير التبويبات لليمين"
+              className="shrink-0 w-6 h-6 rounded-full bg-muted/70 hover:bg-muted text-muted-foreground flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <div 
+              id="wh-tabs-container"
+              className="flex gap-1 overflow-x-auto flex-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden scroll-smooth"
+            >
+              {([
+                { id: "items", label: "المواد", icon: Boxes, show: true },
+                { id: "add", label: "إضافة مواد", icon: Plus, show: true },
+                { id: "deductions", label: "طلبات الطرح", icon: FileMinus, show: canWarehouse, badge: pendingDeductionsCount },
+                { id: "staff", label: "فريق العمل", icon: Users, show: canManageStaff },
+                { id: "movements", label: "دفتر الحركات", icon: Activity, show: !isStaff },
+                { id: "activity", label: "سجل التغييرات", icon: ScrollText, show: !isStaff },
+              ] as { id: HubTab; label: string; icon: typeof Users; show: boolean; badge?: number }[]).filter(t => t.show).map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+                    tab === t.id ? "border-brand-orange text-brand-orange" : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <t.icon className="w-4 h-4" />
+                  {t.label}
+                  {t.badge != null && t.badge > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-brand-orange text-white font-black">
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("wh-tabs-container");
+                if (el) el.scrollBy({ left: -140, behavior: "smooth" });
+              }}
+              aria-label="تمرير التبويبات لليسار"
+              className="shrink-0 w-6 h-6 rounded-full bg-muted/70 hover:bg-muted text-muted-foreground flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
           </div>
 
 
@@ -321,11 +348,11 @@ export function WarehouseHub(props: Props) {
                   )}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  <div className="overflow-x-auto">
+                <div className="rounded-xl border border-border bg-card overflow-hidden shadow-2xs">
+                  <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
                     <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-muted-foreground bg-muted/40 border-b border-border">
+                      <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur-xs">
+                        <tr className="text-muted-foreground border-b border-border">
                           <th className="text-right font-bold p-3">المادة</th>
                           <th className="text-right font-bold p-3 hidden md:table-cell">أسعار البيع</th>
                           <th className="text-right font-bold p-3">الكمية</th>

@@ -189,7 +189,7 @@ function LinkedPricingForm({ product, onClose }: { product: any, onClose: () => 
   )
 }
 
-export function EditProductModal({ product, categories = [], compactMode = false }: { product: any, categories?: {id: string, name: string}[], compactMode?: boolean }) {
+export function EditProductModal({ product, categories = [], compactMode = false, sideActions = false }: { product: any, categories?: {id: string, name: string}[], compactMode?: boolean, sideActions?: boolean }) {
   const [open, setOpen] = useState(false)
   const [units, setUnits] = useState<Unit[]>(product.units || (product.price ? [{ type: product.unit_type, price: product.price }] : []))
   const [categoryId, setCategoryId] = useState(product.category_id || "none")
@@ -400,7 +400,28 @@ export function EditProductModal({ product, categories = [], compactMode = false
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {compactMode ? (
+      {sideActions ? (
+        <div className="flex flex-col gap-1.5 shrink-0 justify-center">
+          <DialogTrigger render={
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs"
+            >
+              <Edit className="w-3 h-3 ml-1 text-brand-orange" /> تعديل
+            </Button>
+          } />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs"
+          >
+            {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Trash2 className="w-3 h-3 ml-1" /> {isLinked ? "إلغاء الربط" : "حذف"}</>}
+          </Button>
+        </div>
+      ) : compactMode ? (
         <DialogTrigger render={
           <Button variant="outline" size="sm" className="h-7 text-[10px] px-2 font-bold border-brand-orange text-brand-orange hover:bg-brand-orange/10">
             <Edit className="w-3 h-3 ml-1" /> تعديل

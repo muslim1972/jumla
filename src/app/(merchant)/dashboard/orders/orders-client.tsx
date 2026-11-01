@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion, proposeOrderEdits } from "./actions"
-import { CheckCircle, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
+import { CheckCircle, ChevronDown, ChevronUp, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -36,6 +36,17 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
   const [errorMsg, setErrorMsg] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [pickingOrderId, setPickingOrderId] = useState<string | null>(null)
+  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
+    pending: true,
+    preparing: false,
+    approved: false,
+    delivered: false,
+    cancellation: false,
+  })
+
+  const toggleSection = (key: string) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   useEffect(() => {
     const supabase = createClient()
@@ -196,85 +207,205 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
           <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-brand-orange" />
         </div>
       ) : (
-        <div className="space-y-6 sm:space-y-8">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 items-start">
-            {/* العمود الأيمن: بانتظار الموافقة */}
-            <div className="space-y-3 sm:space-y-4">
-              <h2 className="font-bold text-xs sm:text-lg text-amber-600 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                <Clock className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                بانتظار الموافقة ({pendingOrders.length})
-              </h2>
-              {pendingOrders.length === 0 ? (
-                <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
-              ) : (
-                pendingOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} onClick={() => setSelectedOrder(order)} />
-                ))
-              )}
-            </div>
-
-            {/* العمود الأوسط: قيد التجهيز في المخزن */}
-            {warehouseEnabled && (
-              <div className="space-y-3 sm:space-y-4">
-                <h2 className="font-bold text-xs sm:text-lg text-brand-orange flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                  <Warehouse className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                  قيد التجهيز في المخزن ({preparingOrders.length})
-                </h2>
-                {preparingOrders.length === 0 ? (
-                  <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
+        <div className="space-y-2.5 sm:space-y-3">
+          {/* 1. بانتظار الموافقة */}
+          <div className="rounded-xl border border-amber-500/30 overflow-hidden bg-card shadow-2xs">
+            <button
+              type="button"
+              onClick={() => toggleSection('pending')}
+              className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-amber-500/10 hover:bg-amber-500/15 transition-colors cursor-pointer text-right"
+            >
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                  <Clock className="w-4 h-4" />
+                </span>
+                <span className="font-black text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                  بانتظار الموافقة
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  pendingOrders.length > 0 
+                    ? "bg-amber-500 text-white animate-pulse" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {pendingOrders.length}
+                </span>
+              </div>
+              <div className="text-amber-700 dark:text-amber-400">
+                {openSections.pending ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
+            </button>
+            {openSections.pending && (
+              <div className="p-2 sm:p-3 border-t border-amber-500/20 bg-background/50">
+                {pendingOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-3 text-center">لا توجد طلبات بانتظار الموافقة حالياً.</p>
                 ) : (
-                  preparingOrders.map((order) => (
-                    <div key={order.id} className="relative">
-                      <OrderCard key={order.id} order={order} isPreparing={true} onClick={() => setPickingOrderId(order.id)} />
-                    </div>
-                  ))
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                    {pendingOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} onClick={() => setSelectedOrder(order)} />
+                    ))}
+                  </div>
                 )}
               </div>
             )}
-
-            {/* العمود الأيسر: مجهزة بانتظار المندوب */}
-            <div className="space-y-3 sm:space-y-4">
-              <h2 className="font-bold text-xs sm:text-lg text-emerald-600 flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-                <Truck className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                بانتظار المندوب ({approvedOrders.length})
-              </h2>
-              {approvedOrders.length === 0 ? (
-                <p className="text-[10px] sm:text-sm text-muted-foreground p-3 sm:p-6 text-center bg-muted/20 rounded-xl border border-dashed">لا يوجد</p>
-              ) : (
-                approvedOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} isApproved={true} onClick={() => setSelectedOrder(order)} />
-                ))
-              )}
-            </div>
           </div>
 
-          {/* الطلبات المُسلمة بانتظار استلام المبلغ */}
-          {deliveredOrders.length > 0 && (
-            <div className="pt-4 sm:pt-8 border-t border-border/50">
-              <h2 className="font-bold text-xs sm:text-lg text-red-600 flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
-                <CheckCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                مُسلمة بانتظار استلام المبلغ من المندوب ({deliveredOrders.length})
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
-                {deliveredOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} isDelivered={true} onClick={() => setSelectedOrder(order)} />
-                ))}
-              </div>
+          {/* 2. قيد التجهيز في المخزن */}
+          {warehouseEnabled && (
+            <div className="rounded-xl border border-brand-orange/30 overflow-hidden bg-card shadow-2xs">
+              <button
+                type="button"
+                onClick={() => toggleSection('preparing')}
+                className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-brand-orange/10 hover:bg-brand-orange/15 transition-colors cursor-pointer text-right"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-lg bg-brand-orange/20 text-brand-orange">
+                    <Warehouse className="w-4 h-4" />
+                  </span>
+                  <span className="font-black text-xs sm:text-sm text-foreground">
+                    قيد التجهيز في المخزن
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                    preparingOrders.length > 0 
+                      ? "bg-brand-orange text-white" 
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {preparingOrders.length}
+                  </span>
+                </div>
+                <div className="text-muted-foreground">
+                  {openSections.preparing ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+              {openSections.preparing && (
+                <div className="p-2 sm:p-3 border-t border-brand-orange/20 bg-background/50">
+                  {preparingOrders.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 text-center">لا توجد طلبات قيد التجهيز في المخزن حالياً.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                      {preparingOrders.map((order) => (
+                        <OrderCard key={order.id} order={order} isPreparing={true} onClick={() => setPickingOrderId(order.id)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* طلبات الإلغاء (المرفوضة) */}
-          {cancellationRequests.length > 0 && (
-            <div className="pt-4 sm:pt-8 border-t border-border/50">
-              <h2 className="font-bold text-xs sm:text-lg text-purple-600 flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
-                <XCircle className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                طلبات الإلغاء ({cancellationRequests.length})
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-6 items-start">
-                {cancellationRequests.map((order) => (
-                  <OrderCard key={order.id} order={order} isCancellation={true} onClick={() => setSelectedOrder(order)} />
-                ))}
+          {/* 3. بانتظار المندوب */}
+          <div className="rounded-xl border border-emerald-500/30 overflow-hidden bg-card shadow-2xs">
+            <button
+              type="button"
+              onClick={() => toggleSection('approved')}
+              className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-emerald-500/10 hover:bg-emerald-500/15 transition-colors cursor-pointer text-right"
+            >
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                  <Truck className="w-4 h-4" />
+                </span>
+                <span className="font-black text-xs sm:text-sm text-foreground">
+                  بانتظار المندوب (مجهّزة)
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  approvedOrders.length > 0 
+                    ? "bg-emerald-600 text-white" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {approvedOrders.length}
+                </span>
               </div>
+              <div className="text-muted-foreground">
+                {openSections.approved ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
+            </button>
+            {openSections.approved && (
+              <div className="p-2 sm:p-3 border-t border-emerald-500/20 bg-background/50">
+                {approvedOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-3 text-center">لا توجد طلبات بانتظار المندوب حالياً.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                    {approvedOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} isApproved={true} onClick={() => setSelectedOrder(order)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 4. مُسلمة بانتظار استلام المبلغ */}
+          <div className="rounded-xl border border-rose-500/30 overflow-hidden bg-card shadow-2xs">
+            <button
+              type="button"
+              onClick={() => toggleSection('delivered')}
+              className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-rose-500/10 hover:bg-rose-500/15 transition-colors cursor-pointer text-right"
+            >
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-400">
+                  <CheckCircle className="w-4 h-4" />
+                </span>
+                <span className="font-black text-xs sm:text-sm text-foreground">
+                  مُسلمة بانتظار استلام المبلغ
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  deliveredOrders.length > 0 
+                    ? "bg-rose-600 text-white" 
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {deliveredOrders.length}
+                </span>
+              </div>
+              <div className="text-muted-foreground">
+                {openSections.delivered ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
+            </button>
+            {openSections.delivered && (
+              <div className="p-2 sm:p-3 border-t border-rose-500/20 bg-background/50">
+                {deliveredOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-3 text-center">لا توجد طلبات بانتظار استلام المبلغ حالياً.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                    {deliveredOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} isDelivered={true} onClick={() => setSelectedOrder(order)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 5. طلبات الإلغاء إن وجدت */}
+          {cancellationRequests.length > 0 && (
+            <div className="rounded-xl border border-purple-500/30 overflow-hidden bg-card shadow-2xs">
+              <button
+                type="button"
+                onClick={() => toggleSection('cancellation')}
+                className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-purple-500/10 hover:bg-purple-500/15 transition-colors cursor-pointer text-right"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-lg bg-purple-500/20 text-purple-700 dark:text-purple-400">
+                    <XCircle className="w-4 h-4" />
+                  </span>
+                  <span className="font-black text-xs sm:text-sm text-foreground">
+                    طلبات الإلغاء
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-purple-600 text-white">
+                    {cancellationRequests.length}
+                  </span>
+                </div>
+                <div className="text-muted-foreground">
+                  {openSections.cancellation ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+              {openSections.cancellation && (
+                <div className="p-2 sm:p-3 border-t border-purple-500/20 bg-background/50">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                    {cancellationRequests.map((order) => (
+                      <OrderCard key={order.id} order={order} isCancellation={true} onClick={() => setSelectedOrder(order)} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

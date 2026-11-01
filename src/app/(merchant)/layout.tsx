@@ -87,7 +87,7 @@ export default async function MerchantLayout({
           />
         </div>
       </div>
-      <main className="flex-1 bg-muted/20 pt-4">
+      <main className="flex-1 bg-muted/20 pt-1 sm:pt-2 pb-6">
         {children}
       </main>
     </div>
