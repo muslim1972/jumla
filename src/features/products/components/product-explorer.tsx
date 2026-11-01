@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   Sparkles,
   SlidersHorizontal,
-  ArrowDown,
   X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -224,141 +223,48 @@ export function ProductExplorer({
     return Array.from(map.values())
   }, [products])
 
-  const scrollToMarket = () => {
-    const el = document.getElementById("b2b-market-section")
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" })
-    }
-  }
-
   return (
     <div className="space-y-2.5 sm:space-y-3.5">
       
-      {/* 1. واجهة الزائر الرسمية (Landing Hero Section) إن لم يكن مسجلاً */}
+      {/* 1. واجهة الزائر الرشيقة المدمجة (Compact Above-The-Fold B2B Hero) */}
       {!user && (
-        <div className="w-full bg-[#0c1c2e] text-white rounded-3xl overflow-hidden shadow-xl border border-slate-800 mb-8 mt-2">
-          
-          {/* شريط الإعلان عن التوصيل المجاني لكربلاء */}
-          <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-900 text-white px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs sm:text-sm font-bold border-b border-emerald-600/30">
-            <div className="flex items-center gap-2">
-              <span className="text-amber-400 text-base">🎁</span>
-              <span><strong>بشرى لأصحاب المتاجر في كربلاء المقدسة:</strong> جميع طلبيات الجملة بدون أجور توصيل (التوصيل 0 د.ع متكفل به تطبيق جملتي).</span>
+        <div className="w-full bg-[#0c1c2e] text-white rounded-2xl overflow-hidden shadow-md border border-slate-800 mb-2.5 mt-1">
+          {/* شريط الإعلان الزمردي الرشيق للتوصيل المجاني */}
+          <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-900 text-white px-3 sm:px-6 py-1.5 flex items-center justify-between text-[11px] sm:text-xs font-bold border-b border-emerald-600/30">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-amber-400 text-sm shrink-0">🎁</span>
+              <span className="truncate"><strong>بشرى لمتاجر كربلاء:</strong> التوصيل 0 د.ع متكفل به تطبيق جملتي لكافة طلبيات الجملة.</span>
             </div>
-            <span className="hidden md:inline-block bg-white text-emerald-900 px-3 py-0.5 rounded-full text-xs font-black">توصيل 0 د.ع</span>
+            <span className="shrink-0 bg-white text-emerald-900 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black mr-2">توصيل 0 د.ع</span>
           </div>
 
-          <div className="p-6 sm:p-10 lg:p-12">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-              
-              {/* النص التعريفي */}
-              <div className="lg:col-span-7 space-y-5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
-                  <Sparkles className="w-3.5 h-3.5" />
+          <div className="p-3 sm:p-4 lg:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="space-y-1 sm:space-y-1.5 min-w-0 flex-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs font-bold">
+                  <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
                   <span>سوق الجملة العراقي الأول في كربلاء المقدسة</span>
                 </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight text-white tracking-tight">
-                  بضاعة متجرك بالجملة،<br />
-                  <span className="text-[#d97706]">من المجهّز والمصنع لباب محلك مباشرةً.</span>
+                <h1 className="text-sm sm:text-base lg:text-lg font-black leading-snug text-white tracking-tight">
+                  بضاعة متجرك بالجملة بالكرتون والكيس، <span className="text-[#d97706]">من المصنع والمجهّز لباب محلك مباشرةً.</span>
                 </h1>
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
-                  نجمع لك كبار تجار الجملة والموردين في كربلاء بآلاف الأصناف وبأسعار الجملة الصافية بالكارتون والكيس. اطلب وأنت في متجرك بضمان وصول البضاعة وبدون أجور توصيل.
-                </p>
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Link href="/register">
-                    <Button className="bg-[#d97706] hover:bg-[#b45309] text-white font-black px-6 py-6 text-sm sm:text-base rounded-xl shadow-lg border-0">
-                      افتح حساب متجرك مجاناً
-                    </Button>
-                  </Link>
-                  <Button 
-                    variant="outline" 
-                    onClick={scrollToMarket}
-                    className="bg-[#13273e] hover:bg-[#1b3a61] text-white border-slate-700 font-bold px-6 py-6 text-sm sm:text-base rounded-xl"
-                  >
-                    تصفّح بضائع الجملة
-                    <ArrowDown className="w-4 h-4 mr-2 text-amber-400" />
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <Link href="/register" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto bg-[#d97706] hover:bg-[#b45309] text-white font-black px-4 py-2 h-9 sm:h-10 text-xs sm:text-sm rounded-xl shadow-md border-0 transition-all cursor-pointer">
+                    افتح حساب متجرك مجاناً
                   </Button>
-                </div>
-                <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center gap-4 text-xs text-slate-300 font-bold">
-                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> توصيل 0 د.ع لباب المحل</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> بيع بالكارتون والكيس الصافي</span>
-                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> مجهّزون محليون موثوقون</span>
-                </div>
-              </div>
-
-              {/* دفتر أسعار الجملة اللحظي (Interactive B2B Notebook) */}
-              <div className="lg:col-span-5">
-                <div className="bg-white rounded-2xl p-5 sm:p-6 text-slate-900 shadow-2xl border-2 border-[#d97706]">
-                  <div className="flex justify-between items-center pb-3 border-b border-dashed border-slate-200">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">سوق كربلاء الميداني</span>
-                      <h3 className="font-black text-slate-800 text-sm sm:text-base">دفتر أسعار الجملة اللحظي</h3>
-                    </div>
-                    <span className="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-full">سعر الجملة الصافي</span>
-                  </div>
-
-                  <div className="divide-y divide-slate-100 text-xs sm:text-sm py-1">
-                    <div className="py-2.5 flex justify-between items-center">
-                      <div>
-                        <div className="font-black text-slate-800">زيت طعام زير (كرتون 12 بطل × 1 لتر)</div>
-                        <div className="text-[11px] text-slate-500">المجهّز: شركة الفرات للتوزيع</div>
-                      </div>
-                      <div className="text-left">
-                        <div className="font-black text-[#047857] text-sm sm:text-base">23,500 د.ع</div>
-                        <div className="text-[10px] text-slate-400">(1,958 د.ع / بطل)</div>
-                      </div>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <div>
-                        <div className="font-black text-slate-800">سكر الأسرة نخب أول (كيس 50 كغم)</div>
-                        <div className="text-[11px] text-slate-500">المجهّز: مخازن النور كربلاء</div>
-                      </div>
-                      <div className="text-left">
-                        <div className="font-black text-[#047857] text-sm sm:text-base">61,000 د.ع</div>
-                        <div className="text-[10px] text-slate-400">(كيس معتمد)</div>
-                      </div>
-                    </div>
-
-                    <div className="py-2.5 flex justify-between items-center">
-                      <div>
-                        <div className="font-black text-slate-800">منظف زاهي العملاق (كرتون 24 بطل × 1 لتر)</div>
-                        <div className="text-[11px] text-slate-500">المجهّز: وكالة المنظفات المركزية</div>
-                      </div>
-                      <div className="text-left">
-                        <div className="font-black text-[#047857] text-sm sm:text-base">26,000 د.ع</div>
-                        <div className="text-[10px] text-slate-400">(1,083 د.ع / بطل)</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200 flex justify-between items-center">
-                    <div>
-                      <span className="text-xs text-amber-900 font-bold block">التوصيل لباب متجرك:</span>
-                      <span className="text-[11px] text-amber-700">تسهيلات حساب آجل للمتاجر</span>
-                    </div>
-                    <span className="text-emerald-700 font-black text-sm sm:text-base">0 د.ع مجاني</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* الأقسام الثلاثة: كيف يعمل */}
-            <div className="mt-12 pt-8 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
-                <span className="text-[#d97706] font-black text-lg block">01. سجّل متجرك في دقيقة</span>
-                <p className="text-xs text-slate-300 leading-relaxed">برقم هاتفك واسم محلك في كربلاء لفتح حساب التجزئة فوراً وبدء الطلب.</p>
-              </div>
-              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
-                <span className="text-[#d97706] font-black text-lg block">02. اطلب بالكارتون والكيس</span>
-                <p className="text-xs text-slate-300 leading-relaxed">قارن أسعار الموردين واعرف تفاصيل كل كارتون قبل الشراء وبدون مفرد.</p>
-              </div>
-              <div className="bg-[#102237] p-5 rounded-2xl border border-slate-800 space-y-1.5">
-                <span className="text-emerald-400 font-black text-lg block">03. استلم مجاناً لباب المحل</span>
-                <p className="text-xs text-slate-300 leading-relaxed">تصلك بضاعتك مجاناً أصولياً، وافحص طلبيتك ثم ادفع نقداً أو بالآجل.</p>
+                </Link>
               </div>
             </div>
 
+            {/* شارات الثقة السريعة المصغرة */}
+            <div className="pt-2 mt-2.5 border-t border-slate-800/80 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] sm:text-xs text-slate-300 font-bold">
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> توصيل 0 د.ع لباب المحل</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> بيع بالكارتون والكيس الصافي</span>
+              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> مجهّزون محليون موثوقون</span>
+            </div>
           </div>
         </div>
       )}
