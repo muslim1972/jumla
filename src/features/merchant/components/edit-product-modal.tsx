@@ -406,7 +406,7 @@ export function EditProductModal({ product, categories = [], compactMode = false
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs"
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs w-20 justify-center"
             >
               <Edit className="w-3 h-3 ml-1 text-brand-orange" /> تعديل
             </Button>
@@ -416,7 +416,7 @@ export function EditProductModal({ product, categories = [], compactMode = false
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs"
+            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 h-7 text-[10px] sm:text-[11px] px-2 font-bold cursor-pointer rounded-lg shadow-2xs w-20 justify-center"
           >
             {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Trash2 className="w-3 h-3 ml-1" /> {isLinked ? "إلغاء الربط" : "حذف"}</>}
           </Button>

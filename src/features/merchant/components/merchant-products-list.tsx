@@ -54,9 +54,11 @@ export function MerchantProductsList({ products, categories }: { products: any[]
             const unitLabel = product.stock_unit || product.unit_type || "كارتون"
 
             return (
-              <Card key={product.id} className={cn(
-                "overflow-hidden shadow-2xs hover:shadow-md transition-shadow border border-border/80",
-                viewMode === 'grid' ? "flex flex-col rounded-xl" : "p-2 sm:p-2.5 rounded-xl flex items-center gap-2 sm:gap-3 bg-card"
+              <div key={product.id} className={cn(
+                "overflow-hidden border border-border/80 bg-card transition-all",
+                viewMode === 'grid' 
+                  ? "flex flex-col rounded-xl shadow-2xs hover:shadow-md" 
+                  : "flex flex-row items-center justify-between p-2.5 sm:p-3 rounded-xl gap-2.5 sm:gap-3.5 shadow-2xs hover:shadow-sm"
               )}>
                 {viewMode === 'list' ? (
                   <>
@@ -156,7 +158,7 @@ export function MerchantProductsList({ products, categories }: { products: any[]
                     </div>
                   </>
                 )}
-              </Card>
+              </div>
             )
           })}
         </div>
