@@ -79,53 +79,55 @@ export default async function DashboardPage() {
   const isProfileComplete = profile?.delivery_fee !== null && profile?.delivery_fee !== undefined && profile?.support_phone;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <section className="mb-8 space-y-3">
+    <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-5 max-w-6xl">
+      <section className="mb-2.5 space-y-1.5">
         <MerchantSettings
           initialDeliveryFee={profile?.delivery_fee}
           initialSupportPhone={profile?.support_phone}
         />
         {!isProfileComplete && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-2 items-start text-destructive">
+          <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-xl flex gap-2 items-start text-destructive text-xs">
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <p className="text-sm font-medium">يجب تحديد أجور التوصيل ورقم الدعم أولاً لتتمكن من إضافة المنتجات.</p>
+            <p className="font-medium">يجب تحديد أجور التوصيل ورقم الدعم أولاً لتتمكن من إضافة المنتجات.</p>
           </div>
         )}
       </section>
 
-      <div className="space-y-8">
+      <div className="space-y-3.5 sm:space-y-4">
           
-          {/* Analytics Section */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-brand-orange" />
-              نظرة عامة
-            </h2>
+          {/* Analytics Section - Compact KPI Strip */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold text-muted-foreground px-0.5">
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5 text-brand-orange" />
+                <span>نظرة عامة على المبيعات</span>
+              </span>
+            </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-                <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-                  <div className="bg-emerald-500/20 p-2.5 sm:p-3 rounded-full text-emerald-600 shrink-0">
-                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20 shadow-2xs">
+                <CardContent className="p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3">
+                  <div className="bg-emerald-500/20 p-2 sm:p-2.5 rounded-lg text-emerald-600 shrink-0">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">مبيعات اليوم</p>
-                    <h3 className="text-base sm:text-xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums truncate">
-                      {todaySales.toLocaleString('en-US')} <span className="text-xs sm:text-sm font-bold">د.ع</span>
+                    <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-0.5">مبيعات اليوم</p>
+                    <h3 className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-400 tabular-nums truncate">
+                      {todaySales.toLocaleString('en-US')} <span className="text-[10px] sm:text-xs font-bold">د.ع</span>
                     </h3>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-brand-blue/10 to-brand-blue/5 border-brand-blue/20">
-                <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
-                  <div className="bg-brand-blue/20 p-2.5 sm:p-3 rounded-full text-brand-blue shrink-0">
-                    <Target className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Card className="bg-gradient-to-br from-brand-blue/10 to-brand-blue/5 border-brand-blue/20 shadow-2xs">
+                <CardContent className="p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3">
+                  <div className="bg-brand-blue/20 p-2 sm:p-2.5 rounded-lg text-brand-blue shrink-0">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">إجمالي المبيعات</p>
-                    <h3 className="text-base sm:text-xl font-black text-brand-blue dark:text-brand-blue/80 tabular-nums truncate">
-                      {totalSales.toLocaleString('en-US')} <span className="text-xs sm:text-sm font-bold">د.ع</span>
+                    <p className="text-[11px] sm:text-xs font-medium text-muted-foreground mb-0.5">إجمالي المبيعات</p>
+                    <h3 className="text-sm sm:text-base font-black text-brand-blue dark:text-brand-blue/80 tabular-nums truncate">
+                      {totalSales.toLocaleString('en-US')} <span className="text-[10px] sm:text-xs font-bold">د.ع</span>
                     </h3>
                   </div>
                 </CardContent>

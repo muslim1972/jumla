@@ -12,26 +12,28 @@ export function MerchantProductsList({ products, categories }: { products: any[]
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">منتجاتي ({products?.length || 0})</h2>
+      <div className="flex items-center justify-between mb-2.5">
+        <h2 className="text-base sm:text-lg font-black text-foreground">منتجاتي ({products?.length || 0})</h2>
         <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setViewMode('list')}
             className={cn(
-              "p-1.5 rounded-md transition-colors",
-              viewMode === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              "p-1 rounded-md transition-colors cursor-pointer",
+              viewMode === 'list' ? "bg-background shadow-2xs text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
+            title="عرض كقائمة"
           >
-            <List className="w-5 h-5" />
+            <List className="w-4 h-4" />
           </button>
           <button
             onClick={() => setViewMode('grid')}
             className={cn(
-              "p-1.5 rounded-md transition-colors",
-              viewMode === 'grid' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              "p-1 rounded-md transition-colors cursor-pointer",
+              viewMode === 'grid' ? "bg-background shadow-2xs text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
+            title="عرض كشبكة"
           >
-            <LayoutGrid className="w-5 h-5" />
+            <LayoutGrid className="w-4 h-4" />
           </button>
         </div>
       </div>
