@@ -300,6 +300,7 @@
         "src/features/admin/components/admin-user-details.tsx",
         "src/features/admin/components/audit-log-viewer.tsx",
         "src/features/admin/components/contact-settings-modal.tsx",
+        "src/features/admin/components/contact-settings-tab.tsx",
         "src/features/admin/components/field-history-popover.tsx",
         "src/features/admin/components/catalog-import-tab.tsx",
         "src/features/admin/components/catalog-file-import.tsx",
