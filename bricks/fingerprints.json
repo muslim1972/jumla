@@ -1,6 +1,6 @@
 {
   "src/app/(app)/admin/admin-active-orders.tsx": "1899a24829bca30a95d977ccd14bc4cb",
-  "src/app/(app)/admin/admin-client.tsx": "ed52615d8e03f9392d39dbf01c6251bf",
+  "src/app/(app)/admin/admin-client.tsx": "b67ac42b2cec0e1c8acd75c9450271d4",
   "src/app/(app)/admin/page.tsx": "1956f1a2335c6568665f65290acea32d",
   "src/app/(app)/cart/cart-client.tsx": "68867482b1717ecc4ef3b2e33204f016",
   "src/app/(app)/cart/page.tsx": "1a5e18a59f107c6ba605fc3b94c0e324",
