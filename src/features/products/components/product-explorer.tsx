@@ -142,7 +142,7 @@ export function ProductExplorer({
   useEffect(() => {
     const timer = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
-    }, 1000)
+    }, 2500)
     return () => clearInterval(timer)
   }, [placeholders.length])
 
@@ -482,24 +482,24 @@ export function ProductExplorer({
                     href={`/store/${encodeURIComponent(product.merchant_id)}?product=${encodeURIComponent(product.id)}`}
                     prefetch={false}
                     aria-label={`عرض ${product.name} في متجر ${merchantName}`}
-                    className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-[#d97706]/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d97706] transition-all flex flex-col justify-between group"
+                    className="bg-white rounded-2xl border border-slate-200 p-0 hover:border-[#d97706]/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d97706] transition-all flex flex-col group overflow-hidden"
                   >
-                    <div>
-                      {/* صورة المادة */}
-                      <div className="aspect-[5/4] bg-slate-50 rounded-xl relative overflow-hidden flex items-center justify-center mb-2.5 border border-slate-100">
-                        {product.image_url ? (
-                          <Image
-                            src={product.image_url}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 640px) 50vw, 25vw"
-                            className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <PackageOpen className="w-10 h-10 text-slate-300" />
-                        )}
-                      </div>
+                    {/* صورة المادة بعرض البطاقة ومحاذاة أعلى حافتها */}
+                    <div className="aspect-[19/6] bg-slate-50 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
+                      {product.image_url ? (
+                        <Image
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          sizes="(max-width: 640px) 50vw, 25vw"
+                          className="object-contain p-1 group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <PackageOpen className="w-10 h-10 text-slate-300" />
+                      )}
+                    </div>
 
+                    <div className="p-3 sm:p-4 pt-2.5 sm:pt-3">
                       {/* اسم المجهّز */}
                       <span className="text-[10px] sm:text-xs font-bold text-slate-500 block line-clamp-1 mb-1">
                         المجهّز: {merchantName}
@@ -511,14 +511,13 @@ export function ProductExplorer({
                       </h3>
 
                       {/* مواصفة وحدة الجملة وسعر القطعة الصافي */}
-                      <div className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                      <div className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded-lg text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 mb-0 flex items-center justify-between">
                         <span>📦 الوحدة: {unitClean}</span>
                         <span className="font-black text-emerald-700 dark:text-emerald-400">
                           {Number(product.price).toLocaleString('en-US')} د.ع
                         </span>
                       </div>
                     </div>
-
                   </Link>
                 )
               })}
