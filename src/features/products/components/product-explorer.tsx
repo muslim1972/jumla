@@ -229,14 +229,6 @@ export function ProductExplorer({
       {/* 1. واجهة الزائر الرشيقة المدمجة (Compact Above-The-Fold B2B Hero) */}
       {!user && (
         <div className="w-full bg-[#0c1c2e] text-white rounded-2xl overflow-hidden shadow-md border border-slate-800 mb-2.5 mt-1">
-          {/* شريط الإعلان الزمردي الرشيق للتوصيل المجاني بكامل نصه وبدون تكرار الشارة */}
-          <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-900 text-white px-3 sm:px-6 py-1.5 flex items-center justify-center text-center text-[11px] sm:text-xs font-bold border-b border-emerald-600/30">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-amber-400 text-sm shrink-0">🎁</span>
-              <span><strong>بشرى لمتاجر كربلاء:</strong> التوصيل 0 د.ع متكفل به تطبيق جملتي لكافة طلبيات الجملة.</span>
-            </div>
-          </div>
-
           <div className="p-3 sm:p-4 lg:p-5 space-y-2 sm:space-y-2.5">
             {/* شارة سوق الجملة الأول ممركزة في وسط الحاوية بخط أكبر وأوضح */}
             <div className="w-full flex justify-center">
@@ -264,7 +256,6 @@ export function ProductExplorer({
 
             {/* شارات الثقة السريعة المصغرة */}
             <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-[10px] sm:text-xs text-slate-300 font-bold">
-              <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> توصيل 0 د.ع لباب المحل</span>
               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> بيع بالكارتون والكيس الصافي</span>
               <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> مجهّزون محليون موثوقون</span>
             </div>
@@ -496,7 +487,7 @@ export function ProductExplorer({
                     className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-[#d97706]/60 hover:shadow-md transition-all flex flex-col justify-between group"
                   >
                     <div>
-                      {/* صورة المادة مع شارة التوصيل المجاني */}
+                      {/* صورة المادة */}
                       <div className="aspect-square bg-slate-50 rounded-xl relative overflow-hidden flex items-center justify-center mb-2.5 border border-slate-100">
                         {product.image_url ? (
                           <Image
@@ -509,9 +500,6 @@ export function ProductExplorer({
                         ) : (
                           <PackageOpen className="w-10 h-10 text-slate-300" />
                         )}
-                        <span className="absolute top-2 right-2 bg-emerald-700 text-white text-[9px] font-black px-2 py-0.5 rounded-md shadow-sm">
-                          توصيل 0 د.ع
-                        </span>
                       </div>
 
                       {/* اسم المجهّز */}
@@ -585,8 +573,6 @@ export function ProductExplorer({
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-slate-500 font-bold mt-1">
                       <span>{m.count} مواد جملة متاحة</span>
-                      <span>•</span>
-                      <span className="text-emerald-700">توصيل 0 د.ع لكربلاء</span>
                     </div>
                   </div>
                 </div>

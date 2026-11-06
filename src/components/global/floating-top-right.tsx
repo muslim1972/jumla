@@ -64,13 +64,6 @@ export function FloatingTopRight({
           </button>
         </div>
 
-        {/* الوسط / مائل لليسار قليلاً: شارة التوصيل المجاني 0 د.ع */}
-        <div className="flex items-center pointer-events-auto mx-1">
-          <span className="bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-black shadow-2xs backdrop-blur-md whitespace-nowrap">
-            🎁 توصيل 0 د.ع مجاني
-          </span>
-        </div>
-
         {/* أقصى اليسار: الزر البرتقالي للقائمة المنسدلة المدمجة */}
         <div className="flex items-center pointer-events-auto">
           <FloatingAppMenu 

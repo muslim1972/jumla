@@ -32,14 +32,6 @@ const DEFAULT_BANNERS: Banner[] = [
     link_url: "/"
   },
   {
-    id: "3",
-    title: "توصيل سريع ومخفّض 🚗",
-    description: "استمتع بأجور توصيل تبدأ من 3,000 د.ع فقط أو توصيل مجاني عند زيادة كمية الطلب.",
-    bg_gradient: "from-emerald-500 to-teal-600",
-    image_url: null,
-    link_url: "/"
-  },
-  {
     id: "4",
     title: "بلاستيكيات وسفريات بأفضل سعر 📦",
     description: "وفر في مصاريف مطعمك أو متجرك واشترِ كارتونات الأكياس والعلب السفري بأسعار المصنع.",
