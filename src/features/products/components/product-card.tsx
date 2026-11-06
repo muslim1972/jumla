@@ -141,8 +141,8 @@ export function ProductCard({
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 py-0.5">
         <div className="min-w-0">
-          <div data-slot="product-name-price" className="flex min-w-0 items-center gap-1.5">
-            <h4 className="min-w-0 flex-1 truncate text-xs sm:text-sm font-bold leading-snug group-hover:text-brand-orange transition-colors">
+          <div data-slot="product-name-price" className="flex min-w-0 items-start gap-1.5">
+            <h4 className="min-w-0 flex-1 break-words text-base sm:text-lg font-bold leading-snug line-clamp-2 group-hover:text-brand-orange transition-colors">
               {product.name}
             </h4>
 
@@ -173,7 +173,7 @@ export function ProductCard({
           </div>
 
           {product.description && (
-            <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">
+            <p className="mt-0.5 text-sm sm:text-base text-muted-foreground line-clamp-1">
               {product.description}
             </p>
           )}
@@ -184,17 +184,19 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="flex items-center border-t border-border/25 pt-1">
-          <AddToCartButton 
-            key={`list-${product.id}-${selectedUnitType}`}
-            user={user} 
-            productId={product.id} 
-            productPrice={currentPrice}
-            unitType={selectedUnitType}
-            initialCartItem={initialCartItem}
-            variant="icon"
-            maxQuantity={Math.floor((product.stock_quantity ?? 0) / (hasMultipleUnits ? (product.units.find((u: any) => u.type === selectedUnitType)?.multiplier_to_base || 1) : 1))}
-          />
+        <div dir="ltr" className="flex w-full items-center justify-start border-t border-border/25 pt-1">
+          <div dir="rtl">
+            <AddToCartButton
+              key={`list-${product.id}-${selectedUnitType}`}
+              user={user}
+              productId={product.id}
+              productPrice={currentPrice}
+              unitType={selectedUnitType}
+              initialCartItem={initialCartItem}
+              variant="icon"
+              maxQuantity={Math.floor((product.stock_quantity ?? 0) / (hasMultipleUnits ? (product.units.find((u: any) => u.type === selectedUnitType)?.multiplier_to_base || 1) : 1))}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -51,7 +51,7 @@ export function StoreClient({
   const [activeCategory, setActiveCategory] = useState<string>("popular")
   const categoryNavRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -201,7 +201,7 @@ export function StoreClient({
     setActiveCategory(id)
     const el = document.getElementById(`category-${id}`)
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 220 // offset for sticky header
+      const y = el.getBoundingClientRect().top + window.scrollY - 180 // offset for sticky header
       window.scrollTo({ top: y, behavior: 'smooth' })
     }
   }
@@ -218,7 +218,7 @@ export function StoreClient({
         }
       },
       {
-        rootMargin: "-220px 0px -40% 0px", // Trigger when element hits top 220px
+        rootMargin: "-180px 0px -40% 0px", // Trigger when element hits top 180px
         threshold: 0
       }
     );
@@ -247,37 +247,10 @@ export function StoreClient({
 
   return (
     <div className={cn("bg-background w-full", totalCartItems > 0 ? "pb-32" : "pb-4")}>
-      {/* Sticky Header Group: Navbar + Store Info + Tabs */}
+      {/* Sticky Header Group: Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
-        {/* Top Navbar */}
-        <div className="bg-background/95 backdrop-blur-md px-3 pt-[44px] pb-1 min-h-[88px] sm:min-h-[96px] flex items-end">
-          <button 
-            onClick={() => {
-              startTransition(() => {
-                router.push('/')
-              })
-            }}
-            disabled={isPending}
-            className={cn(
-              "flex items-center gap-2 text-right p-1.5 rounded-full transition-all duration-300 group w-fit",
-              isPending 
-                ? "opacity-60" 
-                : "hover:bg-muted/50 active:scale-[0.98]"
-            )}
-          >
-            <div className="bg-brand-orange/10 text-brand-orange group-hover:bg-brand-orange/20 p-1.5 sm:p-2 rounded-full transition-colors shrink-0">
-              {isPending ? (
-                <div className="w-4 h-4 rounded-full border-2 border-brand-orange border-t-transparent animate-spin" />
-              ) : (
-                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 group-active:-translate-x-1 transition-transform" />
-              )}
-            </div>
-            <span className="font-bold text-xs sm:text-sm text-brand-orange">العودة للرئيسية</span>
-          </button>
-        </div>
-
         {/* Artistic Merchant Header */}
-        <div className="px-4 py-2 sm:py-3 bg-background/95 backdrop-blur-md border-b border-border/40">
+        <div className="px-4 pt-[48px] pb-2 sm:pt-[52px] sm:pb-3 bg-background/95 backdrop-blur-md border-b border-border/40">
           <div className="flex flex-col items-center justify-center gap-2 max-w-4xl mx-auto text-center">
             <h2 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-brand-orange to-brand-blue drop-shadow-sm">
               {merchant.full_name}
@@ -369,7 +342,7 @@ export function StoreClient({
           const hiddenCount = catProducts.length - visibleProducts.length
 
           return (
-            <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[220px]">
+            <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
               {cat.id !== "popular" && (
                 <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
               )}

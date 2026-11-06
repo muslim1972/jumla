@@ -73,9 +73,11 @@ test("treats products without completed invoices as zero sales", () => {
   assert.deepEqual(ordered.map((product) => product.id), ["product-b", "product-a", "product-c"])
 })
 
-test("reserves mobile space below the fixed global header for store navigation", () => {
-  assert.ok(storeClientSource.includes("pt-[44px]"))
-  assert.ok(storeClientSource.includes("min-h-[88px]"))
+test("removes the redundant home button and moves store content below the global header", () => {
+  assert.ok(!storeClientSource.includes("العودة للرئيسية"))
+  assert.ok(!storeClientSource.includes("router.push('/')"))
+  assert.ok(storeClientSource.includes("pt-[48px]"))
+  assert.ok(!storeClientSource.includes("min-h-[88px]"))
 })
 
 test("does not display the merchant delivery-fee truck badge", () => {
@@ -92,6 +94,26 @@ test("list cards reserve one quarter for the image and retain cart controls", ()
   assert.ok(productCardSource.includes("w-1/4"))
   assert.ok(productCardSource.includes('data-slot="product-name-price"'))
   assert.ok(productCardSource.includes("<AddToCartButton"))
+})
+
+test("aligns the cart and quantity controls to the physical left edge of every card", () => {
+  assert.ok(productCardSource.includes('dir="ltr" className="flex w-full items-center justify-start border-t'))
+  assert.ok(productCardSource.includes('<div dir="rtl">'))
+})
+
+test("improves small-screen product name and description readability", () => {
+  assert.ok(productCardSource.includes("text-base sm:text-lg font-bold"))
+  assert.ok(productCardSource.includes("text-sm sm:text-base text-muted-foreground"))
+})
+
+test("wraps long product names within their own space instead of truncating into the price", () => {
+  const nameClass = productCardSource.match(/<h4 className="([^"]+)"/)?.[1] ?? ""
+
+  assert.ok(nameClass.includes("min-w-0 flex-1"))
+  assert.ok(nameClass.includes("line-clamp-2"))
+  assert.ok(nameClass.includes("break-words"))
+  assert.ok(!nameClass.includes("truncate"))
+  assert.ok(productCardSource.includes('data-slot="product-name-price" className="flex min-w-0 items-start gap-1.5"'))
 })
 
 test("loads the server-side invoice aggregate and passes it into product ranking", () => {
