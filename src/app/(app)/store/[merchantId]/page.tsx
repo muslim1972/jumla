@@ -1,12 +1,17 @@
 import { createClient } from "@/utils/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { StoreClient } from "./store-client"
+import { prioritizeSelectedProduct } from "./prioritize-selected-product"
 
 export const revalidate = 0
 
-export default async function StorePage({ params }: { params: Promise<{ merchantId: string }> }) {
+export default async function StorePage({ params, searchParams }: {
+  params: Promise<{ merchantId: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createClient()
-  const { merchantId } = await params
+  const [{ merchantId }, query] = await Promise.all([params, searchParams])
+  const selectedProductId = typeof query.product === "string" ? query.product : undefined
 
   // Start independent queries immediately
   const userPromise = supabase.auth.getUser()
@@ -34,7 +39,7 @@ export default async function StorePage({ params }: { params: Promise<{ merchant
   }
 
   const merchantProfile = profileResponse.data
-  const products = productsResponse.data || []
+  const products = prioritizeSelectedProduct(productsResponse.data || [], selectedProductId)
   const user = userResponse.data.user
 
   let userRole = "guest"

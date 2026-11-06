@@ -110,7 +110,6 @@ export default async function Home() {
               products={products} 
               user={user} 
               profile={profile}
-              cartItems={cartItems} 
               dbCategories={dbCategories} 
             />
             

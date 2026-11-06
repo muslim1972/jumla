@@ -20,7 +20,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CATEGORIES } from "@/features/products/lib/taxonomy"
-import { AddToCartButton } from "@/features/cart/components/add-to-cart-button"
 
 interface Product {
   id: string
@@ -55,13 +54,11 @@ export function ProductExplorer({
   products, 
   user,
   profile,
-  cartItems = [],
   dbCategories = []
 }: { 
   products: Product[] | null,
   user: any,
   profile?: any,
-  cartItems?: { id: string; product_id: string; quantity: number; unit_type?: string }[],
   dbCategories?: { id: string; name: string; icon_url: string | null }[]
 }) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -83,12 +80,13 @@ export function ProductExplorer({
     const includesMatches: Product[] = []
 
     for (const p of products) {
-      const rawName = p.name.toLowerCase()
-      const normName = normalizeArabic(p.name)
+      const searchableValues = [p.name, p.description || "", p.profiles?.full_name || "", p.unit_type || "", String(p.price ?? "")]
+      const rawValues = searchableValues.map((value) => value.toLowerCase())
+      const normalizedValues = searchableValues.map(normalizeArabic)
 
-      if (rawName.startsWith(rawQ) || (normQ && normName.startsWith(normQ))) {
+      if (rawValues.some((value) => value.startsWith(rawQ)) || (normQ && normalizedValues.some((value) => value.startsWith(normQ)))) {
         startsWithMatches.push(p)
-      } else if (rawName.includes(rawQ) || (normQ && normName.includes(normQ))) {
+      } else if (rawValues.some((value) => value.includes(rawQ)) || (normQ && normalizedValues.some((value) => value.includes(normQ)))) {
         includesMatches.push(p)
       }
       if (startsWithMatches.length + includesMatches.length >= 20) break
@@ -134,19 +132,17 @@ export function ProductExplorer({
   }, [updateCategoriesScrollState, viewTab, dbCategories.length, products?.length])
 
   const placeholders = useMemo(() => [
-    'ابحث عن "كارتون زيت زير"...',
-    'ابحث عن "كيس سكر الأسرة"...',
-    'ابحث عن "كارتون زاهي العملاق"...',
-    'ابحث عن "كيس أرز بسمتي"...',
-    'ابحث عن "كارتون معجون طماطم"...',
-    'ابحث عن "منظفات ومعقمات"...'
+    "ابحث باسم المادة أو التاجر...",
+    "ابحث بوصف المادة أو وحدتها...",
+    "ابحث عن مادة بسعرها...",
+    "اكتب أي معلومة تعرفها عن المادة..."
   ], [])
 
   // تدوير عبارات البحث المقترحة
   useEffect(() => {
     const timer = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
-    }, 2500)
+    }, 1000)
     return () => clearInterval(timer)
   }, [placeholders.length])
 
@@ -161,17 +157,19 @@ export function ProductExplorer({
       const normQ = normalizeArabic(deferredSearchQuery)
       list = list.filter(p => {
         const rawName = p.name.toLowerCase()
-        const normName = normalizeArabic(p.name)
-        const rawDesc = p.description ? p.description.toLowerCase() : ""
-        const normDesc = p.description ? normalizeArabic(p.description) : ""
-        const rawMerchant = p.profiles?.full_name ? p.profiles.full_name.toLowerCase() : ""
-        const normMerchant = p.profiles?.full_name ? normalizeArabic(p.profiles.full_name) : ""
+        const searchableValues = [
+          rawName,
+          normalizeArabic(p.name),
+          p.description?.toLowerCase() || "",
+          p.description ? normalizeArabic(p.description) : "",
+          p.profiles?.full_name?.toLowerCase() || "",
+          p.profiles?.full_name ? normalizeArabic(p.profiles.full_name) : "",
+          p.unit_type?.toLowerCase() || "",
+          p.unit_type ? normalizeArabic(p.unit_type) : "",
+          String(p.price ?? ""),
+        ]
 
-        return (
-          rawName.includes(rawQ) || (normQ && normName.includes(normQ)) ||
-          rawDesc.includes(rawQ) || (normQ && normDesc.includes(normQ)) ||
-          rawMerchant.includes(rawQ) || (normQ && normMerchant.includes(normQ))
-        )
+        return searchableValues.some((value) => value.includes(rawQ) || (normQ && value.includes(normQ)))
       })
     }
 
@@ -266,16 +264,17 @@ export function ProductExplorer({
       {/* 2. شريط التحكم والبحث الموحد المدمج (Unified Compact Command Center) */}
       <div id="b2b-market-section" className="bg-white dark:bg-card rounded-2xl p-2 sm:p-3 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-1.5 sm:space-y-2">
         
-        {/* صف البحث الرشيق مع محدد الفرز وزر المجهزين المدمج */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* حقل البحث الذكي الكامل العرض */}
+        <div className="relative w-full">
           
           {/* حقل البحث الذكي الرشيق مع الإكمال والفلترة اللحظية (AutoComplete) */}
-          <div className="relative flex-grow min-w-0">
+          <div className="relative w-full min-w-0">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 z-10" />
             <Input 
               ref={searchInputRef}
+              aria-label="ابحث باسم المادة أو التاجر أو الوصف أو الوحدة أو السعر"
               placeholder="" 
-              className="pr-8.5 pl-8 sm:pl-9 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
+              className="w-full pr-8.5 pl-8 sm:pl-9 h-9 sm:h-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-[#d97706] rounded-xl text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value)
@@ -302,7 +301,8 @@ export function ProductExplorer({
             {searchQuery === "" && !isFocused && (
               <div 
                 key={placeholderIndex}
-                className="absolute right-8.5 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-400 text-xs font-medium animate-placeholder-fade truncate max-w-[180px] sm:max-w-none"
+                aria-hidden="true"
+                className="absolute right-8.5 left-8 top-1/2 -translate-y-1/2 pointer-events-none select-none text-slate-600 dark:text-slate-300 text-xs font-medium animate-placeholder-fade truncate"
               >
                 {placeholders[placeholderIndex]}
               </div>
@@ -344,41 +344,39 @@ export function ProductExplorer({
             )}
           </div>
 
-          {/* محدد الفرز والترتيب المدمج */}
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
           {viewTab === "products" && (
-            <div className="relative shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                aria-label="ترتيب عروض الجملة"
-                className="h-9 sm:h-10 px-2 sm:px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] sm:text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
-              >
-                <option value="popular">⚡ الأكثر رواجاً</option>
-                <option value="price_asc">💰 الأقل سعراً</option>
-                <option value="price_desc">💎 الأعلى سعراً</option>
-                <option value="newest">✨ الأحدث</option>
-              </select>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              aria-label="ترتيب عروض الجملة"
+              className="h-9 sm:h-10 px-2 sm:px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] sm:text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
+            >
+              <option value="popular">⚡ الأكثر رواجاً</option>
+              <option value="price_asc">💰 الأقل سعراً</option>
+              <option value="price_desc">💎 الأعلى سعراً</option>
+              <option value="newest">✨ الأحدث</option>
+            </select>
           )}
 
-          {/* زر التبديل بين البضائع ودليل المجهزين */}
           <button
             type="button"
+            aria-pressed={viewTab === "merchants"}
             onClick={() => setViewTab(viewTab === "products" ? "merchants" : "products")}
             className={cn(
-              "h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border text-[11px] sm:text-xs font-black shrink-0 transition-all cursor-pointer flex items-center gap-1.5",
-              viewTab === "merchants" 
-                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs" 
-                : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100"
+              "h-9 sm:h-10 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-black shrink-0 transition-all cursor-pointer flex items-center gap-2",
+              viewTab === "merchants"
+                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs"
+                : "bg-amber-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-amber-200 dark:border-slate-800 hover:bg-amber-100"
             )}
-            title={viewTab === "products" ? "عرض دليل المجهزين" : "تصفح بضائع الجملة"}
+            title={viewTab === "products" ? "عرض دليل كبار تجار الجملة" : "العودة إلى البضائع"}
           >
-            <Store className="w-3.5 h-3.5 text-[#d97706]" />
-            <span className="hidden xs:inline sm:inline">
-              {viewTab === "products" ? `المجهّزون (${groupedMerchants.length})` : "البضائع"}
-            </span>
+            <Store className="w-5 h-5 text-[#d97706]" />
+            <span>كبار تجار الجملة</span>
+            <span className="text-[10px] font-bold opacity-75">({groupedMerchants.length})</span>
           </button>
-
         </div>
 
         {/* شريط الأقسام السريع مع أسهم التمرير الأفقية الذكية (Horizontal Micro-Ribbon with Scroll Controls) */}
@@ -477,18 +475,18 @@ export function ProductExplorer({
               {filteredProducts.map((product) => {
                 const merchantName = product.profiles?.full_name || "مجهّز جملة معتمد"
                 const unitClean = (product.unit_type || "كرتون").replace(/شوال/g, 'كيس')
-                
-                // البحث عن العنصر في السلة
-                const initialCartItem = cartItems.find(i => i.product_id === product.id)
 
                 return (
-                  <div 
+                  <Link
                     key={product.id}
-                    className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-[#d97706]/60 hover:shadow-md transition-all flex flex-col justify-between group"
+                    href={`/store/${encodeURIComponent(product.merchant_id)}?product=${encodeURIComponent(product.id)}`}
+                    prefetch={false}
+                    aria-label={`عرض ${product.name} في متجر ${merchantName}`}
+                    className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 hover:border-[#d97706]/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d97706] transition-all flex flex-col justify-between group"
                   >
                     <div>
                       {/* صورة المادة */}
-                      <div className="aspect-square bg-slate-50 rounded-xl relative overflow-hidden flex items-center justify-center mb-2.5 border border-slate-100">
+                      <div className="aspect-[5/4] bg-slate-50 rounded-xl relative overflow-hidden flex items-center justify-center mb-2.5 border border-slate-100">
                         {product.image_url ? (
                           <Image
                             src={product.image_url}
@@ -503,12 +501,9 @@ export function ProductExplorer({
                       </div>
 
                       {/* اسم المجهّز */}
-                      <Link 
-                        href={`/store/${product.merchant_id}`}
-                        className="text-[10px] sm:text-xs font-bold text-slate-500 hover:text-[#d97706] block line-clamp-1 mb-1"
-                      >
+                      <span className="text-[10px] sm:text-xs font-bold text-slate-500 block line-clamp-1 mb-1">
                         المجهّز: {merchantName}
-                      </Link>
+                      </span>
 
                       {/* اسم المادة */}
                       <h3 className="font-black text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2 min-h-[2.4rem] mb-2">
@@ -524,20 +519,7 @@ export function ProductExplorer({
                       </div>
                     </div>
 
-                    <div>
-                      {/* زر الإضافة السريع للسلة مع عداد الكميات */}
-                      <AddToCartButton 
-                        user={user}
-                        productId={product.id}
-                        productPrice={product.price}
-                        unitType={unitClean}
-                        initialCartItem={initialCartItem}
-                        variant="compact"
-                        maxQuantity={product.stock_quantity ?? 999}
-                      />
-                    </div>
-
-                  </div>
+                  </Link>
                 )
               })}
             </div>

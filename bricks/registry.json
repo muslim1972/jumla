@@ -168,6 +168,7 @@
       "files": [
         "src/app/(app)/store/[merchantId]/loading.tsx",
         "src/app/(app)/store/[merchantId]/page.tsx",
+        "src/app/(app)/store/[merchantId]/prioritize-selected-product.ts",
         "src/app/(app)/store/[merchantId]/store-client.tsx",
         "src/app/(merchant)/dashboard/actions.ts",
         "src/app/(merchant)/dashboard/archive/archive-client.tsx",
