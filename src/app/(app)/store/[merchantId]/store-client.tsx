@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, Star, Truck, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
+import { ChevronRight, ChevronDown, Star, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,10 +27,11 @@ const CATEGORIES = [
 
 export function StoreClient({ 
   merchant, 
-  products, 
-  user, 
-  cartItems, 
+  products,
+  user,
+  cartItems,
   userRole,
+  salesRankingAvailable,
   averageRating = 0,
   ratingCount = 0,
   reviews = [],
@@ -41,6 +42,7 @@ export function StoreClient({
   user: any
   cartItems: any[]
   userRole: string
+  salesRankingAvailable: boolean
   averageRating?: number
   ratingCount?: number
   reviews?: any[]
@@ -190,7 +192,7 @@ export function StoreClient({
 
   // Categories that actually have products
   const activeCategoriesList = [
-    { id: "popular", name: "شائع" },
+    { id: "popular", name: salesRankingAvailable ? "الأكثر مبيعاً" : "المواد" },
     ...CATEGORIES.filter(c => groupedProducts[c.id] && groupedProducts[c.id].length > 0).map(c => ({ id: c.id, name: c.name })),
     ...(groupedProducts["other"] && groupedProducts["other"].length > 0 ? [{ id: "other", name: "أخرى" }] : [])
   ]
@@ -199,7 +201,7 @@ export function StoreClient({
     setActiveCategory(id)
     const el = document.getElementById(`category-${id}`)
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 180 // offset for sticky header
+      const y = el.getBoundingClientRect().top + window.scrollY - 220 // offset for sticky header
       window.scrollTo({ top: y, behavior: 'smooth' })
     }
   }
@@ -216,7 +218,7 @@ export function StoreClient({
         }
       },
       {
-        rootMargin: "-180px 0px -40% 0px", // Trigger when element hits top 180px
+        rootMargin: "-220px 0px -40% 0px", // Trigger when element hits top 220px
         threshold: 0
       }
     );
@@ -248,7 +250,7 @@ export function StoreClient({
       {/* Sticky Header Group: Navbar + Store Info + Tabs */}
       <div className="sticky top-0 z-50 bg-background shadow-sm border-b border-border/50 flex flex-col">
         {/* Top Navbar */}
-        <div className="bg-background/95 backdrop-blur-md p-3 pr-[110px] pl-[140px] flex items-center h-[50px] sm:h-[60px]">
+        <div className="bg-background/95 backdrop-blur-md px-3 pt-[44px] pb-1 min-h-[88px] sm:min-h-[96px] flex items-end">
           <button 
             onClick={() => {
               startTransition(() => {
@@ -291,12 +293,6 @@ export function StoreClient({
                 <span>{calculatedCount > 0 ? `${calculatedAvg.toFixed(1)} (${calculatedCount} تقييم)` : "متجر جديد (0 تقييم)"}</span>
                 <span className="text-[10px] underline font-bold mr-0.5 text-amber-600 dark:text-amber-300">الآراء ⭐</span>
               </button>
-              <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
-                <Truck className="w-3.5 h-3.5 text-primary" />
-                {merchant.delivery_fee !== null 
-                  ? `${merchant.delivery_fee.toLocaleString('en-US')} د.ع` 
-                  : "حسب المنطقة"}
-              </div>
               <div className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-md">
                 <Info className="w-3.5 h-3.5 text-brand-blue" />
                 متجر جملة
@@ -362,7 +358,7 @@ export function StoreClient({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 mt-6 space-y-12">
+      <div className="max-w-4xl mx-auto px-4 mt-2 space-y-8">
         {activeCategoriesList.map(cat => {
           const catProducts = groupedProducts[cat.id]
           if (!catProducts || catProducts.length === 0) return null
@@ -373,8 +369,10 @@ export function StoreClient({
           const hiddenCount = catProducts.length - visibleProducts.length
 
           return (
-            <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
-              <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
+            <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[220px]">
+              {cat.id !== "popular" && (
+                <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
+              )}
               <div className={cn(
                 "gap-3 sm:gap-4",
                 viewMode === "grid" 

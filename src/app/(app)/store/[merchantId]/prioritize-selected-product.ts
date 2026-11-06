@@ -1,15 +1,25 @@
 export function prioritizeSelectedProduct<T extends { id: string }>(
   products: readonly T[],
   selectedProductId?: string,
+  invoiceCounts: ReadonlyMap<string, number> = new Map(),
 ): T[] {
-  if (!selectedProductId) return [...products]
+  const rankedProducts = products
+    .map((product, index) => ({
+      product,
+      index,
+      invoiceCount: invoiceCounts.get(product.id) ?? 0,
+    }))
+    .sort((a, b) => b.invoiceCount - a.invoiceCount || a.index - b.index)
+    .map(({ product }) => product)
 
-  const selectedIndex = products.findIndex((product) => product.id === selectedProductId)
-  if (selectedIndex <= 0) return [...products]
+  if (!selectedProductId) return rankedProducts
+
+  const selectedIndex = rankedProducts.findIndex((product) => product.id === selectedProductId)
+  if (selectedIndex <= 0) return rankedProducts
 
   return [
-    products[selectedIndex],
-    ...products.slice(0, selectedIndex),
-    ...products.slice(selectedIndex + 1),
+    rankedProducts[selectedIndex],
+    ...rankedProducts.slice(0, selectedIndex),
+    ...rankedProducts.slice(selectedIndex + 1),
   ]
 }

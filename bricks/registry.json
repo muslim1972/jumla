@@ -156,7 +156,8 @@
         "order_items",
         "create_order_atomic",
         "get_next_invoice_number",
-        "restore_stock_quantity"
+        "restore_stock_quantity",
+        "get_merchant_product_invoice_counts"
       ]
     },
     "FE-MERCH-01": {

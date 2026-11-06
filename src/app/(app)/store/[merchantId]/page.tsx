@@ -26,12 +26,16 @@ export default async function StorePage({ params, searchParams }: {
     .select('*')
     .eq('merchant_id', merchantId)
     .order('created_at', { ascending: false })
+  const productInvoiceCountsPromise = supabase.rpc('get_merchant_product_invoice_counts', {
+    p_merchant_id: merchantId,
+  })
 
   // Wait for the first batch
-  const [userResponse, profileResponse, productsResponse] = await Promise.all([
+  const [userResponse, profileResponse, productsResponse, productInvoiceCountsResponse] = await Promise.all([
     userPromise,
     merchantProfilePromise,
-    merchantProductsPromise
+    merchantProductsPromise,
+    productInvoiceCountsPromise,
   ])
 
   if (profileResponse.error || !profileResponse.data) {
@@ -39,7 +43,13 @@ export default async function StorePage({ params, searchParams }: {
   }
 
   const merchantProfile = profileResponse.data
-  const products = prioritizeSelectedProduct(productsResponse.data || [], selectedProductId)
+  const invoiceCounts = new Map<string, number>(
+    (productInvoiceCountsResponse.data || []).map((row: { product_id: string; invoice_count: number | string }) => [
+      row.product_id,
+      Number(row.invoice_count),
+    ]),
+  )
+  const products = prioritizeSelectedProduct(productsResponse.data || [], selectedProductId, invoiceCounts)
   const user = userResponse.data.user
 
   let userRole = "guest"
@@ -124,6 +134,7 @@ export default async function StorePage({ params, searchParams }: {
         user={user} 
         cartItems={cartItems} 
         userRole={userRole}
+        salesRankingAvailable={!productInvoiceCountsResponse.error}
         averageRating={averageRating}
         ratingCount={ratingCount}
         reviews={reviews}

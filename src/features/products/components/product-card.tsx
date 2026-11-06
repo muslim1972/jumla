@@ -120,33 +120,60 @@ export function ProductCard({
     )
   }
 
-  /* List View - سطر مخصص كامل لاسم المنتج، ونقل الأسعار والعداد إلى سطر ثانٍ واسع ومستوعب */
+  /* List View - صورة على اليمين، والاسم والسعر والوحدة في صف واحد */
   return (
-    <div className="flex flex-col p-2.5 sm:p-3 glass rounded-xl hover:bg-muted/30 hover:border-brand-orange/30 border border-border/30 transition-all duration-300 group gap-1.5">
-      {/* السطر الأول: الصورة + اسم المنتج بكامل عرضه + الوصف إن وجد */}
-      <div className="flex items-start gap-2.5">
-        <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg bg-muted/40 relative overflow-hidden shrink-0 shadow-sm border border-border/10 mt-0.5">
-          {product.image_url ? (
-            <Image
-              src={product.image_url}
-              alt={product.name}
-              fill
-              sizes="48px"
-              className="object-contain group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <PackageOpen className="w-4 h-4 text-muted-foreground/20" />
+    <div className="flex items-stretch gap-3 p-2.5 sm:p-3 glass rounded-xl hover:bg-muted/30 hover:border-brand-orange/30 border border-border/30 transition-all duration-300 group min-h-[104px]">
+      <div className="relative aspect-square w-1/4 min-w-[84px] max-w-[112px] shrink-0 self-center overflow-hidden rounded-lg border border-border/10 bg-muted/40 shadow-sm">
+        {product.image_url ? (
+          <Image
+            src={product.image_url}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 25vw, 112px"
+            className="object-contain group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <PackageOpen className="w-7 h-7 text-muted-foreground/20" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 py-0.5">
+        <div className="min-w-0">
+          <div data-slot="product-name-price" className="flex min-w-0 items-center gap-1.5">
+            <h4 className="min-w-0 flex-1 truncate text-xs sm:text-sm font-bold leading-snug group-hover:text-brand-orange transition-colors">
+              {product.name}
+            </h4>
+
+            <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <span className="text-brand-blue dark:text-foreground font-black text-[11px] sm:text-xs tabular-nums whitespace-nowrap">
+                {Number(currentPrice).toLocaleString('en-US')} <span className="text-[9px] font-normal">د.ع</span>
+              </span>
+
+              {hasMultipleUnits ? (
+                <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
+                  <SelectTrigger className="h-6 max-w-[76px] px-1.5 py-0 text-[10px] font-bold bg-muted/50 border-border/50 rounded-md" dir="rtl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {product.units.map((u: any, idx: number) => (
+                      <SelectItem key={idx} value={u.type} className="text-xs font-bold">
+                        {u.type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="max-w-[76px] truncate bg-muted/50 border border-border/50 text-foreground px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+                  {product.unit_type}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <h4 className="text-xs sm:text-sm font-bold line-clamp-2 leading-snug group-hover:text-brand-orange transition-colors">
-            {product.name}
-          </h4>
+          </div>
+
           {product.description && (
-            <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+            <p className="mt-0.5 text-[10px] text-muted-foreground line-clamp-1">
               {product.description}
             </p>
           )}
@@ -156,38 +183,8 @@ export function ProductCard({
             </a>
           )}
         </div>
-      </div>
 
-      {/* السطر الثاني: سطر الأسعار والتحكم بالكمية والسلة (الفراغ المستوعب) */}
-      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-border/25">
-        {/* اليمين: سعر المفرد ونوع الوحدة */}
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <span className="text-brand-blue dark:text-foreground font-black text-xs sm:text-sm tabular-nums">
-            {Number(currentPrice).toLocaleString('en-US')} <span className="text-[9px] font-normal">د.ع</span>
-          </span>
-          
-          {hasMultipleUnits ? (
-            <Select value={selectedUnitType} onValueChange={(val) => val && setSelectedUnitType(val)}>
-              <SelectTrigger className="h-6 px-1.5 py-0 text-[10px] font-bold bg-muted/50 border-border/50 rounded-md" dir="rtl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent dir="rtl">
-                {product.units.map((u: any, idx: number) => (
-                  <SelectItem key={idx} value={u.type} className="text-xs font-bold">
-                    {u.type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="bg-muted/50 border border-border/50 text-foreground px-1.5 py-0.5 rounded-md text-[10px] font-bold">
-              {product.unit_type}
-            </div>
-          )}
-        </div>
-
-        {/* اليسار: السعر الإجمالي + عداد الكمية + زر الإضافة للسلة */}
-        <div className="shrink-0">
+        <div className="flex items-center border-t border-border/25 pt-1">
           <AddToCartButton 
             key={`list-${product.id}-${selectedUnitType}`}
             user={user} 
