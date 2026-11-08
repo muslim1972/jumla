@@ -392,8 +392,13 @@ export function CartClient({
     return (
       <>
         {/* الحل الثاني: الإعلان العلوي يختفي مع السكرول ويبقى العنوان عالقاً تحت الشريط العلوي على كل الأحجام */}
-        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
-          <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-3">
+        <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-3 pb-3 mb-2 border-b border-border/40 shadow-sm flex items-center justify-between">
+          {/* Title */}
+          <h1 className="text-xl sm:text-2xl font-black text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 shrink-0">
+            سلة المشتريات
+          </h1>
+
+          <div className="flex justify-end gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full">
             <Button
               variant="outline"
               size="sm"
@@ -424,9 +429,6 @@ export function CartClient({
               <span className="text-xs font-bold">تتبع مشترياتي</span>
             </Button>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black mt-3 text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 w-fit">
-            سلة المشتريات
-          </h1>
         </div>
 
         <div className="text-center py-20 bg-muted/30 rounded-xl border border-dashed">
@@ -459,10 +461,14 @@ export function CartClient({
   return (
     <>
       {/* Sticky Header Group: Tabs + Title — يعلق تحت الشريط العلوي مباشرة في كل الأحجام بينما الإعلان يمر فوقه ويختفي */}
-      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 mb-6 border-b border-border/40 shadow-sm">
-        {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
-        <div className="flex justify-start gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full pb-1 pt-3">
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md pt-3 pb-3 mb-2 border-b border-border/40 shadow-sm flex items-center justify-between">
+        {/* Title */}
+        <h1 className="text-xl sm:text-2xl font-black text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 shrink-0">
+          سلة المشتريات
+        </h1>
 
+        {/* أزرار تتبع المشتريات والأرشيف في الأعلى */}
+        <div className="flex justify-end gap-2 flex-nowrap overflow-x-auto hide-scrollbar max-w-full">
           <Button
             variant="outline"
             size="sm"
@@ -493,15 +499,10 @@ export function CartClient({
             <span className="text-xs font-bold">تتبع مشترياتي</span>
           </Button>
         </div>
-
-        {/* Title */}
-        <h1 className="text-xl sm:text-2xl font-black mt-3 text-right bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-600 w-fit">
-          سلة المشتريات
-        </h1>
       </div>
 
       {/* أقسام التجار */}
-      <div className="space-y-4 pb-[140px]">
+      <div className="space-y-4 pb-6">
         {merchantGroups.map(group => {
           const isExpanded = expandedMerchants.has(group.merchantId)
           const groupSubtotal = group.items.reduce(
@@ -584,57 +585,57 @@ export function CartClient({
                         </div>
 
                         <div className="flex-grow min-w-0 flex flex-col justify-between gap-2">
-                          {/* Right Side: Product Info (Full Width) */}
-                          <div className="text-right">
-                            <h3 className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug text-foreground">{item.products.name}</h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                                لكل {item.unit_type || item.products.unit_type}
-                              </span>
-                              <p className="text-xs font-bold text-primary tabular-nums">
-                                {getItemPrice(item).toLocaleString('en-US')} د.ع
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Left/Bottom Side: Quantity & Total & Actions */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/20">
-                            <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
-                              المجموع: {(getItemPrice(item) * item.quantity).toLocaleString('en-US')} د.ع
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemove(item.id)}
-                                disabled={isUpdating === item.id}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
-                                title="حذف من السلة"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-
-                              <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
-                                <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.quantity)}
-                                  disabled={isUpdating === item.id}
-                                  className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
-                                  title="زيادة"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                                <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm tabular-nums">
-                                  {item.quantity}
+                          <div className="flex justify-between items-start gap-2">
+                            {/* Right Side: Product Info */}
+                            <div className="text-right">
+                              <h3 className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug text-foreground">{item.products.name}</h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                                  لكل {item.unit_type || item.products.unit_type}
                                 </span>
-                                <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.quantity)}
-                                  disabled={isUpdating === item.id || item.quantity <= 1}
-                                  className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
-                                  title="تقليل"
+                                <p className="text-xs font-bold text-primary tabular-nums">
+                                  {getItemPrice(item).toLocaleString('en-US')} د.ع
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Left Side: Quantity & Actions */}
+                            <div className="flex flex-col items-end gap-2 shrink-0">
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
+                                  <button
+                                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.quantity)}
+                                    disabled={isUpdating === item.id}
+                                    className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                    title="زيادة"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                  <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm tabular-nums">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.quantity)}
+                                    disabled={isUpdating === item.id || item.quantity <= 1}
+                                    className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                    title="تقليل"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemove(item.id)}
+                                  disabled={isUpdating === item.id}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
+                                  title="حذف من السلة"
                                 >
-                                  <Minus className="w-3 h-3" />
-                                </button>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                المجموع: {(getItemPrice(item) * item.quantity).toLocaleString('en-US')} د.ع
                               </div>
                             </div>
                           </div>
@@ -656,17 +657,15 @@ export function CartClient({
                       </span>
                       <span className="tabular-nums font-medium">{group.deliveryFee.toLocaleString('en-US')} د.ع</span>
                     </div>
-                    {roundingDiff !== 0 && (
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>تقريب لأقرب 250 د.ع</span>
-                        <span className="tabular-nums font-medium">
-                          {roundingDiff > 0 ? "+" : ""}
-                          {roundingDiff.toLocaleString('en-US')} د.ع
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center border-t border-dashed pt-3">
-                      <span className="font-bold">المجموع الكلي</span>
+                      <div className="flex flex-col">
+                        <span className="font-bold">المجموع الكلي</span>
+                        {roundingDiff !== 0 && (
+                          <span className="text-[10px] text-muted-foreground/70">
+                            (مقرباً لأقرب 250 د.ع)
+                          </span>
+                        )}
+                      </div>
                       <div className="text-left">
                         <span className="text-2xl font-black text-primary tabular-nums">
                           {groupTotal.toLocaleString('en-US')}
@@ -676,12 +675,12 @@ export function CartClient({
                     </div>
 
                     {/* ملاحظات */}
-                    <div className="space-y-2 pt-2">
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-background p-2 rounded-lg">
+                    <div className="flex items-center gap-2 pt-2">
+                      <div className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground bg-background p-2 rounded-lg">
                         <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
                         <span>دفع آمن عند الاستلام</span>
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-background p-2 rounded-lg">
+                      <div className="flex-1 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground bg-background p-2 rounded-lg">
                         <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
                         <span>توصيل من التاجر مباشرة</span>
                       </div>
