@@ -566,9 +566,9 @@ export function CartClient({
                     {group.items.map(item => (
                       <div
                         key={item.id}
-                        className="flex gap-4 p-3 group hover:bg-muted/10 transition-colors"
+                        className="flex gap-3 px-3 py-1 group hover:bg-muted/10 transition-colors items-center"
                       >
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        <div className="relative w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                           {item.products.image_url ? (
                             <Image
                               src={item.products.image_url}
@@ -584,12 +584,12 @@ export function CartClient({
                           )}
                         </div>
 
-                        <div className="flex-grow min-w-0 flex flex-col justify-between">
+                        <div className="flex-grow min-w-0 flex flex-col justify-between py-1">
                           <div className="flex justify-between items-start gap-2">
                             {/* Right Side: Product Info */}
-                            <div className="text-right">
+                            <div className="text-right flex flex-col justify-between h-[72px]">
                               <h3 className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug text-foreground">{item.products.name}</h3>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2 mt-auto">
                                 <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
                                   لكل {item.unit_type || item.products.unit_type}
                                 </span>
@@ -600,24 +600,24 @@ export function CartClient({
                             </div>
 
                             {/* Left Side: Quantity & Actions */}
-                            <div className="flex flex-col items-end justify-between h-20 shrink-0">
+                            <div className="flex flex-col items-end justify-between h-[72px] shrink-0">
                               <div className="flex items-center gap-1.5">
-                                <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
+                                <div className="flex items-center border rounded-lg overflow-hidden h-7 bg-background">
                                   <button
                                     onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.quantity)}
                                     disabled={isUpdating === item.id}
-                                    className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                    className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full"
                                     title="زيادة"
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
-                                  <span className="px-3 font-bold min-w-[32px] text-center border-x text-sm tabular-nums">
+                                  <span className="px-2 font-bold min-w-[28px] text-center border-x text-xs tabular-nums">
                                     {item.quantity}
                                   </span>
                                   <button
                                     onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.quantity)}
                                     disabled={isUpdating === item.id || item.quantity <= 1}
-                                    className="px-2.5 hover:bg-muted disabled:opacity-30 transition-colors h-full"
+                                    className="px-2 hover:bg-muted disabled:opacity-30 transition-colors h-full"
                                     title="تقليل"
                                   >
                                     <Minus className="w-3 h-3" />
@@ -628,13 +628,13 @@ export function CartClient({
                                   size="icon"
                                   onClick={() => handleRemove(item.id)}
                                   disabled={isUpdating === item.id}
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full w-7 h-7"
                                   title="حذف من السلة"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
-                              <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                              <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                 المجموع: {(getItemPrice(item) * item.quantity).toLocaleString('en-US')} د.ع
                               </div>
                             </div>
