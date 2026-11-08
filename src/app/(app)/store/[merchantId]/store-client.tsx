@@ -241,8 +241,8 @@ export function StoreClient({
         </div>
 
         {/* Categories Navigation */}
-        <div className="bg-background/95 backdrop-blur overflow-hidden pb-2">
-          <div dir="rtl" className="flex items-center gap-1 max-w-4xl mx-auto px-2 py-1">
+        <div className="bg-background/95 backdrop-blur overflow-hidden pb-0">
+          <div dir="rtl" className="flex items-center gap-1 max-w-4xl mx-auto px-2 py-0">
             <button
               type="button"
               aria-label="تمرير الأقسام لليمين"
@@ -255,7 +255,7 @@ export function StoreClient({
             <div
               ref={categoriesContainerRef}
               onScroll={updateCategoriesScrollState}
-              className="flex flex-1 min-w-0 overflow-x-auto hide-scrollbar py-1 gap-2"
+              className="flex flex-1 min-w-0 overflow-x-auto gap-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {categoryFilters.map((category) => (
                 <button

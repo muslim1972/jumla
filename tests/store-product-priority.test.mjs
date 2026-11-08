@@ -167,3 +167,13 @@ test("replaces keyword sections with dynamic category filter chips and scroll ar
   assert.ok(!storeClientSource.includes("const CATEGORIES = ["))
   assert.ok(!storeClientSource.includes("IntersectionObserver"))
 })
+
+test("hides the native category scrollbar while retaining horizontal scrolling", () => {
+  const categoryScroller = storeClientSource.match(/ref={categoriesContainerRef}[\s\S]*?className="([^"]+)"/)?.[1] ?? ""
+
+  assert.ok(categoryScroller.includes("overflow-x-auto"))
+  assert.ok(categoryScroller.includes("[-ms-overflow-style:none]"))
+  assert.ok(categoryScroller.includes("[scrollbar-width:none]"))
+  assert.ok(categoryScroller.includes("[&::-webkit-scrollbar]:hidden"))
+  assert.ok(!categoryScroller.includes("hide-scrollbar"))
+})

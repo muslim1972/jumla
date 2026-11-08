@@ -14,7 +14,7 @@
   "src/app/(app)/store/[merchantId]/loading.tsx": "e2375fb171e6b94f6e30fbda61ac2bd7",
   "src/app/(app)/store/[merchantId]/page.tsx": "973368f296e5bd235f9fd1ee773f2df0",
   "src/app/(app)/store/[merchantId]/prioritize-selected-product.ts": "b81c165153987b60d0ea8175bb74031d",
-  "src/app/(app)/store/[merchantId]/store-client.tsx": "8fe3f20d1ed32bacdb4b368f32008c86",
+  "src/app/(app)/store/[merchantId]/store-client.tsx": "4ebbbc7739fdbdc70afd3e9090b157c7",
   "src/app/(app)/support/page.tsx": "b434ab4934a0dc46bbd27a07a2afb999",
   "src/app/(app)/wallet/actions.ts": "62d7c4df0a551f0c7b7163265f3eac3f",
   "src/app/(app)/wallet/page.tsx": "de4c1ecfe0dbaa6eaf35edc7dd4e29f6",
