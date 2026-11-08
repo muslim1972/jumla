@@ -9,11 +9,13 @@ import { updateMerchantSettings } from "@/app/(merchant)/dashboard/actions"
 interface MerchantSettingsProps {
   initialDeliveryFee: number | null
   initialSupportPhone: string | null
+  initialFreeDeliveryThreshold: number | null
 }
 
-export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: MerchantSettingsProps) {
+export function MerchantSettings({ initialDeliveryFee, initialSupportPhone, initialFreeDeliveryThreshold }: MerchantSettingsProps) {
   const [fee, setFee] = useState(initialDeliveryFee?.toString() || "")
   const [phone, setPhone] = useState(initialSupportPhone || "")
+  const [threshold, setThreshold] = useState(initialFreeDeliveryThreshold?.toString() || "")
   const [isLoading, setIsLoading] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
 
@@ -30,12 +32,18 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
     if (isSaved) setIsSaved(false)
   }
 
+  const handleThresholdChange = (val: string) => {
+    setThreshold(val)
+    if (isSaved) setIsSaved(false)
+  }
+
   const handleSave = async () => {
     if (fee === "" || phone.trim() === "") return
     
     setIsLoading(true)
     try {
-      const result = await updateMerchantSettings(parseFloat(fee), phone.trim())
+      const thresholdVal = threshold === "" ? null : parseFloat(threshold)
+      const result = await updateMerchantSettings(parseFloat(fee), phone.trim(), thresholdVal)
       if (result.success) {
         setIsSaved(true)
       } else {
@@ -69,6 +77,24 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
       
       {isOpen && (
         <div className="p-3 sm:p-4 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+            <Label htmlFor="free_delivery_threshold" className="text-primary font-bold text-xs whitespace-nowrap">الحد الأدنى للمشتريات ليكون التوصيل مجاني</Label>
+            <div className="relative min-w-0">
+              <Input 
+                id="free_delivery_threshold" 
+                type="number" 
+                value={threshold} 
+                onChange={(e) => handleThresholdChange(e.target.value)}
+                className="h-9 sm:h-10 w-full text-sm sm:text-base font-bold pr-10"
+                placeholder="اختياري"
+                dir="ltr"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground font-medium text-xs">
+                د.ع
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
             <Label htmlFor="delivery_fee" className="text-primary font-bold text-xs whitespace-nowrap">أجور التوصيل (د.ع)</Label>
             <div className="relative min-w-0">

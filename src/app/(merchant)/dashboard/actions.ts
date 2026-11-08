@@ -65,7 +65,7 @@ function getBaseStockQuantity(
   return stockQuantity * multiplier;
 }
 
-export async function updateMerchantSettings(fee: number, phone: string) {
+export async function updateMerchantSettings(fee: number, phone: string, threshold: number | null = null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -73,7 +73,7 @@ export async function updateMerchantSettings(fee: number, phone: string) {
 
   const { error } = await supabase
     .from('profiles')
-    .update({ delivery_fee: fee, support_phone: phone })
+    .update({ delivery_fee: fee, support_phone: phone, free_delivery_threshold: threshold })
     .eq('id', user.id)
 
   if (error) return { success: false, error: error.message }

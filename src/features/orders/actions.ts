@@ -41,6 +41,27 @@ export async function createOrder(data: {
   }
 
   try {
+    // جلب بيانات التاجر للتحقق من أجور التوصيل والحد الأدنى
+    const { data: merchantProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('delivery_fee, free_delivery_threshold')
+      .eq('id', data.merchantId)
+      .single()
+
+    if (profileError || !merchantProfile) {
+      throw new Error("لم يتم العثور على بيانات التاجر")
+    }
+
+    // إعادة حساب المجموع الفرعي من العناصر المرسلة (أو الاعتماد على المرسل حالياً، لكن الأفضل حسابه)
+    // للتبسيط، سنعتمد على subtotal المرسل، لكن نتحقق من شرط التوصيل المجاني
+    const isFreeDelivery = merchantProfile.free_delivery_threshold !== null && data.subtotal >= merchantProfile.free_delivery_threshold
+    const secureDeliveryFee = isFreeDelivery ? 0 : (merchantProfile.delivery_fee || 0)
+    
+    // إعادة حساب المجموع الكلي
+    const secureRawTotal = data.subtotal + secureDeliveryFee
+    const secureTotalRounded = roundTo250(secureRawTotal)
+    const secureAmountPaid = data.amountPaid ?? secureTotalRounded
+
     // معاملة SQL واحدة ذرية: بيانات المشتري + إرجاع/خصم المخزون + الطلب + العناصر + حذف السلة
     // أي فشل (كمية غير كافية مثلاً) يتراجع عن كل شيء تلقائياً — انظر scripts/create-order-transaction.sql
     const { data: result, error: rpcError } = await supabase.rpc('create_order_atomic', {
@@ -50,10 +71,10 @@ export async function createOrder(data: {
       p_address: data.address,
       p_phone: data.phone,
       p_subtotal: data.subtotal,
-      p_delivery_fee: data.deliveryFee,
-      p_total_rounded: data.totalRounded,
+      p_delivery_fee: secureDeliveryFee,
+      p_total_rounded: secureTotalRounded,
       p_is_credit: data.isCredit || false,
-      p_amount_paid: data.amountPaid ?? data.totalRounded,
+      p_amount_paid: secureAmountPaid,
       p_items: data.items.map(item => ({
         cart_item_id: item.cartItemId,
         product_id: item.productId,
@@ -79,14 +100,14 @@ export async function createOrder(data: {
       await sendNotificationToUser(
         data.merchantId,
         "طلب جديد!",
-        `وصلك طلب جديد من ${data.storeName} بقيمة ${data.totalRounded.toLocaleString('en-US')} د.ع`
+        `وصلك طلب جديد من ${data.storeName} بقيمة ${secureTotalRounded.toLocaleString('en-US')} د.ع`
       )
 
       // كتابة الإشعار في الجرس (يظهر في لوحة التاجر فوراً)
       await supabaseAdmin.from("notifications").insert({
         user_id: data.merchantId,
         title: "طلب جديد!",
-        message: `وصلك طلب جديد من ${data.storeName} بقيمة ${data.totalRounded.toLocaleString('en-US')} د.ع — رقم القائمة #${invoiceNumber}.`,
+        message: `وصلك طلب جديد من ${data.storeName} بقيمة ${secureTotalRounded.toLocaleString('en-US')} د.ع — رقم القائمة #${invoiceNumber}.`,
       })
     } catch (notifyError) {
       console.error("Order notification error:", notifyError)

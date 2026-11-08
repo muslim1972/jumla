@@ -257,7 +257,13 @@ export function InvoicePreview({
               <Truck className="w-3.5 h-3.5" />
               أجور التوصيل
             </span>
-            <span className="tabular-nums font-medium">{deliveryFee.toLocaleString('en-US')} د.ع</span>
+            <span className="tabular-nums font-medium">
+              {deliveryFee === 0 ? (
+                <span className="text-emerald-600 font-bold">مجاناً</span>
+              ) : (
+                `${deliveryFee.toLocaleString('en-US')} د.ع`
+              )}
+            </span>
           </div>
           {roundingDiff !== 0 && (
             <div className="flex justify-between text-muted-foreground text-xs">

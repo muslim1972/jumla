@@ -19,7 +19,7 @@ export default async function DashboardPage() {
   const [profileResponse, productsResponse, ordersResponse, categoriesResponse] = await Promise.all([
     supabase
       .from('profiles')
-      .select('delivery_fee, support_phone')
+      .select('delivery_fee, support_phone, free_delivery_threshold')
       .eq('id', user?.id)
       .single(),
     supabase
@@ -84,6 +84,7 @@ export default async function DashboardPage() {
         <MerchantSettings
           initialDeliveryFee={profile?.delivery_fee}
           initialSupportPhone={profile?.support_phone}
+          initialFreeDeliveryThreshold={profile?.free_delivery_threshold}
         />
         {!isProfileComplete && (
           <div className="p-2 bg-destructive/10 border border-destructive/20 rounded-xl flex gap-2 items-start text-destructive text-xs">

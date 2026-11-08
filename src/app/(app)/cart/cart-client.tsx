@@ -50,6 +50,7 @@ interface CartItemType {
     profiles?: {
       delivery_fee: number | null
       full_name?: string
+      free_delivery_threshold?: number | null
     } | null
   }
 }
@@ -72,6 +73,7 @@ interface MerchantGroup {
   merchantId: string
   merchantName: string
   deliveryFee: number
+  freeDeliveryThreshold: number | null
   items: CartItemType[]
   lastAddedAt: string
 }
@@ -197,6 +199,7 @@ export function CartClient({
           merchantId,
           merchantName: item.products.profiles?.full_name || "تاجر غير معروف",
           deliveryFee: item.products.profiles?.delivery_fee || 0,
+          freeDeliveryThreshold: item.products.profiles?.free_delivery_threshold || null,
           items: [item],
           lastAddedAt: item.created_at,
         })
@@ -297,7 +300,9 @@ export function CartClient({
     if (!group) return
 
     const subtotal = group.items.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0)
-    const rawTotal = subtotal + group.deliveryFee
+    const isFreeDelivery = group.freeDeliveryThreshold !== null && subtotal >= group.freeDeliveryThreshold
+    const effectiveDeliveryFee = isFreeDelivery ? 0 : group.deliveryFee
+    const rawTotal = subtotal + effectiveDeliveryFee
     const totalRounded = roundTo250(rawTotal)
     const isCredit = upfrontPayment < totalRounded
 
@@ -308,7 +313,7 @@ export function CartClient({
       address: deliveryInfo.address,
       phone: deliveryInfo.phone,
       subtotal,
-      deliveryFee: group.deliveryFee,
+      deliveryFee: effectiveDeliveryFee,
       totalRounded,
       isCredit,
       amountPaid: upfrontPayment,
@@ -374,6 +379,13 @@ export function CartClient({
     merchantGroups.find(g => g.merchantId === checkoutMerchantId),
     [merchantGroups, checkoutMerchantId]
   )
+
+  const currentGroupEffectiveDeliveryFee = useMemo(() => {
+    if (!currentGroup) return 0
+    const subtotal = currentGroup.items.reduce((acc, item) => acc + getItemPrice(item) * item.quantity, 0)
+    const isFreeDelivery = currentGroup.freeDeliveryThreshold !== null && subtotal >= currentGroup.freeDeliveryThreshold
+    return isFreeDelivery ? 0 : currentGroup.deliveryFee
+  }, [currentGroup])
 
   const invoiceItems: InvoiceItem[] = useMemo(() => {
     if (!currentGroup) return []
@@ -508,8 +520,13 @@ export function CartClient({
           const groupSubtotal = group.items.reduce(
             (acc, item) => acc + getItemPrice(item) * item.quantity, 0
           )
-          const groupTotal = roundTo250(groupSubtotal + group.deliveryFee)
-          const roundingDiff = groupTotal - (groupSubtotal + group.deliveryFee)
+          
+          const isFreeDelivery = group.freeDeliveryThreshold !== null && groupSubtotal >= group.freeDeliveryThreshold
+          const effectiveDeliveryFee = isFreeDelivery ? 0 : group.deliveryFee
+          const remainingForFreeDelivery = group.freeDeliveryThreshold !== null ? group.freeDeliveryThreshold - groupSubtotal : null
+
+          const groupTotal = roundTo250(groupSubtotal + effectiveDeliveryFee)
+          const roundingDiff = groupTotal - (groupSubtotal + effectiveDeliveryFee)
 
           const lastAddedDate = new Date(group.lastAddedAt).toLocaleDateString("ar-IQ", {
             month: "short",
@@ -655,7 +672,13 @@ export function CartClient({
                         <Truck className="w-3.5 h-3.5" />
                         أجور التوصيل
                       </span>
-                      <span className="tabular-nums font-medium">{group.deliveryFee.toLocaleString('en-US')} د.ع</span>
+                      <span className="tabular-nums font-medium">
+                        {isFreeDelivery ? (
+                          <span className="text-emerald-600 font-bold">مجاناً</span>
+                        ) : (
+                          `${group.deliveryFee.toLocaleString('en-US')} د.ع`
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center border-t border-dashed pt-3">
                       <div className="flex flex-col">
@@ -688,6 +711,13 @@ export function CartClient({
 
                     {/* أزرار الإجراءات */}
                     <div className="flex flex-col gap-2 pt-2">
+                      {remainingForFreeDelivery !== null && (
+                        <div className={`text-center text-xs font-bold p-2 rounded-lg ${isFreeDelivery ? 'bg-emerald-500/10 text-emerald-600' : 'bg-brand-orange/10 text-brand-orange'}`}>
+                          {isFreeDelivery 
+                            ? "تم شمولك بهدية التوصيل المجاني 🎉" 
+                            : `أكمل الشراء إلى ${group.freeDeliveryThreshold?.toLocaleString('en-US')} لتربح التوصيل المجاني`}
+                        </div>
+                      )}
                       <Button
                         onClick={() => handleStartCheckout(group.merchantId)}
                         className="w-full h-12 text-base font-black rounded-xl shadow-xl shadow-primary/20 hover:scale-[1.01] transition-transform active:scale-95 bg-gradient-to-r from-primary to-blue-600"
@@ -721,7 +751,7 @@ export function CartClient({
           onOpenChange={setShowInvoice}
           items={invoiceItems}
           merchantName={currentGroup.merchantName}
-          deliveryFee={currentGroup.deliveryFee}
+          deliveryFee={currentGroupEffectiveDeliveryFee}
           verificationCode={verificationCode}
           deliveryInfo={deliveryInfo}
           isTrusted={trustedMerchantIds.includes(currentGroup.merchantId)}

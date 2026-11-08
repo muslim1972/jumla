@@ -26,7 +26,7 @@ export default async function CartPage() {
         *,
         products (
           *,
-          profiles (delivery_fee, full_name, support_phone)
+          profiles (delivery_fee, full_name, support_phone, free_delivery_threshold)
         )
       `)
       .eq('user_id', user.id)
