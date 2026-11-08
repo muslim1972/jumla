@@ -69,15 +69,15 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
       
       {isOpen && (
         <div className="p-3 sm:p-4 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-200">
-          <div className="space-y-1.5">
-            <Label htmlFor="delivery_fee" className="text-primary font-bold text-xs">أجور التوصيل (د.ع)</Label>
-            <div className="relative">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+            <Label htmlFor="delivery_fee" className="text-primary font-bold text-xs whitespace-nowrap">أجور التوصيل (د.ع)</Label>
+            <div className="relative min-w-0">
               <Input 
                 id="delivery_fee" 
                 type="number" 
                 value={fee} 
                 onChange={(e) => handleFeeChange(e.target.value)}
-                className="h-9 sm:h-10 text-sm sm:text-base font-bold pr-10"
+                className="h-9 sm:h-10 w-full text-sm sm:text-base font-bold pr-10"
                 placeholder="0"
                 dir="ltr"
               />
@@ -87,8 +87,8 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="support_phone" className="text-primary font-bold text-xs flex items-center gap-1">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
+            <Label htmlFor="support_phone" className="text-primary font-bold text-xs flex items-center gap-1 whitespace-nowrap">
               <Phone className="w-3.5 h-3.5" /> رقم الدعم للطلبات
             </Label>
             <Input 
@@ -96,7 +96,7 @@ export function MerchantSettings({ initialDeliveryFee, initialSupportPhone }: Me
               type="tel" 
               value={phone} 
               onChange={(e) => handlePhoneChange(e.target.value)}
-              className="h-9 sm:h-10 text-sm sm:text-base font-bold text-left"
+              className="h-9 sm:h-10 w-full min-w-0 text-sm sm:text-base font-bold text-left"
               placeholder="07XXXXXXXXX"
               dir="ltr"
               maxLength={11}

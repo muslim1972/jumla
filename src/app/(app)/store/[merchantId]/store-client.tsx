@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useTransition, useCallback } from
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Star, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, ShoppingCart, Star, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -199,17 +199,6 @@ export function StoreClient({
 
   // Calculate cart totals
   const totalCartItems = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
-  const totalCartPrice = useMemo(() => {
-    return cartItems.reduce((sum, item) => {
-      const product = products.find(p => p.id === item.product_id)
-      if (product) {
-        const unit = product.units?.find((u: any) => u.type === item.unit_type)
-        const price = unit ? unit.price : product.price
-        return sum + (price * item.quantity)
-      }
-      return sum
-    }, 0)
-  }, [cartItems, products])
 
   return (
     <div className={cn("bg-background w-full", totalCartItems > 0 ? "pb-32" : "pb-4")}>
@@ -347,26 +336,26 @@ export function StoreClient({
 
       {/* Floating Go to Cart Banner */}
       {totalCartItems > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom-full duration-300 pointer-events-none">
-          <div className="max-w-4xl mx-auto pointer-events-auto">
-            <Link 
-              href="/cart"
-              className="w-full flex items-center justify-between p-4 bg-brand-orange text-white rounded-2xl shadow-xl shadow-brand-orange/20 hover:bg-brand-orange/90 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-xl">
-                  <div className="font-black leading-none">{totalCartItems}</div>
+        <div className="fixed bottom-3 sm:bottom-5 left-3 sm:left-4 right-3 sm:right-4 z-50 max-w-lg mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Link href="/cart" className="block shadow-xl rounded-xl sm:rounded-2xl overflow-hidden group">
+            <div className="bg-[#0c1c2e] hover:bg-[#13273e] text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl flex items-center justify-between border-2 border-[#d97706]/40 transition-all">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-[#d97706] text-white flex items-center justify-center font-bold shrink-0">
+                  <ShoppingCart className="w-4 h-4" />
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-lg leading-none mb-1">عرض السلة</div>
-                  <div className="text-sm font-medium text-white/80">
-                    المجموع: {totalCartPrice.toLocaleString('en-US')} د.ع
-                  </div>
+                <div className="text-xs sm:text-sm font-black text-slate-100 truncate">
+                  لديك مشتريات في السلة
+                  <span className="text-[10px] text-amber-300 font-bold mr-1.5">
+                    ({totalCartItems})
+                  </span>
                 </div>
               </div>
-              <ChevronRight className="w-6 h-6 rotate-180" />
-            </Link>
-          </div>
+              <div className="flex items-center gap-1.5 bg-[#d97706] group-hover:bg-[#b45309] text-white px-3 py-1.5 rounded-lg text-xs font-black transition-colors shrink-0">
+                <span>إتمام الطلب</span>
+                <span>←</span>
+              </div>
+            </div>
+          </Link>
         </div>
       )}
 

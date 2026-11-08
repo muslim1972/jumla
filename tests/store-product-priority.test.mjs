@@ -17,6 +17,26 @@ const storePageSource = readFileSync(
   new URL("../src/app/(app)/store/[merchantId]/page.tsx", import.meta.url),
   "utf8",
 )
+const merchantSettingsSource = readFileSync(
+  new URL("../src/features/merchant/components/merchant-settings.tsx", import.meta.url),
+  "utf8",
+)
+const merchantProductsSource = readFileSync(
+  new URL("../src/features/merchant/components/merchant-products-list.tsx", import.meta.url),
+  "utf8",
+)
+const cartClientSource = readFileSync(
+  new URL("../src/app/(app)/cart/cart-client.tsx", import.meta.url),
+  "utf8",
+)
+const cartPageSource = readFileSync(
+  new URL("../src/app/(app)/cart/page.tsx", import.meta.url),
+  "utf8",
+)
+const rootLayoutSource = readFileSync(
+  new URL("../src/app/layout.tsx", import.meta.url),
+  "utf8",
+)
 
 const products = [
   { id: "product-a", merchant_id: "merchant-1" },
@@ -168,6 +188,21 @@ test("replaces keyword sections with dynamic category filter chips and scroll ar
   assert.ok(!storeClientSource.includes("IntersectionObserver"))
 })
 
+test("uses the compact navy floating cart banner with count and checkout action", () => {
+  const cartBanner = storeClientSource
+    .split("{/* Floating Go to Cart Banner */}")[1]
+    ?.split("{/* نافذة تقييمات المتجر")[0] ?? ""
+
+  assert.ok(cartBanner.includes("fixed bottom-3 sm:bottom-5 left-3 sm:left-4 right-3 sm:right-4 z-50 max-w-lg mx-auto"))
+  assert.ok(cartBanner.includes('href="/cart"'))
+  assert.ok(cartBanner.includes("bg-[#0c1c2e]"))
+  assert.ok(cartBanner.includes("<ShoppingCart"))
+  assert.ok(cartBanner.includes("لديك مشتريات في السلة"))
+  assert.ok(cartBanner.includes("إتمام الطلب"))
+  assert.ok(!cartBanner.includes("المجموع:"))
+  assert.ok(!cartBanner.includes("عرض السلة"))
+})
+
 test("hides the native category scrollbar while retaining horizontal scrolling", () => {
   const categoryScroller = storeClientSource.match(/ref={categoriesContainerRef}[\s\S]*?className="([^"]+)"/)?.[1] ?? ""
 
@@ -176,4 +211,75 @@ test("hides the native category scrollbar while retaining horizontal scrolling",
   assert.ok(categoryScroller.includes("[scrollbar-width:none]"))
   assert.ok(categoryScroller.includes("[&::-webkit-scrollbar]:hidden"))
   assert.ok(!categoryScroller.includes("hide-scrollbar"))
+})
+
+test("places merchant delivery fee and support phone labels beside their inputs", () => {
+  const inlineRows = merchantSettingsSource.match(
+    /grid grid-cols-\[auto_minmax\(0,1fr\)\] items-center gap-2/g,
+  ) ?? []
+
+  assert.equal(inlineRows.length, 2)
+  assert.ok(merchantSettingsSource.includes("أجور التوصيل (د.ع)"))
+  assert.ok(merchantSettingsSource.includes("رقم الدعم للطلبات"))
+})
+
+test("puts the merchant product search beside the list and grid view buttons", () => {
+  const toolbarStart = merchantProductsSource.indexOf(
+    '<div className="flex items-center gap-2 mb-2">',
+  )
+  const productsStart = merchantProductsSource.indexOf("!products || products.length === 0", toolbarStart)
+  const toolbar = merchantProductsSource.slice(toolbarStart, productsStart)
+
+  assert.ok(toolbarStart >= 0)
+  assert.ok(productsStart > toolbarStart)
+  assert.ok(toolbar.includes('placeholder="ابحث في منتجاتك باسم المنتج..."'))
+  assert.ok(toolbar.includes("<List"))
+  assert.ok(toolbar.includes("<LayoutGrid"))
+  assert.ok(!merchantProductsSource.includes("منتجاتي ("))
+})
+
+test("places the cart title opposite the archive and tracking tabs in one shared header", () => {
+  const headerStart = cartClientSource.indexOf("const cartHeader = (")
+  const emptyStateStart = cartClientSource.indexOf("if (items.length === 0)", headerStart)
+  const header = cartClientSource.slice(headerStart, emptyStateStart)
+
+  assert.ok(headerStart >= 0)
+  assert.ok(emptyStateStart > headerStart)
+  assert.ok(header.includes("flex items-center justify-between"))
+  assert.ok(header.indexOf("سلة المشتريات") < header.indexOf("<Archive"))
+  assert.ok(header.includes("تتبع مشترياتي"))
+  assert.equal((cartClientSource.match(/\{cartHeader\}/g) ?? []).length, 2)
+})
+
+test("removes the cart route's extra top padding below the announcement banner", () => {
+  assert.ok(cartPageSource.includes('className="container mx-auto px-2 sm:px-4 pt-0 pb-0"'))
+})
+
+test("removes duplicate cart scroll padding while preserving the fixed-ad safe area", () => {
+  assert.ok(!cartClientSource.includes("pb-[140px]"))
+  assert.ok(rootLayoutSource.includes('className="flex-1 pb-28 sm:pb-36"'))
+})
+
+test("places quantity and delete controls above the item total in a compact left column", () => {
+  const itemsStart = cartClientSource.indexOf("{group.items.map(item => (")
+  const summaryStart = cartClientSource.indexOf("{/* ملخص المجموعة */}", itemsStart)
+  const itemCards = cartClientSource.slice(itemsStart, summaryStart)
+  const controlsIndex = itemCards.indexOf('data-slot="cart-item-controls"')
+  const totalIndex = itemCards.indexOf('data-slot="cart-item-total"')
+
+  assert.ok(itemsStart >= 0)
+  assert.ok(summaryStart > itemsStart)
+  assert.ok(itemCards.includes("w-16 h-16 sm:w-20 sm:h-20"))
+  assert.ok(controlsIndex >= 0)
+  assert.ok(totalIndex > controlsIndex)
+  assert.ok(itemCards.includes('title="حذف من السلة"'))
+  assert.ok(itemCards.includes('title="زيادة"'))
+  assert.ok(itemCards.includes('title="تقليل"'))
+})
+
+test("shows the rounding note beside the grand total without a separate adjustment row", () => {
+  assert.ok(cartClientSource.includes("مقرباً لأقرب 250 د.ع"))
+  assert.ok(!cartClientSource.includes("تقريب لأقرب 250 د.ع"))
+  assert.ok(!cartClientSource.includes("roundingDiff"))
+  assert.ok(cartClientSource.includes("roundTo250(groupSubtotal + group.deliveryFee)"))
 })

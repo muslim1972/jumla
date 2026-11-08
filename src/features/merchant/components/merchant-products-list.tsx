@@ -19,16 +19,28 @@ export function MerchantProductsList({ products, categories }: { products: any[]
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-base sm:text-lg font-black text-foreground">
-          منتجاتي ({products?.length || 0})
+      <div className="flex items-center gap-2 mb-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="ابحث في منتجاتك باسم المنتج..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 w-full pr-9 pl-8 text-xs sm:text-sm bg-card border-border/80 rounded-xl"
+          />
           {searchQuery && (
-            <span className="text-xs font-bold text-muted-foreground mr-1.5">
-              (نتائج البحث: {filteredProducts.length})
-            </span>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer rounded-md"
+              title="مسح البحث"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
-        </h2>
-        <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
+        </div>
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-lg shrink-0">
           <button
             onClick={() => setViewMode('list')}
             className={cn(
@@ -50,28 +62,6 @@ export function MerchantProductsList({ products, categories }: { products: any[]
             <LayoutGrid className="w-4 h-4" />
           </button>
         </div>
-      </div>
-
-      {/* حقل البحث في منتجات التاجر بالاسم لمنع التكديس والتمرير المرهق */}
-      <div className="relative mb-2.5">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        <Input
-          type="text"
-          placeholder="ابحث في منتجاتك باسم المنتج..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-9 pr-9 pl-8 text-xs sm:text-sm bg-card border-border/80 rounded-xl"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground cursor-pointer rounded-md"
-            title="مسح البحث"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
       </div>
       
       {!products || products.length === 0 ? (

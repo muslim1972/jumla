@@ -70,7 +70,7 @@ export default async function CartPage() {
   const trustedMerchantIds = trustedData?.map(t => t.merchant_id) || []
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+    <div className="container mx-auto px-2 sm:px-4 pt-0 pb-0">
       <CartClient 
         initialItems={cartItems || []} 
         buyerProfile={profile || {}} 
