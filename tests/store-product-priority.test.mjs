@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
-import { prioritizeSelectedProduct } from "../src/app/(app)/store/[merchantId]/prioritize-selected-product.ts"
+import * as storeProductHelpers from "../src/app/(app)/store/[merchantId]/prioritize-selected-product.ts"
+
+const { prioritizeSelectedProduct } = storeProductHelpers
 
 const storeClientSource = readFileSync(
   new URL("../src/app/(app)/store/[merchantId]/store-client.tsx", import.meta.url),
@@ -85,9 +87,10 @@ test("does not display the merchant delivery-fee truck badge", () => {
   assert.ok(!storeClientSource.includes("<Truck"))
 })
 
-test("removes the standalone popular section heading but keeps its anchor", () => {
-  assert.ok(storeClientSource.includes('cat.id !== "popular" && ('))
-  assert.ok(storeClientSource.includes("id={`category-${cat.id}`}"))
+test("filters the entire displayed product list instead of scrolling to grouped sections", () => {
+  assert.ok(storeClientSource.includes("filterStoreProductsByCategory"))
+  assert.ok(!storeClientSource.includes('id={`category-${cat.id}`}'))
+  assert.ok(!storeClientSource.includes("scrollToCategory"))
 })
 
 test("list cards reserve one quarter for the image and retain cart controls", () => {
@@ -121,6 +124,46 @@ test("loads the server-side invoice aggregate and passes it into product ranking
   assert.ok(storePageSource.includes("selectedProductId, invoiceCounts"))
 })
 
-test("shows the most-sold label only when the aggregate query succeeds", () => {
+test("uses the most-sold label only when the invoice aggregate is available", () => {
   assert.ok(storeClientSource.includes('name: salesRankingAvailable ? "الأكثر مبيعاً" : "المواد"'))
+})
+
+test("filters products by category id without changing their existing rank order", () => {
+  assert.equal(typeof storeProductHelpers.filterStoreProductsByCategory, "function")
+
+  const rankedProducts = [
+    { id: "top-dairy", category_id: "dairy" },
+    { id: "top-grocery", category_id: "grocery" },
+    { id: "next-dairy", category_id: "dairy" },
+  ]
+
+  const filtered = storeProductHelpers.filterStoreProductsByCategory(rankedProducts, "dairy")
+  assert.deepEqual(filtered.map((product) => product.id), ["top-dairy", "next-dairy"])
+  assert.deepEqual(rankedProducts.map((product) => product.id), ["top-dairy", "top-grocery", "next-dairy"])
+})
+
+test("returns every product unchanged when no category is selected", () => {
+  assert.equal(typeof storeProductHelpers.filterStoreProductsByCategory, "function")
+
+  const rankedProducts = [
+    { id: "first", category_id: null },
+    { id: "second", category_id: "dairy" },
+  ]
+
+  assert.deepEqual(storeProductHelpers.filterStoreProductsByCategory(rankedProducts, null), rankedProducts)
+})
+
+test("queries category ids and names from the existing table and passes them to the supplier store", () => {
+  assert.ok(storePageSource.includes(".from('categories')"))
+  assert.ok(storePageSource.includes(".select('id, name')"))
+  assert.ok(storePageSource.includes("categories={categories}"))
+})
+
+test("replaces keyword sections with dynamic category filter chips and scroll arrows", () => {
+  assert.ok(storeClientSource.includes("categories.map"))
+  assert.ok(storeClientSource.includes("filterStoreProductsByCategory"))
+  assert.ok(storeClientSource.includes('aria-label="تمرير الأقسام لليمين"'))
+  assert.ok(storeClientSource.includes('aria-label="تمرير الأقسام لليسار"'))
+  assert.ok(!storeClientSource.includes("const CATEGORIES = ["))
+  assert.ok(!storeClientSource.includes("IntersectionObserver"))
 })

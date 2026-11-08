@@ -23,3 +23,11 @@ export function prioritizeSelectedProduct<T extends { id: string }>(
     ...rankedProducts.slice(selectedIndex + 1),
   ]
 }
+
+export function filterStoreProductsByCategory<T extends { category_id?: string | null }>(
+  products: readonly T[],
+  categoryId: string | null,
+): readonly T[] {
+  if (categoryId === null) return products
+  return products.filter((product) => product.category_id === categoryId)
+}

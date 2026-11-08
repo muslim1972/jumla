@@ -29,13 +29,17 @@ export default async function StorePage({ params, searchParams }: {
   const productInvoiceCountsPromise = supabase.rpc('get_merchant_product_invoice_counts', {
     p_merchant_id: merchantId,
   })
+  const categoriesPromise = supabase
+    .from('categories')
+    .select('id, name')
 
   // Wait for the first batch
-  const [userResponse, profileResponse, productsResponse, productInvoiceCountsResponse] = await Promise.all([
+  const [userResponse, profileResponse, productsResponse, productInvoiceCountsResponse, categoriesResponse] = await Promise.all([
     userPromise,
     merchantProfilePromise,
     merchantProductsPromise,
     productInvoiceCountsPromise,
+    categoriesPromise,
   ])
 
   if (profileResponse.error || !profileResponse.data) {
@@ -50,6 +54,10 @@ export default async function StorePage({ params, searchParams }: {
     ]),
   )
   const products = prioritizeSelectedProduct(productsResponse.data || [], selectedProductId, invoiceCounts)
+  const categories = categoriesResponse.data || []
+  if (categoriesResponse.error) {
+    console.error("[صفحة متجر المجهّز] فشل تحميل الأقسام:", categoriesResponse.error)
+  }
   const user = userResponse.data.user
 
   let userRole = "guest"
@@ -131,6 +139,7 @@ export default async function StorePage({ params, searchParams }: {
       <StoreClient 
         merchant={merchantProfile} 
         products={products} 
+        categories={categories}
         user={user} 
         cartItems={cartItems} 
         userRole={userRole}

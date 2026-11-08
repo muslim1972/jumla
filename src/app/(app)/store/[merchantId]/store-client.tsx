@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useMemo, useRef, useEffect, useTransition } from "react"
+import { useState, useMemo, useRef, useEffect, useTransition, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronRight, ChevronDown, Star, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Star, Info, Percent, Search, LayoutGrid, List, MessageSquare, CheckCircle2, Loader2 } from "lucide-react"
 import { ProductCard } from "@/features/products/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,20 +14,12 @@ import { createClient } from "@/utils/supabase/client"
 import { upsertRating, getUserRatingForMerchant } from "@/features/orders/actions/rating-actions"
 import { useDebounce } from "@/hooks/use-debounce"
 import { cn } from "@/lib/utils"
-
-// Extracted static categories array to follow bundle best practices
-const CATEGORIES = [
-  { id: "smoking", name: "مستلزمات التدخين", keywords: ["سجائر", "معسل", "فحم", "فيب", "سحبة", "تبغ", "تدخين", "دخان", "cigarette", "tobacco"] },
-  { id: "grocery", name: "الغذائية", keywords: ["زيت", "سكر", "رز", "طحين", "معجون", "بهارات", "ملح", "معلبات", "جبن", "قشطة", "زبدة", "صلصة", "شاي", "قهوة", "حليب", "عدس", "حمص", "فاصوليا", "سمن", "خضار", "فواكه", "عسل", "معكرونة", "اندومي"] },
-  { id: "sweets", name: "حلويات", keywords: ["شيكولاتة", "كاكاو", "كيك", "بسكت", "جبس", "مصاص", "علك", "نوتيلا", "حلاوة", "كراميل", "سكاكر", "حلويات", "حلوى", "نستله", "كرزات", "مكسرات"] },
-  { id: "plastics", name: "أكياس بلاستيك", keywords: ["أكياس", "كيس", "بلاستك", "سفري", "صحون بلاستك", "سفريات", "نايلون", "علاكة", "علاكات", "سفره", "كاسة", "علبة", "بلاستيك"] },
-  { id: "dairy", name: "ألبان وأجبان", keywords: ["حليب", "لبن", "جبن", "قشطة", "زبدة", "قيمر", "ألبان", "أجبان", "زبادي", "روب", "كريم"] },
-  { id: "cleaning", name: "منظفات", keywords: ["صابون", "زاهي", "تايت", "شامبو", "معقم", "ديتول", "كلور", "غسيل", "ليفة", "منظف", "معطر", "قاصر", "كلوركس", "مساحة", "قماش", "فلاش"] },
-]
+import { filterStoreProductsByCategory } from "./prioritize-selected-product"
 
 export function StoreClient({ 
   merchant, 
   products,
+  categories,
   user,
   cartItems,
   userRole,
@@ -39,6 +31,7 @@ export function StoreClient({
 }: { 
   merchant: any
   products: any[]
+  categories: { id: string; name: string }[]
   user: any
   cartItems: any[]
   userRole: string
@@ -48,16 +41,16 @@ export function StoreClient({
   reviews?: any[]
   userCompletedOrderId?: string | null
 }) {
-  const [activeCategory, setActiveCategory] = useState<string>("popular")
-  const categoryNavRef = useRef<HTMLDivElement>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const categoriesContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollCategoriesRight, setCanScrollCategoriesRight] = useState(false)
+  const [canScrollCategoriesLeft, setCanScrollCategoriesLeft] = useState(false)
   const router = useRouter()
   const [, startTransition] = useTransition()
   
   const [searchQuery, setSearchQuery] = useState("")
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
-  // الأقسام التي تم توسيعها لعرض جميع منتجاتها
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
 
   // نوافذ التقييم والمراجعات
   const [showReviewsModal, setShowReviewsModal] = useState(false)
@@ -152,84 +145,57 @@ export function StoreClient({
     }
   }
 
-  // Group products by categories based on keywords
-  const groupedProducts = useMemo(() => {
-    // 1. Filter by search query first
-    const filteredProducts = debouncedSearchQuery 
-      ? products.filter(p => 
-          (p.name && p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
-          (p.description && p.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
-        )
-      : products
-
-    // 2. Group the filtered products
-    const groups: Record<string, any[]> = {
-      "popular": filteredProducts.slice(0, 6) // Mock popular products
-    }
-
-    filteredProducts.forEach(product => {
-      let matched = false
-      const name = (product.name || "").toLowerCase()
-      const desc = (product.description || "").toLowerCase()
-
-      for (const cat of CATEGORIES) {
-        if (cat.keywords.some(kw => name.includes(kw) || desc.includes(kw))) {
-          if (!groups[cat.id]) groups[cat.id] = []
-          groups[cat.id].push(product)
-          matched = true
-          break
-        }
-      }
-      
-      if (!matched) {
-        if (!groups["other"]) groups["other"] = []
-        groups["other"].push(product)
-      }
-    })
-
-    return groups
-  }, [products, debouncedSearchQuery])
-
-  // Categories that actually have products
-  const activeCategoriesList = [
-    { id: "popular", name: salesRankingAvailable ? "الأكثر مبيعاً" : "المواد" },
-    ...CATEGORIES.filter(c => groupedProducts[c.id] && groupedProducts[c.id].length > 0).map(c => ({ id: c.id, name: c.name })),
-    ...(groupedProducts["other"] && groupedProducts["other"].length > 0 ? [{ id: "other", name: "أخرى" }] : [])
+  const categoryFilters = [
+    { id: null, name: salesRankingAvailable ? "الأكثر مبيعاً" : "المواد" },
+    ...categories.map((category) => ({ id: category.id, name: category.name })),
   ]
 
-  const scrollToCategory = (id: string) => {
-    setActiveCategory(id)
-    const el = document.getElementById(`category-${id}`)
-    if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 180 // offset for sticky header
-      window.scrollTo({ top: y, behavior: 'smooth' })
-    }
+  const filteredProducts = useMemo(() => {
+    const categoryProducts = filterStoreProductsByCategory(products, selectedCategory)
+    const query = debouncedSearchQuery.trim().toLocaleLowerCase()
+    if (!query) return categoryProducts
+
+    return categoryProducts.filter((product) =>
+      (product.name && product.name.toLocaleLowerCase().includes(query)) ||
+      (product.description && product.description.toLocaleLowerCase().includes(query)),
+    )
+  }, [products, selectedCategory, debouncedSearchQuery])
+
+  const updateCategoriesScrollState = useCallback(() => {
+    const container = categoriesContainerRef.current
+    if (!container) return
+
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth)
+    const currentScroll = Math.abs(container.scrollLeft)
+    const hasOverflow = maxScroll > 6
+
+    setCanScrollCategoriesRight(hasOverflow && currentScroll > 6)
+    setCanScrollCategoriesLeft(hasOverflow && currentScroll < maxScroll - 6)
+  }, [])
+
+  const scrollCategories = (direction: "left" | "right") => {
+    categoriesContainerRef.current?.scrollBy({
+      left: direction === "left" ? -240 : 240,
+      behavior: "smooth",
+    })
   }
 
-  // Optimize scroll spy using IntersectionObserver
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Find the first entry that is intersecting
-        const intersectingEntry = entries.find(entry => entry.isIntersecting);
-        if (intersectingEntry) {
-          const catId = intersectingEntry.target.id.replace('category-', '');
-          setActiveCategory(catId);
-        }
-      },
-      {
-        rootMargin: "-180px 0px -40% 0px", // Trigger when element hits top 180px
-        threshold: 0
-      }
-    );
+    const container = categoriesContainerRef.current
+    updateCategoriesScrollState()
+    if (!container) return
 
-    activeCategoriesList.forEach(cat => {
-      const el = document.getElementById(`category-${cat.id}`);
-      if (el) observer.observe(el);
-    });
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateCategoriesScrollState)
+    observer?.observe(container)
+    window.addEventListener("resize", updateCategoriesScrollState)
 
-    return () => observer.disconnect();
-  }, [activeCategoriesList]);
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener("resize", updateCategoriesScrollState)
+    }
+  }, [categories, updateCategoriesScrollState])
 
   // Calculate cart totals
   const totalCartItems = useMemo(() => cartItems.reduce((sum, item) => sum + item.quantity, 0), [cartItems])
@@ -276,24 +242,47 @@ export function StoreClient({
 
         {/* Categories Navigation */}
         <div className="bg-background/95 backdrop-blur overflow-hidden pb-2">
-          <div 
-            ref={categoryNavRef}
-            className="flex overflow-x-auto hide-scrollbar max-w-4xl mx-auto px-4 py-1 gap-2"
-          >
-            {activeCategoriesList.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => scrollToCategory(cat.id)}
-                className={cn(
-                  "whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0",
-                  activeCategory === cat.id 
-                    ? "bg-brand-blue text-white shadow-md" 
-                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                )}
-              >
-                {cat.name}
-              </button>
-            ))}
+          <div dir="rtl" className="flex items-center gap-1 max-w-4xl mx-auto px-2 py-1">
+            <button
+              type="button"
+              aria-label="تمرير الأقسام لليمين"
+              onClick={() => scrollCategories("right")}
+              disabled={!canScrollCategoriesRight}
+              className="h-9 w-9 shrink-0 rounded-full border border-border bg-card text-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div
+              ref={categoriesContainerRef}
+              onScroll={updateCategoriesScrollState}
+              className="flex flex-1 min-w-0 overflow-x-auto hide-scrollbar py-1 gap-2"
+            >
+              {categoryFilters.map((category) => (
+                <button
+                  key={category.id ?? "all"}
+                  type="button"
+                  aria-pressed={selectedCategory === category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={cn(
+                    "whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0",
+                    selectedCategory === category.id
+                      ? "bg-brand-blue text-white shadow-md"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                  )}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="تمرير الأقسام لليسار"
+              onClick={() => scrollCategories("left")}
+              disabled={!canScrollCategoriesLeft}
+              className="h-9 w-9 shrink-0 rounded-full border border-border bg-card text-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -331,50 +320,29 @@ export function StoreClient({
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 mt-2 space-y-8">
-        {activeCategoriesList.map(cat => {
-          const catProducts = groupedProducts[cat.id]
-          if (!catProducts || catProducts.length === 0) return null
-
-          // أثناء البحث نعرض كل النتائج، وإلا 8 منتجات لكل قسم مع زر "عرض المزيد"
-          const isSectionExpanded = Boolean(debouncedSearchQuery) || Boolean(expandedSections[cat.id])
-          const visibleProducts = isSectionExpanded ? catProducts : catProducts.slice(0, 8)
-          const hiddenCount = catProducts.length - visibleProducts.length
-
-          return (
-            <div key={cat.id} id={`category-${cat.id}`} className="scroll-mt-[180px]">
-              {cat.id !== "popular" && (
-                <h3 className="text-xl font-black text-foreground mb-4">{cat.name}</h3>
-              )}
-              <div className={cn(
-                "gap-3 sm:gap-4",
-                viewMode === "grid" 
-                  ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4" 
-                  : "flex flex-col"
-              )}>
-                {visibleProducts.map(product => (
-                  <ProductCard 
-                    key={`${cat.id}-${product.id}`}
-                    product={product}
-                    user={user}
-                    cartItems={cartItems}
-                    viewMode={viewMode}
-                  />
-                ))}
-              </div>
-              {hiddenCount > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setExpandedSections(prev => ({ ...prev, [cat.id]: true }))}
-                  className="w-full gap-2 mt-4 text-muted-foreground hover:text-foreground"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                  عرض المزيد ({hiddenCount})
-                </Button>
-              )}
-            </div>
-          )
-        })}
+      <div className="max-w-4xl mx-auto px-4 mt-2 mb-6">
+        {filteredProducts.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {debouncedSearchQuery ? "لا توجد مواد تطابق البحث." : "لا توجد مواد في هذا القسم لدى هذا التاجر."}
+          </p>
+        ) : (
+          <div className={cn(
+            "gap-3 sm:gap-4",
+            viewMode === "grid"
+              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              : "flex flex-col",
+          )}>
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                user={user}
+                cartItems={cartItems}
+                viewMode={viewMode}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Floating Go to Cart Banner */}
