@@ -566,7 +566,7 @@ export function CartClient({
                     {group.items.map(item => (
                       <div
                         key={item.id}
-                        className="flex gap-4 p-4 group hover:bg-muted/10 transition-colors"
+                        className="flex gap-4 p-3 group hover:bg-muted/10 transition-colors"
                       >
                         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                           {item.products.image_url ? (
@@ -584,7 +584,7 @@ export function CartClient({
                           )}
                         </div>
 
-                        <div className="flex-grow min-w-0 flex flex-col justify-between gap-2">
+                        <div className="flex-grow min-w-0 flex flex-col justify-between">
                           <div className="flex justify-between items-start gap-2">
                             {/* Right Side: Product Info */}
                             <div className="text-right">
@@ -600,7 +600,7 @@ export function CartClient({
                             </div>
 
                             {/* Left Side: Quantity & Actions */}
-                            <div className="flex flex-col items-end gap-2 shrink-0">
+                            <div className="flex flex-col items-end justify-between h-20 shrink-0">
                               <div className="flex items-center gap-1.5">
                                 <div className="flex items-center border rounded-lg overflow-hidden h-8 bg-background">
                                   <button
