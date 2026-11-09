@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   FileText,
-  ShieldCheck,
   Package,
   Truck,
   MapPin,
@@ -34,7 +33,6 @@ import { roundTo250 } from "@/lib/round-to-250"
 
 export interface OrderData {
   id: string
-  verification_code: string
   store_name: string
   address: string
   phone: string
@@ -84,9 +82,6 @@ interface MyOrdersProps {
 // دالة طباعة القائمة
 function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: string, appSupportPhone?: string) {
   const invoiceNum = order.invoice_number ? String(order.invoice_number).padStart(5, '0') : '---';
-  const maskedCode = order.verification_code.length > 2 
-    ? order.verification_code[0] + 'X'.repeat(order.verification_code.length - 2) + order.verification_code[order.verification_code.length - 1]
-    : order.verification_code;
   
   const itemsRows = (order.items || []).map(item => `
     <tr>
@@ -139,10 +134,6 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
     .total-row { display:flex; justify-content:space-between; font-size:12px; color:#666; padding:3px 0; }
     .total-row.grand { font-size:16px; font-weight:800; color:#1a1a1a; border-top:2px solid #e85d26; padding-top:8px; margin-top:6px; }
     .total-row.grand .amount { color:#e85d26; }
-    .verification { text-align:center; margin:20px 0 16px; padding:16px; border:2px dashed #22c55e; border-radius:12px; background:#f0fdf4; }
-    .verification .label { font-size:11px; font-weight:700; color:#15803d; margin-bottom:6px; }
-    .verification .code { font-family:monospace; font-size:28px; font-weight:900; letter-spacing:0.3em; color:#15803d; }
-    .verification .warning { font-size:10px; color:#dc2626; margin-top:8px; font-weight:600; }
     .status { text-align:center; font-size:11px; font-weight:700; padding:6px; border-radius:6px; margin-bottom:16px; }
     .status.pending { background:#fef3c7; color:#92400e; }
     .status.delivered { background:#d1fae5; color:#065f46; }
@@ -208,12 +199,6 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
         <div class="total-row" style="color: #059669; font-weight: bold;"><span>المبلغ الواصل</span><span>${order.amount_paid.toLocaleString('en-US')} د.ع</span></div>
         <div class="total-row grand" style="color: #dc2626; border-top: 1px dashed #fca5a5; padding-top: 10px;"><span>الباقي (دين)</span><span class="amount">${(order.total_rounded - order.amount_paid).toLocaleString('en-US')} د.ع</span></div>
       ` : ''}
-    </div>
-
-    <div class="verification">
-      <div class="label">كود التحقق السري</div>
-      <div class="code">${maskedCode}</div>
-      <div class="warning">⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها</div>
     </div>
 
     <div class="footer">
@@ -519,22 +504,6 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
                     إلغاء الشراء
                   </Button>
                 </div>
-            </div>
-          )}
-
-          {/* كود التحقق */}
-          {order.verification_code && (
-            <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center space-y-2">
-              <div className="flex items-center justify-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">كود التحقق السري</span>
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-black tracking-[0.3em] text-emerald-700 dark:text-emerald-300 select-all" dir="ltr">
-                {order.verification_code}
-              </div>
-              <p className="text-[10px] text-destructive bg-destructive/10 inline-block px-2 py-1 rounded-md font-bold">
-                ⚠️ لا تسلم هذا الكود إلا بعد استلام المواد بالكامل والتأكد منها
-              </p>
             </div>
           )}
 

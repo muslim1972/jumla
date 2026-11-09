@@ -111,7 +111,6 @@ export async function getMerchantPendingOrders(merchantId: string) {
       invoice_number,
       merchant_id,
       user_id,
-      verification_code,
       delivery_worker_name,
       items:order_items(
         id,
@@ -193,9 +192,9 @@ export async function getMerchantPendingOrders(merchantId: string) {
   return { orders: resultOrders }
 }
 
-// 3. تأكيد الكود السري وتسليم الطلب
+// 3. تأكيد تسليم الطلب
 // amountReceived: المبلغ المستلم فعلياً من المشتري (يُحتسب كاملاً إجبارياً لغير مشتريي الثقة)
-export async function confirmDelivery(orderId: string, secretCode: string, amountReceived?: number) {
+export async function confirmDelivery(orderId: string, amountReceived?: number) {
   const supabase = await createClient()
 
   const { data: userResponse, error: authError } = await supabase.auth.getUser()
@@ -220,10 +219,10 @@ export async function confirmDelivery(orderId: string, secretCode: string, amoun
 
   const deliveryName = profile?.full_name || userResponse.user.user_metadata?.full_name || "عامل توصيل"
 
-  // جلب الطلب للتحقق من الكود
+  // جلب الطلب للتحقق
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, verification_code, status, merchant_id, user_id, invoice_number, is_credit, amount_paid, total_rounded")
+    .select("id, status, merchant_id, user_id, invoice_number, is_credit, amount_paid, total_rounded")
     .eq("id", orderId)
     .single()
 
@@ -233,10 +232,6 @@ export async function confirmDelivery(orderId: string, secretCode: string, amoun
 
   if (order.status !== "approved") {
     return { error: "هذا الطلب تم تسليمه مسبقاً أو أنه ملغي أو غير مجهز بعد" }
-  }
-
-  if (order.verification_code !== secretCode.trim()) {
-    return { error: "الكود السري غير صحيح، يرجى التأكد من المشتري" }
   }
 
   // المبلغ المطلوب تحصيله من المشتري

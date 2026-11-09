@@ -723,7 +723,8 @@ create policy profiles_staff_update on public.profiles
 --     (استرجاع طلب قيد التعديل) و(الخصم الذري) ليعملا على بنود المخزن الافتراضي
 --     مع سقوط تلقائي للطريقة القديمة إن لم يوجد بند (تاجر بلا وحدة مخازن)،
 --     وتسجيل كل حركة في دفتر warehouse_movements بمرجع الطلب.
-create or replace function public.create_order_atomic(p_merchant_id uuid, p_verification_code text, p_store_name text, p_address text, p_phone text, p_subtotal numeric, p_delivery_fee numeric, p_total_rounded numeric, p_is_credit boolean, p_amount_paid numeric, p_items jsonb)
+-- (طُهِّر معامل كود التحقق نهائياً وفق DEC-36 — الترحيل المرجعي: storefront/03-remove-verification-code.sql)
+create or replace function public.create_order_atomic(p_merchant_id uuid, p_store_name text, p_address text, p_phone text, p_subtotal numeric, p_delivery_fee numeric, p_total_rounded numeric, p_is_credit boolean, p_amount_paid numeric, p_items jsonb)
  returns table(order_id uuid, invoice_number text)
  language plpgsql
  security definer
@@ -886,7 +887,6 @@ begin
   -- 5. إنشاء أو تحديث الطلب
   if v_editing_id is not null then
     update orders set
-      verification_code = p_verification_code,
       store_name = p_store_name,
       address = p_address,
       phone = p_phone,
@@ -907,11 +907,11 @@ begin
     v_invoice_num := public.get_next_invoice_number(p_merchant_id);
 
     insert into orders (
-      user_id, merchant_id, verification_code, store_name, address, phone,
+      user_id, merchant_id, store_name, address, phone,
       subtotal, delivery_fee, total_rounded, status, support_phone,
       invoice_number, is_credit, amount_paid, latitude, longitude
     ) values (
-      v_user_id, p_merchant_id, p_verification_code, p_store_name, p_address, p_phone,
+      v_user_id, p_merchant_id, p_store_name, p_address, p_phone,
       p_subtotal, p_delivery_fee, p_total_rounded, 'pending', v_support_phone,
       v_invoice_num, p_is_credit, coalesce(p_amount_paid, p_total_rounded),
       nullif(v_lat, '')::numeric, nullif(v_lon, '')::numeric

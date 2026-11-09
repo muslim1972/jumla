@@ -14,7 +14,6 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
-import { generateVerificationCode } from "@/lib/generate-code"
 import type { InvoiceItem } from "@/features/orders/components/invoice-preview"
 import { MyOrders, type OrderData } from "@/features/orders/components/my-orders"
 import { Archive } from "lucide-react"
@@ -113,7 +112,6 @@ export function CartClient({
     address: buyerProfile.address || "",
     phone: buyerProfile.phone || ""
   } : null)
-  const [verificationCode, setVerificationCode] = useState("")
 
   // حالة تتبع المشتريات
   const [showMyOrders, setShowMyOrders] = useState(false)
@@ -287,7 +285,6 @@ export function CartClient({
   // بعد إدخال بيانات التوصيل → عرض الفاتورة
   const handleDeliveryInfoConfirm = useCallback((data: { storeName: string; address: string; phone: string }) => {
     setDeliveryInfo(data)
-    setVerificationCode(generateVerificationCode())
     setShowCheckoutDialog(false)
     setShowInvoice(true)
   }, [])
@@ -308,7 +305,6 @@ export function CartClient({
 
     const result = await createOrder({
       merchantId: checkoutMerchantId,
-      verificationCode,
       storeName: deliveryInfo.storeName,
       address: deliveryInfo.address,
       phone: deliveryInfo.phone,
@@ -340,18 +336,16 @@ export function CartClient({
     setShowInvoice(false)
     setCheckoutMerchantId(null)
     setDeliveryInfo(null)
-    setVerificationCode("")
 
     // فتح تتبع المشتريات تلقائياً
     handleOpenMyOrders()
-  }, [checkoutMerchantId, deliveryInfo, merchantGroups, verificationCode])
+  }, [checkoutMerchantId, deliveryInfo, merchantGroups])
 
   // إلغاء عملية الشراء
   const handleCancelOrder = useCallback(() => {
     setShowInvoice(false)
     setCheckoutMerchantId(null)
     setDeliveryInfo(null)
-    setVerificationCode("")
   }, [])
 
   // فتح تتبع المشتريات
@@ -752,7 +746,6 @@ export function CartClient({
           items={invoiceItems}
           merchantName={currentGroup.merchantName}
           deliveryFee={currentGroupEffectiveDeliveryFee}
-          verificationCode={verificationCode}
           deliveryInfo={deliveryInfo}
           isTrusted={trustedMerchantIds.includes(currentGroup.merchantId)}
           onConfirmOrder={handleConfirmOrder}

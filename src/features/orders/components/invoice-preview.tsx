@@ -40,7 +40,6 @@ interface InvoicePreviewProps {
   items: InvoiceItem[]
   merchantName: string
   deliveryFee: number
-  verificationCode: string
   deliveryInfo: {
     storeName: string
     address: string
@@ -57,7 +56,6 @@ export function InvoicePreview({
   items,
   merchantName,
   deliveryFee,
-  verificationCode,
   deliveryInfo,
   isTrusted,
   onConfirmOrder,
@@ -164,23 +162,6 @@ export function InvoicePreview({
           <p className="text-xs text-muted-foreground">
             {dateStr} — {timeStr}
           </p>
-        </div>
-
-        {/* كود التحقق */}
-        <div className="bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl p-4 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent)]" />
-          <div className="relative">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">كود التحقق</span>
-            </div>
-            <div className="font-mono text-4xl font-black tracking-[0.3em] text-emerald-700 dark:text-emerald-300 dir-ltr" dir="ltr">
-              {verificationCode}
-            </div>
-            <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-2">
-              يُقدّم لعامل التوصيل عند استلام المنتجات لتأكيد الاستلام
-            </p>
-          </div>
         </div>
 
         {/* بيانات التاجر */}

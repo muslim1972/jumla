@@ -33,7 +33,6 @@ export async function getMerchantOrders() {
       subtotal,
       delivery_fee,
       invoice_number,
-      verification_code,
       status,
       cancel_requested,
       pending_edits,

@@ -4,11 +4,11 @@
 
 -- 1. جدول الطلبات (orders)
 -- كل طلب مرتبط بتاجر واحد فقط (فاتورة لكل تاجر على حدة)
+-- (عمود كود التحقق حُذف نهائياً وفق DEC-36 — الترحيل: storefront/03-remove-verification-code.sql)
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) NOT NULL,
   merchant_id UUID REFERENCES auth.users(id) NOT NULL,
-  verification_code VARCHAR(7) NOT NULL,
   store_name TEXT NOT NULL,
   address TEXT NOT NULL,
   phone VARCHAR(11) NOT NULL,
@@ -32,20 +32,17 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. فهرس فريد لكود التحقق لمنع التكرار
-CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_verification_code ON orders(verification_code);
-
--- 4. فهارس للأداء
+-- 3. فهارس للأداء
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_merchant_id ON orders(merchant_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 
--- 5. تمكين RLS
+-- 4. تمكين RLS
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
--- 6. سياسات RLS للطلبات
+-- 5. سياسات RLS للطلبات
 -- المشتري يستطيع رؤية طلباته فقط
 CREATE POLICY "Users can view own orders"
   ON orders FOR SELECT
@@ -66,7 +63,7 @@ CREATE POLICY "Merchants can update order status"
   ON orders FOR UPDATE
   USING (auth.uid() = merchant_id);
 
--- 7. سياسات RLS لعناصر الطلب
+-- 6. سياسات RLS لعناصر الطلب
 -- القراءة: المشتري صاحب الطلب أو التاجر
 CREATE POLICY "Users can view own order items"
   ON order_items FOR SELECT

@@ -46,7 +46,6 @@
         "src/components/ui/skeleton.tsx",
         "src/hooks/use-debounce.ts",
         "src/lib/app-context.ts",
-        "src/lib/generate-code.ts",
         "src/lib/round-to-250.ts",
         "src/lib/utils.ts",
         "src/proxy.ts",

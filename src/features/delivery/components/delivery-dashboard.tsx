@@ -448,7 +448,6 @@ import { Star } from "lucide-react"
 function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettlementMode = false }: { order: any, isHistoryMode?: boolean, isSettlementMode?: boolean }) {
   const [order, setOrder] = useState(initialOrder)
   const [isExpanded, setIsExpanded] = useState(false)
-  const [secretCode, setSecretCode] = useState("")
 
   // حالة نافذة التقييم
   const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
@@ -480,10 +479,6 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (secretCode.length !== 7) {
-      setErrorMsg("الكود يجب أن يتكون من 7 رموز")
-      return
-    }
 
     // غير مشتري الثقة: يُستلم كامل المبلغ إجبارياً (يُفرض خادمياً أيضاً)
     const finalAmount = buyerIsTrusted ? receivedNum : requiredAmount
@@ -494,7 +489,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
 
     setIsSubmitting(true)
     setErrorMsg("")
-    const result = await confirmDelivery(order.id, secretCode, finalAmount)
+    const result = await confirmDelivery(order.id, finalAmount)
     setIsSubmitting(false)
 
     if (result.error) {
@@ -689,25 +684,13 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               <div className="bg-brand-orange/5 border border-brand-orange/20 p-3 rounded-lg flex items-start gap-3">
                 <ShieldCheck className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" />
                 <p className="text-xs sm:text-sm text-brand-blue/90 font-medium leading-relaxed">
-                  أدخل كود القائمة السري بعد تأكيد تسليم المواد للمشتري واستلامك لمبلغ القائمة بالكامل.
+                  أكد تسليم المواد للمشتري واستلامك لمبلغ القائمة.
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="أدخل الكود المكون من 7 رموز"
-                  value={secretCode}
-                  onChange={(e) => setSecretCode(e.target.value)}
-                  className="font-mono text-center tracking-widest text-lg h-12"
-                  dir="ltr"
-                  maxLength={7}
-                  disabled={isSubmitting}
-                />
-                {errorMsg && (
-                  <p className="text-sm text-red-500 font-medium text-center">{errorMsg}</p>
-                )}
-              </div>
+              {errorMsg && (
+                <p className="text-sm text-red-500 font-medium text-center">{errorMsg}</p>
+              )}
 
               {/* حقلا المبلغ المستلم والمبلغ الباقي — يُفعّلان لمشتريي قائمة الثقات فقط */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -752,7 +735,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
               <Button 
                 type="submit" 
                 className="w-full h-12 text-sm sm:text-base font-bold bg-brand-orange hover:bg-brand-orange/90 text-white"
-                disabled={isSubmitting || secretCode.length !== 7}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

@@ -15,7 +15,6 @@ import { checkAndNotifyLowStock } from "@/features/warehouse/low-stock"
  */
 export async function createOrder(data: {
   merchantId: string
-  verificationCode: string
   storeName: string
   address: string
   phone: string
@@ -66,7 +65,6 @@ export async function createOrder(data: {
     // أي فشل (كمية غير كافية مثلاً) يتراجع عن كل شيء تلقائياً — انظر scripts/create-order-transaction.sql
     const { data: result, error: rpcError } = await supabase.rpc('create_order_atomic', {
       p_merchant_id: data.merchantId,
-      p_verification_code: data.verificationCode,
       p_store_name: data.storeName,
       p_address: data.address,
       p_phone: data.phone,
