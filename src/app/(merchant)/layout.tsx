@@ -31,23 +31,28 @@ export default async function MerchantLayout({
 
   const supabase = await createClient()
 
-  const [pendingOrdersResponse, unpaidBillsResponse] = await Promise.all([
-    // جلب عدد الطلبات قيد الانتظار الأولية (والتي تشمل قيد الانتظار والمسلمة بانتظار استلام المبلغ)
-    supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('merchant_id', ctx.merchantId)
-      .in('status', ['pending', 'delivered']),
-    // جلب عدد فواتير التطبيق غير المسددة
-    supabase
-      .from('merchant_billings')
-      .select('*', { count: 'exact', head: true })
-      .eq('merchant_id', ctx.merchantId)
-      .neq('status', 'paid'),
-  ])
-
-  const { count: initialPendingCount } = pendingOrdersResponse
-  const { count: initialUnpaidBillsCount } = unpaidBillsResponse
+  let initialPendingCount = 0
+  let initialUnpaidBillsCount = 0
+  if (
+    ctx.role === "merchant" ||
+    ctx.permissions.includes("sales") ||
+    ctx.permissions.includes("warehouse")
+  ) {
+    const [pendingOrdersResponse, unpaidBillsResponse] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("merchant_id", ctx.merchantId)
+        .in("status", ["pending", "delivered"]),
+      supabase
+        .from("merchant_billings")
+        .select("*", { count: "exact", head: true })
+        .eq("merchant_id", ctx.merchantId)
+        .neq("status", "paid"),
+    ])
+    initialPendingCount = pendingOrdersResponse.count ?? 0
+    initialUnpaidBillsCount = unpaidBillsResponse.count ?? 0
+  }
 
   return (
     <div className="flex flex-col flex-1 w-full">
@@ -76,12 +81,22 @@ export default async function MerchantLayout({
           </div>
 
           <MerchantTabs
-            merchantId={ctx.merchantId}
-            initialPendingCount={initialPendingCount || 0}
-            initialUnpaidBillsCount={initialUnpaidBillsCount || 0}
+            merchantId={
+              ctx.role === "merchant_staff" &&
+              !ctx.permissions.includes("sales") &&
+              !ctx.permissions.includes("warehouse")
+                ? undefined
+                : ctx.merchantId
+            }
+            initialPendingCount={initialPendingCount}
+            initialUnpaidBillsCount={initialUnpaidBillsCount}
             staffPermissions={
               ctx.role === "merchant_staff"
-                ? { sales: ctx.permissions.includes("sales"), warehouse: ctx.permissions.includes("warehouse") || ctx.permissions.includes("picking") }
+                ? {
+                    sales: ctx.permissions.includes("sales"),
+                    warehouse: ctx.permissions.includes("warehouse"),
+                    picking: ctx.permissions.includes("picking"),
+                  }
                 : null
             }
           />

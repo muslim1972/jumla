@@ -21,8 +21,9 @@ export interface ActorContext {
 
 /** ترتيب الصفحة الرئيسية المناسبة للموظف حسب صلاحياته */
 export function resolveStaffHome(permissions: StaffPermission[]): string {
-  if (permissions.includes("warehouse") || permissions.includes("picking")) return "/dashboard/warehouses"
+  if (permissions.includes("warehouse")) return "/dashboard/warehouses"
   if (permissions.includes("sales")) return "/dashboard/orders"
+  if (permissions.includes("picking")) return "/dashboard/picking"
   return "/no-permission"
 }
 

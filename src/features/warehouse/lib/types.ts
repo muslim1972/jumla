@@ -128,6 +128,14 @@ export interface PickingList {
   items?: PickingListItem[]
 }
 
+export interface AssignedPickingSummary {
+  order_id: string
+  invoice_number: number | null
+  store_name: string | null
+  issued_at: string | null
+  status: "issued" | "picked"
+}
+
 /** مادة من الـ Pool المركزي — الحقول اللازمة لشاشة الإضافة فقط (تصغير الحمولة) */
 export interface PoolMasterProduct {
   id: string
@@ -205,4 +213,3 @@ export interface WarehouseDeductionRequest {
   product_name?: string
   warehouse_name?: string
 }
-

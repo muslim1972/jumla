@@ -43,6 +43,34 @@ const rootLayoutSource = readFileSync(
   new URL("../src/app/layout.tsx", import.meta.url),
   "utf8",
 )
+const merchantOrdersClientSource = readFileSync(
+  new URL("../src/app/(merchant)/dashboard/orders/orders-client.tsx", import.meta.url),
+  "utf8",
+)
+const pickingDialogSource = readFileSync(
+  new URL("../src/features/warehouse/components/picking-dialog.tsx", import.meta.url),
+  "utf8",
+)
+const assignedPickerMigrationSource = readFileSync(
+  new URL("../scripts/warehouse/10-assigned-picker-access.sql", import.meta.url),
+  "utf8",
+)
+const warehousePickingActionsSource = readFileSync(
+  new URL("../src/features/warehouse/picking/actions.ts", import.meta.url),
+  "utf8",
+)
+const pickingWorkspaceSource = readFileSync(
+  new URL("../src/features/warehouse/components/picking-workspace.tsx", import.meta.url),
+  "utf8",
+)
+const deliveryActionsSource = readFileSync(
+  new URL("../src/features/delivery/actions.ts", import.meta.url),
+  "utf8",
+)
+const deliveryDashboardSource = readFileSync(
+  new URL("../src/features/delivery/components/delivery-dashboard.tsx", import.meta.url),
+  "utf8",
+)
 const productExplorerSource = readFileSync(
   new URL("../src/features/products/components/product-explorer.tsx", import.meta.url),
   "utf8",
@@ -198,6 +226,48 @@ test("routes known notification types to the recipient's relevant screen", () =>
     getNotificationHref("نوع إشعار غير معروف", "تفاصيل"),
     "/",
   )
+})
+
+test("keeps the preparation dialog reachable and order details dismissible", () => {
+  assert.ok(!merchantOrdersClientSource.includes("setPickingOrderId(orderId) // افتح قائمة التجهيز مباشرة"))
+  assert.ok(merchantOrdersClientSource.includes("disablePointerDismissal={false}"))
+  assert.ok(merchantOrdersClientSource.includes('aria-label="إغلاق القائمة"'))
+  assert.ok(merchantOrdersClientSource.includes('القائمة #{order.invoice_number != null ? String(order.invoice_number).padStart(5, "0") : "—"}'))
+  assert.ok(merchantOrdersClientSource.includes("الطلب ينتظر الجمع والتسليم للمندوب. وسيتم إعلامك حال إتمام التسليم"))
+  assert.ok(merchantOrdersClientSource.includes("فتح قائمة التجهيز"))
+})
+
+test("routes assigned-picker notifications to the scoped picking workspace", () => {
+  const orderId = "123e4567-e89b-12d3-a456-426614174000"
+
+  assert.equal(
+    getNotificationHref("تم تعيينك لجمع قائمة تجهيز", "تم تعيينك", orderId),
+    `/dashboard/picking?openOrder=${orderId}`,
+  )
+  assert.equal(
+    getNotificationHref("تم تعيينك لجمع قائمة تجهيز", "تم تعيينك", null),
+    "/dashboard/picking",
+  )
+  assert.ok(assignedPickerMigrationSource.includes("and pl.picker_id = auth.uid()"))
+  assert.ok(assignedPickerMigrationSource.includes("create or replace function public.confirm_picking_atomic"))
+  assert.ok(assignedPickerMigrationSource.includes("ceil(v_shortage * coalesce(v_multiplier, 1))"))
+  assert.ok(assignedPickerMigrationSource.includes("for update"))
+  assert.ok(pickingDialogSource.includes("list.picker_id === currentUserId"))
+  assert.ok(pickingDialogSource.includes("canAssign && list.status === \"issued\""))
+  assert.ok(pickingWorkspaceSource.includes("تظهر هنا القوائم المسندة إلى حسابك فقط"))
+  assert.ok(!pickingWorkspaceSource.includes("total_rounded"))
+})
+
+test("completes courier handover atomically and discovers ready picking lists", () => {
+  assert.ok(warehousePickingActionsSource.includes('rpc("confirm_picking_handover"'))
+  assert.ok(assignedPickerMigrationSource.includes("create or replace function public.confirm_picking_handover"))
+  assert.ok(assignedPickerMigrationSource.includes("set status = 'handed_over'"))
+  assert.ok(assignedPickerMigrationSource.includes("set status = 'approved'"))
+  assert.ok(deliveryActionsSource.includes('.from("picking_lists")'))
+  assert.ok(deliveryActionsSource.includes('.eq("status", "picked")'))
+  assert.ok(deliveryActionsSource.includes('.eq("orders.status", "preparing")'))
+  assert.ok(deliveryDashboardSource.includes("if (result.warning) setHandoverNotice(result.warning)"))
+  assert.ok(deliveryDashboardSource.includes("table: 'picking_lists'"))
 })
 
 test("removes the redundant home button and moves store content below the global header", () => {

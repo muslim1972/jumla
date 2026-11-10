@@ -12,12 +12,15 @@ interface Props {
   orderId: string | null
   invoiceNumber: number | null
   storeName: string | null
+  currentUserId: string
   open: boolean
   onOpenChange: (open: boolean) => void
   /** الموظفون المتاح تعيينهم عمال تجهيز (بصلاحية picking) */
   pickers: StaffMember[]
   canManage: boolean   // التاجر أو موظف مخازن/مبيعات
-  canPick: boolean     // يمكنه تأكيد الجمع (عامل معيَّن أو موظف مخازن أو التاجر)
+  canAssign: boolean
+  canConfirmAsManager: boolean
+  canPick: boolean
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -27,7 +30,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "ملغاة", cls: "bg-red-500/10 text-red-600 dark:text-red-400" },
 }
 
-export function PickingDialog({ orderId, invoiceNumber, storeName, open, onOpenChange, pickers, canManage, canPick }: Props) {
+export function PickingDialog({ orderId, invoiceNumber, storeName, currentUserId, open, onOpenChange, pickers, canManage, canAssign, canConfirmAsManager, canPick }: Props) {
   // يُعاد تركيبه بالكامل لكل أمر بيع (key في الأب) — التحميل حالة أولية لا أثر للـ effect
   const [list, setList] = useState<PickingList | null>(null)
   const [loading, setLoading] = useState(true)
@@ -68,6 +71,7 @@ export function PickingDialog({ orderId, invoiceNumber, storeName, open, onOpenC
       else {
         const picker = pickers.find(p => p.id === pickerId)
         setList(prev => prev ? { ...prev, picker_id: pickerId, picker_name: picker?.full_name ?? null } : prev)
+        if (res?.warning) setError(res.warning)
       }
     })
   }
@@ -124,7 +128,7 @@ table{width:100%;border-collapse:collapse}th{background:#f8f9fa;font-size:12px;b
 th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-align:center}</style></head>
 <body><div class="box">
 <h1>جُملتي — قائمة تجهيز</h1>
-<div class="meta">أمر البيع: #${invoiceNumber ?? ""} · المتجر: ${storeName ?? ""} · صدرت: ${list.issued_at ? new Date(list.issued_at).toLocaleString("ar-IQ") : "—"} · أصدرها: ${list.issued_by_name || "—"}</div>
+<div class="meta">أمر البيع: #${invoiceNumber == null ? "—" : String(invoiceNumber).padStart(5, "0")} · المتجر: ${storeName ?? ""} · صدرت: ${list.issued_at ? new Date(list.issued_at).toLocaleString("ar-IQ") : "—"} · أصدرها: ${list.issued_by_name || "—"}</div>
 <div class="acc">⚖️ عامل التجهيز المسؤول: <b>${list.picker_name || "لم يُعيَّن بعد"}</b> — يُحمَّل مسؤولية أي نقص يُكتشف عند تسليم القائمة للمندوب (${list.handed_over_name ? `استلمها المندوب: ${list.handed_over_name}` : "لم تُسلَّم بعد"}).</div>
 <table><thead><tr><th style="text-align:right">المادة</th><th>المطلوب</th><th>المؤكد</th><th>النقص</th><th style="text-align:left">السبب</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="foot">توقيع عامل التجهيز: .................... · توقيع المندوب المستلم: ....................</div>
@@ -138,6 +142,14 @@ th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-alig
   }
 
   const badge = list ? STATUS_BADGE[list.status] : null
+  const canConfirmPicking = Boolean(
+    list &&
+    canPick &&
+    (canConfirmAsManager || list.picker_id === currentUserId),
+  )
+  const formattedInvoiceNumber = invoiceNumber == null
+    ? "—"
+    : String(invoiceNumber).padStart(5, "0")
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,7 +157,7 @@ th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-alig
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-right">
             <ClipboardList className="w-5 h-5 text-brand-orange shrink-0" />
-            قائمة تجهيز — أمر بيع #{invoiceNumber ?? "—"}
+            قائمة تجهيز — أمر بيع #{formattedInvoiceNumber}
           </DialogTitle>
           <DialogDescription className="text-right">
             {storeName}
@@ -169,7 +181,7 @@ th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-alig
             </div>
 
             {/* تعيين عامل التجهيز */}
-            {canManage && list.status === "issued" && (
+            {canAssign && list.status === "issued" && (
               <div className="space-y-1.5">
                 <div className="text-xs font-black flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> تعيين عامل التجهيز</div>
                 {pickers.length === 0 ? (
@@ -210,7 +222,7 @@ th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-alig
                   {(list.items || []).map(it => {
                     const confirmed = parseInt(confirmQty[it.id] ?? String(it.ordered_quantity), 10)
                     const shortage = Number.isFinite(confirmed) ? Math.max(0, it.ordered_quantity - confirmed) : 0
-                    const editable = list.status === "issued" && (canPick || (canManage && true))
+                    const editable = list.status === "issued" && canConfirmPicking
                     return (
                       <tr key={it.id} className={shortage > 0 ? "bg-red-500/5" : ""}>
                         <td className="p-2.5 font-bold">{it.product_name} <span className="text-[10px] text-muted-foreground">({it.unit_type})</span></td>
@@ -260,15 +272,15 @@ th,td{padding:8px 10px}.foot{margin-top:18px;font-size:11px;color:#888;text-alig
               <Button variant="outline" size="sm" className="font-bold" onClick={printList}>
                 <Printer className="w-3.5 h-3.5 ml-1" /> طباعة القائمة
               </Button>
+              {list.status === "issued" && canConfirmPicking && (
+                <Button size="sm" className="font-bold" disabled={isPending} onClick={doConfirmPick}>
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 ml-1" /> تأكيد اكتمال الجمع</>}
+                </Button>
+              )}
               {list.status === "issued" && canManage && (
-                <>
-                  <Button size="sm" className="font-bold" disabled={isPending} onClick={doConfirmPick}>
-                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><CheckCircle2 className="w-3.5 h-3.5 ml-1" /> تأكيد اكتمال الجمع</>}
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive font-bold" disabled={isPending} onClick={doCancel}>
-                    <XCircle className="w-3.5 h-3.5 ml-1" /> إلغاء القائمة
-                  </Button>
-                </>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive font-bold" disabled={isPending} onClick={doCancel}>
+                  <XCircle className="w-3.5 h-3.5 ml-1" /> إلغاء القائمة
+                </Button>
               )}
               {list.status === "picked" && (
                 <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">

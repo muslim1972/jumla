@@ -27,17 +27,20 @@ export default async function MerchantOrdersPage({
 
   const ctx = await getActorContext()
   if (!ctx) redirect("/login")
-  if (ctx.role === "merchant_staff" && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse") && !hasPermission(ctx, "picking")) {
+  if (ctx.role === "merchant_staff" && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse")) {
     redirect(resolveStaffHome(ctx.permissions))
   }
 
   const supabase = await createClient()
-  const { data: staffRows } = await supabase
-    .from("profiles")
-    .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
-    .eq("role", "merchant_staff")
-    .eq("parent_merchant_id", ctx.merchantId)
-    .eq("is_active", true)
+  const canAssignPicking = !ctx.isStaff || hasPermission(ctx, "warehouse")
+  const staffRows = canAssignPicking
+    ? (await supabase
+        .from("profiles")
+        .select("id, full_name, username, permissions, is_active, last_login_at, created_at")
+        .eq("role", "merchant_staff")
+        .eq("parent_merchant_id", ctx.merchantId)
+        .eq("is_active", true)).data
+    : []
 
   const pickers: StaffMember[] = ((staffRows ?? []) as Array<{
     id: string; full_name: string | null; username: string | null; permissions: string[] | null; is_active: boolean; last_login_at: string | null; created_at: string
@@ -73,6 +76,8 @@ export default async function MerchantOrdersPage({
       warehouseEnabled={ctx.warehouseEnabled}
       isStaff={ctx.isStaff}
       canManagePicking={!ctx.isStaff || hasPermission(ctx, "sales") || hasPermission(ctx, "warehouse")}
+      canAssignPicking={canAssignPicking}
+      canConfirmPickingAsManager={!ctx.isStaff || hasPermission(ctx, "warehouse")}
       canPick={!ctx.isStaff || hasPermission(ctx, "picking") || hasPermission(ctx, "warehouse")}
       canReceiveMoney={!ctx.isStaff}
       pickers={pickers}

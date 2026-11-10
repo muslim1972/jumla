@@ -16,8 +16,12 @@ export function DeliveryDashboard() {
   const [pendingCount, setPendingCount] = useState(0)
 
   const loadPendingCount = useCallback(async () => {
-    const { count } = await getDeliveryPendingCount()
-    setPendingCount(count)
+    const result = await getDeliveryPendingCount()
+    if ("error" in result) {
+      console.error("Delivery pending count error:", result.error)
+      return
+    }
+    setPendingCount(result.count)
   }, [])
 
   useEffect(() => {
@@ -38,6 +42,11 @@ export function DeliveryDashboard() {
           if (!relevant) return
           loadPendingCount()
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'picking_lists' },
+        () => loadPendingCount()
       )
       .subscribe()
 
@@ -140,6 +149,11 @@ function CurrentDeliveries() {
           if (merchantsRef.current.length > 0 && mid && !merchantsRef.current.some((m: any) => m.id === mid)) return
           loadMerchants()
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'picking_lists' },
+        () => loadMerchants()
       )
       .subscribe()
 
@@ -413,7 +427,19 @@ function MerchantOrders({ merchantId }: { merchantId: string }) {
           filter: `merchant_id=eq.${merchantId}` 
         },
         async () => {
-          // جلب الطلبات من جديد لتحديث الحالة صامتاً
+          const result = await getMerchantPendingOrders(merchantId)
+          if (result.orders) setOrders(result.orders)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'picking_lists',
+          filter: `merchant_id=eq.${merchantId}`,
+        },
+        async () => {
           const result = await getMerchantPendingOrders(merchantId)
           if (result.orders) setOrders(result.orders)
         }
@@ -453,6 +479,7 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
   const [ratingTarget, setRatingTarget] = useState<{id: string, name: string, role: string} | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
+  const [handoverNotice, setHandoverNotice] = useState("")
 
   // استلام القائمة من مخزن التاجر (طلبات قيد التجهيز التي اكتمل جمعها)
   const readyForPickup = !!order.ready_for_pickup && order.status === "preparing"
@@ -461,12 +488,14 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
   const handleConfirmPickup = async () => {
     setIsConfirmingPickup(true)
     setErrorMsg("")
+    setHandoverNotice("")
     const result = await confirmPickupByRep(order.id)
     setIsConfirmingPickup(false)
     if (result.error) {
       setErrorMsg(result.error)
     } else {
       setOrder({ ...order, status: "approved" })
+      if (result.warning) setHandoverNotice(result.warning)
     }
   }
 
@@ -627,6 +656,12 @@ function OrderDeliveryCard({ order: initialOrder, isHistoryMode = false, isSettl
           </div>
         </div>
       </button>
+
+      {handoverNotice && (
+        <p role="status" className="px-4 pb-3 text-xs font-bold text-amber-700 dark:text-amber-300">
+          {handoverNotice}
+        </p>
+      )}
 
       {isExpanded && (
         <div className="p-4 border-t bg-muted/10 animate-in slide-in-from-top-2">

@@ -3,7 +3,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import { getActorContext, hasPermission, type ActorContext } from "@/features/staff/lib/guard"
-import { multiplierToBase } from "@/features/warehouse/lib/helpers"
+import type { AssignedPickingSummary } from "@/features/warehouse/lib/types"
 
 // ============================================================================
 // قوائم التجهيز: إصدار ← تعيين عامل تجهيز ← تأكيد الجمع (مع تثبيت المسؤولية)
@@ -147,43 +147,45 @@ export async function sendOrderToWarehouse(orderId: string) {
 
 /** تعيين عامل التجهيز — يثبّت اسمه على القائمة وفي النظام للمساءلة */
 export async function assignPicker(listId: string, pickerStaffId: string) {
-  const supabase = await createClient()
   const ctx = await getActorContext()
   if (!ctx) return { error: "غير مصرح" }
   if (!hasPermission(ctx, "warehouse")) return { error: "اعتماد القوائم لصاحب المتجر أو موظف المخازن" }
 
-  const { data: picker } = await supabase
-    .from("profiles")
-    .select("id, full_name, role, is_active, parent_merchant_id, permissions")
-    .eq("id", pickerStaffId)
-    .single()
-  if (
-    !picker ||
-    picker.role !== "merchant_staff" ||
-    !picker.is_active ||
-    picker.parent_merchant_id !== ctx.merchantId ||
-    !(picker.permissions as string[] | null)?.includes("picking")
-  ) {
-    return { error: "عامل التجهيز يجب أن يكون موظفاً نشطاً بصلاحية التجهيز" }
-  }
-
-  const { data: list } = await supabase
-    .from("picking_lists")
-    .select("id, status, merchant_id")
-    .eq("id", listId)
-    .single()
-  if (!list || list.merchant_id !== ctx.merchantId) return { error: "القائمة غير موجودة" }
-  if (list.status === "handed_over" || list.status === "cancelled") {
-    return { error: "لا يمكن تعيين عامل لقائمة منتهية" }
-  }
-
-  const { error } = await supabase
-    .from("picking_lists")
-    .update({ picker_id: picker.id, picker_name: picker.full_name })
-    .eq("id", listId)
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("assign_picking_worker", {
+    p_list_id: listId,
+    p_picker_staff_id: pickerStaffId,
+  })
   if (error) return { error: error.message }
 
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("order_id" in data) ||
+    typeof data.order_id !== "string" ||
+    !("invoice_number" in data) ||
+    (data.invoice_number !== null && typeof data.invoice_number !== "number")
+  ) {
+    return { error: "تم تحديث التعيين، لكن تعذر التحقق من بيانات إشعار العامل." }
+  }
+
+  const invoiceNumber = data.invoice_number == null
+    ? "—"
+    : String(data.invoice_number).padStart(5, "0")
+  const { error: notificationError } = await supabase.from("notifications").insert({
+    user_id: pickerStaffId,
+    title: "تم تعيينك لجمع قائمة تجهيز",
+    message: `تم تعيينك لجمع القائمة رقم #${invoiceNumber}. افتح الإشعار لمراجعة المواد وتأكيد الجمع.\n[order_id:${data.order_id}]`,
+  })
+
   refresh()
+  if (notificationError) {
+    console.error("Picker assignment notification error:", notificationError.message)
+    return {
+      success: true,
+      warning: "تم تعيين العامل، لكن تعذر تسجيل إشعاره داخل التطبيق. أعد محاولة الإشعار أو أبلغه مباشرة.",
+    }
+  }
   return { success: true }
 }
 
@@ -203,87 +205,24 @@ export async function confirmPicking(listId: string, confirmations: PickConfirma
   const ctx = await getActorContext()
   if (!ctx) return { error: "غير مصرح" }
 
-  const { data: list } = await supabase
-    .from("picking_lists")
-    .select("id, status, merchant_id, picker_id, picker_name, order_id")
-    .eq("id", listId)
-    .single()
-  if (!list || list.merchant_id !== ctx.merchantId) return { error: "القائمة غير موجودة" }
-  if (list.status !== "issued") return { error: "القائمة ليست في مرحلة الجمع" }
-
-  // من يجمع فعلياً؟ العامل المعيَّن بصلاحية picking — أو موظف المخازن/التاجر نيابةً عنه
-  const isAssignedPicker = ctx.isStaff && ctx.userId === list.picker_id && hasPermission(ctx, "picking")
-  const isWarehouseManager = !ctx.isStaff || hasPermission(ctx, "warehouse")
-  if (!isAssignedPicker && !isWarehouseManager) {
-    return { error: "الجمع محصور بعامل التجهيز المعيَّن أو موظف المخازن" }
-  }
-
-  const { data: listItems, error: itemsError } = await supabase
-    .from("picking_list_items")
-    .select("id, product_id, product_name, unit_type, ordered_quantity")
-    .eq("picking_list_id", listId)
-  if (itemsError || !listItems) return { error: "تعذر جلب بنود القائمة" }
-
-  // الوحدات والمضاعفات لتحويل النقص إلى وحدة الأساس
-  const productIds = [...new Set(listItems.map(i => i.product_id).filter(Boolean))] as string[]
-  const { data: products } = await supabase
-    .from("products")
-    .select("id, units, unit_conversions")
-    .in("id", productIds.length > 0 ? productIds : ["00000000-0000-0000-0000-000000000000"])
-  const productMap = new Map((products || []).map(p => [p.id, p]))
-
-  const shortageRestores: { productId: string, baseQty: number, itemRef: string }[] = []
-
-  for (const li of listItems) {
-    const conf = confirmations.find(c => c.item_id === li.id)
-    const confirmed = conf ? Math.max(0, Math.min(li.ordered_quantity, Math.floor(conf.confirmed_quantity))) : li.ordered_quantity
-    const shortage = li.ordered_quantity - confirmed
-
-    const { error: upError } = await supabase
-      .from("picking_list_items")
-      .update({
-        confirmed_quantity: confirmed,
-        shortage_quantity: shortage,
-        shortage_reason: shortage > 0 ? (conf?.shortage_reason?.trim() || "غير محدد") : null,
-      })
-      .eq("id", li.id)
-    if (upError) return { error: upError.message }
-
-    if (shortage > 0 && li.product_id) {
-      const product = productMap.get(li.product_id)
-      const conversions = product?.unit_conversions || []
-      const baseQty = Math.round(shortage * multiplierToBase(li.unit_type, conversions))
-      if (baseQty > 0) shortageRestores.push({ productId: li.product_id, baseQty, itemRef: li.id })
-    }
-  }
-
-  const { error: pickError } = await supabase
-    .from("picking_lists")
-    .update({ status: "picked", picked_at: new Date().toISOString() })
-    .eq("id", listId)
-  if (pickError) return { error: pickError.message }
-
-  // إرجاع النقص إلى بند المخزن الافتراضي بحركة موثقة
-  for (const r of shortageRestores) {
-    const { data: item } = await supabase
-      .from("warehouse_items")
-      .select("id")
-      .eq("product_id", r.productId)
-      .single() // عبر RLS يرى الفاعل بنود تاجرِه فقط
-    if (item) {
-      await supabase.rpc("warehouse_apply_movement", {
-        p_item_id: item.id,
-        p_kind: "shortage_return",
-        p_quantity: r.baseQty,
-        p_note: `إرجاع نقص قائمة التجهيز — المسؤول: ${list.picker_name || "غير معيَّن"}`,
-        p_reference_type: "picking_list_items",
-        p_reference_id: r.itemRef,
-      })
-    }
+  const { data, error } = await supabase.rpc("confirm_picking_atomic", {
+    p_list_id: listId,
+    p_confirmations: confirmations,
+  })
+  if (error) return { error: error.message }
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("success" in data) ||
+    data.success !== true ||
+    !("shortages" in data) ||
+    typeof data.shortages !== "number"
+  ) {
+    return { error: "تعذر التحقق من نتيجة تأكيد الجمع" }
   }
 
   refresh()
-  return { success: true, shortages: shortageRestores.length }
+  return { success: true, shortages: data.shortages }
 }
 
 /** إلغاء القائمة وإعادة الطلب إلى «بانتظار الموافقة» (مثلاً لتغيير طريقة المعالجة) */
@@ -340,6 +279,39 @@ export async function getPickingListByOrder(orderId: string) {
   return { list: { ...list, items: items || [] } }
 }
 
+export async function getAssignedPickingLists() {
+  const ctx = await getActorContext()
+  if (!ctx) return { error: "غير مصرح" }
+  if (!ctx.isStaff || !hasPermission(ctx, "picking")) {
+    return { error: "هذه الصفحة مخصصة لموظف التجهيز" }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("get_assigned_picking_lists")
+  if (error) return { error: error.message }
+  if (!Array.isArray(data) || !data.every(isAssignedPickingSummary)) {
+    return { error: "تعذر قراءة قوائم التجهيز المعيّنة بصيغة صحيحة" }
+  }
+
+  return { lists: data }
+}
+
+function isAssignedPickingSummary(value: unknown): value is AssignedPickingSummary {
+  if (typeof value !== "object" || value === null) return false
+  if (!("order_id" in value) || typeof value.order_id !== "string") return false
+  if (
+    !("invoice_number" in value) ||
+    (value.invoice_number !== null && typeof value.invoice_number !== "number")
+  ) return false
+  if (!("store_name" in value) || (value.store_name !== null && typeof value.store_name !== "string")) {
+    return false
+  }
+  if (!("issued_at" in value) || (value.issued_at !== null && typeof value.issued_at !== "string")) {
+    return false
+  }
+  return "status" in value && (value.status === "issued" || value.status === "picked")
+}
+
 /**
  * تأكيد استلام المندوب للقائمة عند التحميل — يثبّت اسم المندوب ووقت الاستلام،
  * ومن هنا تُحمَّل مسؤولية أي نقص لاحق على عامل التجهيز المثبَّت اسمه.
@@ -349,55 +321,65 @@ export async function confirmPickupByRep(orderId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "غير مصرح" }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role")
     .eq("id", user.id)
     .single()
+  if (profileError) return { error: profileError.message }
   if (profile?.role !== "delivery") return { error: "هذا الإجراء للمندوبين فقط" }
 
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id, merchant_id, status, invoice_number")
-    .eq("id", orderId)
-    .single()
-  if (!order) return { error: "الطلب غير موجود" }
-  if (order.status !== "approved") return { error: "الطلب غير جاهز للاستلام بعد" }
-
-  const { data: list } = await supabase
-    .from("picking_lists")
-    .select("id, status, picker_name")
-    .eq("order_id", orderId)
-    .single()
-  if (!list) return { success: true } // متاجر بلا وحدة مخازن: لا قائمة ولا شيء مطلوب
-  if (list.status !== "picked") return { error: "لم يكتمل جمع القائمة بعد" }
-
-  const { error } = await supabase
-    .from("picking_lists")
-    .update({
-      status: "handed_over",
-      handed_over_at: new Date().toISOString(),
-      handed_over_by: user.id,
-      handed_over_name: profile.full_name || null,
-    })
-    .eq("id", list.id)
-    .eq("status", "picked")
-  if (error) return { error: error.message }
-
-  // الطلب يصبح رسمياً «بانتظار المندوب» — ينتقل لسير التوصيل الاعتيادي (رمز المشتري وغيره)
-  await supabase
-    .from("orders")
-    .update({ status: "approved" })
-    .eq("id", orderId)
-    .eq("status", "preparing")
-
-  // إعلام التاجر باستلام المندوب للقائمة
-  await supabase.from("notifications").insert({
-    user_id: order.merchant_id,
-    title: "المندوب استلم القائمة",
-    message: `استلم المندوب قائمة تجهيز الفاتورة #${order.invoice_number} (عامل التجهيز: ${list.picker_name || "غير معيَّن"}).\n[order_id:${order.id}]`,
+  const { data, error } = await supabase.rpc("confirm_picking_handover", {
+    p_order_id: orderId,
   })
+  if (error) return { error: error.message }
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("has_picking_list" in data) ||
+    typeof data.has_picking_list !== "boolean"
+  ) {
+    return { error: "تعذر التحقق من نتيجة استلام القائمة" }
+  }
+
+  if (data.has_picking_list) {
+    if (
+      !("order_id" in data) ||
+      typeof data.order_id !== "string" ||
+      !("merchant_id" in data) ||
+      typeof data.merchant_id !== "string" ||
+      !("invoice_number" in data) ||
+      (data.invoice_number !== null && typeof data.invoice_number !== "number") ||
+      !("picker_name" in data) ||
+      (data.picker_name !== null && typeof data.picker_name !== "string") ||
+      !("already_confirmed" in data) ||
+      typeof data.already_confirmed !== "boolean"
+    ) {
+      return { error: "تم تسجيل الاستلام، لكن تعذر التحقق من بيانات إشعار التاجر." }
+    }
+
+    if (!data.already_confirmed) {
+      const invoiceNumber = data.invoice_number == null
+        ? "—"
+        : String(data.invoice_number).padStart(5, "0")
+      const { error: notificationError } = await supabase.from("notifications").insert({
+        user_id: data.merchant_id,
+        title: "المندوب استلم القائمة",
+        message: `استلم المندوب قائمة تجهيز الفاتورة #${invoiceNumber} (عامل التجهيز: ${data.picker_name || "غير معيَّن"}).\n[order_id:${data.order_id}]`,
+      })
+      if (notificationError) {
+        console.error("Picking handover notification error:", notificationError.message)
+        refresh()
+        revalidatePath("/")
+        return {
+          success: true,
+          warning: "تم تثبيت استلام المندوب، لكن تعذر تسجيل إشعار التاجر. أبلغه مباشرة.",
+        }
+      }
+    }
+  }
 
   revalidatePath("/")
+  refresh()
   return { success: true }
 }

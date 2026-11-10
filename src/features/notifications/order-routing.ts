@@ -41,6 +41,10 @@ export function getNotificationHref(
       return getOrderEditNotificationHref(title, message, orderId) ?? "/cart?openOrders=1"
     case "طلب جديد!":
       return getOrderHref("/dashboard/orders", message, orderId, "/dashboard/orders")
+    case "تم تعيينك لجمع قائمة تجهيز":
+      return orderId && ORDER_ID_PATTERN.test(orderId)
+        ? `/dashboard/picking?openOrder=${encodeURIComponent(orderId)}`
+        : "/dashboard/picking"
     case "وافق المشتري على التعديلات":
     case "المندوب استلم القائمة":
     case "تم التوصيل!":

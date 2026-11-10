@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion, proposeOrderEdits } from "./actions"
-import { CheckCircle, ChevronDown, ChevronUp, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
+import { CheckCircle, ChevronDown, ChevronUp, X, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -25,6 +25,8 @@ interface OrdersClientProps {
   warehouseEnabled: boolean
   isStaff: boolean
   canManagePicking: boolean
+  canAssignPicking: boolean
+  canConfirmPickingAsManager: boolean
   canPick: boolean
   canReceiveMoney: boolean
   pickers: StaffMember[]
@@ -32,7 +34,7 @@ interface OrdersClientProps {
   requestedInvoiceNumber?: number
 }
 
-export function OrdersClient({ initialOrders = [], merchantId, currentUserId, warehouseEnabled, isStaff, canManagePicking, canPick, canReceiveMoney, pickers, requestedOrderId, requestedInvoiceNumber }: OrdersClientProps) {
+export function OrdersClient({ initialOrders = [], merchantId, currentUserId, warehouseEnabled, isStaff, canManagePicking, canAssignPicking, canConfirmPickingAsManager, canPick, canReceiveMoney, pickers, requestedOrderId, requestedInvoiceNumber }: OrdersClientProps) {
   const router = useRouter()
   const handledOrderLinkRef = useRef<string | null>(null)
   const [orders, setOrders] = useState<any[]>(initialOrders)
@@ -167,9 +169,6 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
       const updatedOrder = { ...orders.find(o => o.id === orderId), status: newStatus };
       setOrders(orders.map(o => o.id === orderId ? updatedOrder : o))
       if (selectedOrder?.id === orderId) setSelectedOrder(updatedOrder)
-      if (result.preparing && warehouseEnabled) {
-        setPickingOrderId(orderId) // افتح قائمة التجهيز مباشرة لتعيين العامل
-      }
     } else if (result.error) {
       setErrorMsg(result.error)
     }
@@ -494,10 +493,13 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
         orderId={pickingOrderId}
         invoiceNumber={orders.find(o => o.id === pickingOrderId)?.invoice_number ?? null}
         storeName={orders.find(o => o.id === pickingOrderId)?.store_name ?? null}
+        currentUserId={currentUserId}
         open={!!pickingOrderId}
         onOpenChange={(open) => { if (!open) { setPickingOrderId(null); loadOrders() } }}
         pickers={pickers}
         canManage={canManagePicking}
+        canAssign={canAssignPicking}
+        canConfirmAsManager={canConfirmPickingAsManager}
         canPick={canPick}
       />
     </div>
@@ -658,25 +660,36 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
   const previewTotal = Math.round((previewSubtotal + (order.delivery_fee || 0)) / 250) * 250
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} disablePointerDismissal={false}>
       <DialogContent className="max-w-md sm:max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none" showCloseButton={false}>
         <div className="bg-card rounded-xl border border-border/40 shadow-premium overflow-hidden mx-2 sm:mx-0">
           <DialogHeader className={cn(
-            "p-4 sm:p-6 border-b text-right",
+            "relative p-4 sm:p-6 border-b text-right",
             isCancellation ? "bg-purple-500/5" :
             isDelivered ? "bg-red-500/5" :
             isApproved ? "bg-emerald-500/5" : "bg-amber-500/5"
           )}>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              aria-label="إغلاق القائمة"
+              className="absolute left-3 top-3 z-10 inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-4" />
+            </button>
             <DialogTitle className={cn(
-              "flex items-center justify-between text-base sm:text-lg font-black",
+              "flex items-center gap-2 pl-8 text-base sm:text-lg font-black",
               isCancellation ? "text-purple-700 dark:text-purple-500" :
               isDelivered ? "text-red-700 dark:text-red-500" :
               isApproved ? "text-emerald-700 dark:text-emerald-500" : "text-amber-700 dark:text-amber-500"
             )}>
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 shrink-0" />
-                <span className="truncate">{order.store_name}</span>
-              </div>
+              <Package className="w-5 h-5 shrink-0" />
+              <span className="truncate">{order.store_name}</span>
+            </DialogTitle>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span className="shrink-0 rounded-md border border-current/15 bg-background/70 px-2 py-1 text-[10px] sm:text-xs font-black text-foreground">
+                القائمة #{order.invoice_number != null ? String(order.invoice_number).padStart(5, "0") : "—"}
+              </span>
               <span className="shrink-0 flex items-center gap-1 text-[9px] sm:text-xs font-medium text-muted-foreground" dir="ltr">
                 <Clock className="w-3 h-3 shrink-0" />
                 {new Date(order.created_at).toLocaleString('ar-IQ', {
@@ -685,7 +698,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                   timeStyle: 'short',
                 })}
               </span>
-            </DialogTitle>
+            </div>
           </DialogHeader>
 
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-right max-h-[75vh] overflow-y-auto custom-scrollbar">
@@ -847,14 +860,14 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                     {isPreparing && (
                       <div className="space-y-2">
                         <div className="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 p-3 rounded-lg text-xs font-bold text-center">
-                          الطلب في المخزن الآن — تُدار تجهيزته عبر «قائمة التجهيز» (تعيين عامل التجهيز، تأكيد الجمع، النقص)
+                          الطلب ينتظر الجمع والتسليم للمندوب. وسيتم إعلامك حال إتمام التسليم
                         </div>
                         <Button
                           onClick={onOpenPicking}
                           className="w-full bg-brand-orange hover:bg-brand-orange/90 text-white font-bold text-xs sm:text-sm h-9 sm:h-10"
                         >
                           <ClipboardList className="w-4 h-4 ml-2" />
-                          متابعة قائمة التجهيز
+                          فتح قائمة التجهيز
                         </Button>
                       </div>
                     )}

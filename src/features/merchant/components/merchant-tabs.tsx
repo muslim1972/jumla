@@ -1,12 +1,12 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft, UserCheck, Wallet, Warehouse } from "lucide-react"
+import { Package, Receipt, Inbox, Archive as ArchiveIcon, Loader2, ChevronRight, ChevronLeft, UserCheck, Wallet, Warehouse, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTransition, useState, useRef, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 
-export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBillsCount, staffPermissions }: { merchantId?: string, initialPendingCount?: number, initialUnpaidBillsCount?: number, staffPermissions?: { sales: boolean, warehouse: boolean } | null }) {
+export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBillsCount, staffPermissions }: { merchantId?: string, initialPendingCount?: number, initialUnpaidBillsCount?: number, staffPermissions?: { sales: boolean, warehouse: boolean, picking: boolean } | null }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -135,6 +135,7 @@ export function MerchantTabs({ merchantId, initialPendingCount, initialUnpaidBil
     ? [
         ...(staffPermissions.sales ? [{ name: "الطلبات الواردة", href: "/dashboard/orders", icon: Inbox, badge: pendingCount }] : []),
         ...(staffPermissions.warehouse ? [{ name: "المخازن", href: "/dashboard/warehouses", icon: Warehouse }] : []),
+        ...(staffPermissions.picking ? [{ name: "قوائم التجهيز", href: "/dashboard/picking", icon: ClipboardList }] : []),
       ]
     : [
         {

@@ -27,14 +27,24 @@ export async function getDeliveryMerchants() {
 
   // إذا لم يكن هناك تجار مخصصين، اعرض التجار الذين لديهم طلبات جاهزة للتوصيل كبديل
   if (merchantIds.length === 0) {
-    const { data: orders, error: ordersError } = await supabase
-      .from("orders")
-      .select("merchant_id")
-      .eq("status", "approved")
+    const [ordersRes, pickedListsRes] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("merchant_id")
+        .eq("status", "approved"),
+      supabase
+        .from("picking_lists")
+        .select("merchant_id")
+        .eq("status", "picked"),
+    ])
 
-    if (orders && orders.length > 0) {
-      merchantIds = [...new Set(orders.map((o: any) => o.merchant_id))]
-    }
+    if (ordersRes.error) return { error: ordersRes.error.message }
+    if (pickedListsRes.error) return { error: pickedListsRes.error.message }
+
+    merchantIds = [...new Set([
+      ...(ordersRes.data ?? []).map(order => order.merchant_id),
+      ...(pickedListsRes.data ?? []).map(list => list.merchant_id),
+    ])]
   }
 
   if (merchantIds.length === 0) {
@@ -60,33 +70,47 @@ export async function getDeliveryPendingCount() {
   const supabase = await createClient()
 
   const { data: userResponse, error: authError } = await supabase.auth.getUser()
-  if (authError || !userResponse?.user) {
-    return { count: 0 }
-  }
+  if (authError) return { error: authError.message }
+  if (!userResponse?.user) return { error: "يجب تسجيل الدخول كعامل توصيل" }
 
   // جلب التجار المخصصين لهذا المندوب
-  const { data: profile } = await supabase.from('profiles').select('assigned_merchants').eq('id', userResponse.user.id).single()
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("assigned_merchants")
+    .eq("id", userResponse.user.id)
+    .single()
+  if (profileError) return { error: profileError.message }
   const metaMerchants = userResponse.user.user_metadata?.assigned_merchants || []
   const profileMerchants = profile?.assigned_merchants || []
   
   const assignedMerchants = [...new Set([...metaMerchants, ...profileMerchants])]
 
-  let query = supabase
+  let approvedOrdersQuery = supabase
     .from("orders")
-    .select("*", { count: 'exact', head: true })
+    .select("id", { count: "exact", head: true })
     .eq("status", "approved")
+  let pickedListsQuery = supabase
+    .from("picking_lists")
+    .select("id, orders!inner(id)", { count: "exact", head: true })
+    .eq("status", "picked")
+    .eq("orders.status", "preparing")
 
   if (assignedMerchants.length > 0) {
-    query = query.in("merchant_id", assignedMerchants)
+    approvedOrdersQuery = approvedOrdersQuery.in("merchant_id", assignedMerchants)
+    pickedListsQuery = pickedListsQuery.in("merchant_id", assignedMerchants)
   }
 
-  const { count, error } = await query
+  const [approvedOrdersRes, pickedListsRes] = await Promise.all([
+    approvedOrdersQuery,
+    pickedListsQuery,
+  ])
 
-  if (error) {
-    return { count: 0 }
+  if (approvedOrdersRes.error) return { error: approvedOrdersRes.error.message }
+  if (pickedListsRes.error) return { error: pickedListsRes.error.message }
+
+  return {
+    count: (approvedOrdersRes.count ?? 0) + (pickedListsRes.count ?? 0),
   }
-
-  return { count: count || 0 }
 }
 
 // 2. جلب القوائم (الطلبات) الخاصة بتاجر معين والتي تنتظر التوصيل

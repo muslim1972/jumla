@@ -180,6 +180,7 @@
         "src/app/(merchant)/dashboard/orders/actions.ts",
         "src/app/(merchant)/dashboard/orders/orders-client.tsx",
         "src/app/(merchant)/dashboard/orders/page.tsx",
+        "src/app/(merchant)/dashboard/picking/page.tsx",
         "src/app/(merchant)/dashboard/page.tsx",
         "src/app/(merchant)/dashboard/warehouses/page.tsx",
         "src/app/(merchant)/layout.tsx",
@@ -194,6 +195,7 @@
         "src/features/warehouse/activity-actions.ts",
         "src/features/warehouse/availability-actions.ts",
         "src/features/warehouse/components/picking-dialog.tsx",
+        "src/features/warehouse/components/picking-workspace.tsx",
         "src/features/warehouse/components/warehouse-activity-tab.tsx",
         "src/features/warehouse/components/warehouse-add-item.tsx",
         "src/features/warehouse/components/warehouse-deductions-tab.tsx",
@@ -211,7 +213,17 @@
       "db": [
         "merchant_billings",
         "merchant_sequences",
-        "warehouse_deduction_requests"
+        "warehouse_deduction_requests",
+        "warehouses",
+        "warehouse_items",
+        "warehouse_movements",
+        "picking_lists",
+        "picking_list_items",
+        "warehouse_apply_movement",
+        "get_assigned_picking_lists",
+        "assign_picking_worker",
+        "confirm_picking_atomic",
+        "confirm_picking_handover"
       ]
     },
     "FE-DEBT-01": {
