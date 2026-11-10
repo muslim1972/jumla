@@ -37,6 +37,10 @@ const rootLayoutSource = readFileSync(
   new URL("../src/app/layout.tsx", import.meta.url),
   "utf8",
 )
+const productExplorerSource = readFileSync(
+  new URL("../src/features/products/components/product-explorer.tsx", import.meta.url),
+  "utf8",
+)
 
 const products = [
   { id: "product-a", merchant_id: "merchant-1" },
@@ -105,6 +109,19 @@ test("removes the redundant home button and moves store content below the global
 test("does not display the merchant delivery-fee truck badge", () => {
   assert.ok(!storeClientSource.includes("merchant.delivery_fee"))
   assert.ok(!storeClientSource.includes("<Truck"))
+})
+
+test("uses the supplied shrine photo in the wholesale directory promotion", () => {
+  const shrineImage = readFileSync(new URL("../public/ضريح الامام.jpeg", import.meta.url))
+
+  assert.ok(shrineImage.byteLength > 0)
+  assert.ok(productExplorerSource.includes('src="/ضريح الامام.jpeg"'))
+  assert.ok(productExplorerSource.includes('alt="مرقد الإمام الحسين في كربلاء"'))
+  assert.ok(productExplorerSource.includes("دليل <span className="))
+  assert.ok(productExplorerSource.includes("تجار الجملة الكبار"))
+  assert.ok(productExplorerSource.includes("العودة للمواد"))
+  assert.ok(!productExplorerSource.includes("wholesale-dome-fill"))
+  assert.ok(!productExplorerSource.includes("دليل كبار مجهزي وتجار الجملة"))
 })
 
 test("filters the entire displayed product list instead of scrolling to grouped sections", () => {

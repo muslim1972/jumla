@@ -522,57 +522,51 @@ export function ProductExplorer({
         <div className="space-y-4">
           <section
             aria-labelledby="merchant-directory-title"
-            className="relative isolate min-h-[142px] overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-l from-[#fff0c2] via-[#fffaf0] to-[#ffe1a3] shadow-[0_10px_28px_rgba(217,119,6,0.12)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 sm:min-h-[164px]"
+            className="relative isolate min-h-[174px] overflow-hidden rounded-[24px] border border-amber-200/80 bg-gradient-to-br from-[#fff7e6] via-[#fffdf8] to-[#ffe5ad] shadow-[0_14px_34px_rgba(124,67,13,0.14)] dark:border-slate-700 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 sm:min-h-[194px]"
           >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_80%,rgba(249,115,22,0.22),transparent_48%)]" />
-            <svg
-              aria-hidden="true"
-              focusable="false"
-              viewBox="0 0 260 160"
-              className="pointer-events-none absolute bottom-0 left-0 h-full w-[45%] text-amber-600/80 dark:text-amber-400/70"
-              fill="none"
-            >
-              <path d="M22 150h220" stroke="currentColor" strokeOpacity=".32" strokeWidth="3" />
-              <path d="M60 148V91h140v57" fill="#d97706" fillOpacity=".14" />
-              <path d="M60 96h140M70 112h120M70 132h120" stroke="currentColor" strokeOpacity=".45" strokeWidth="2" />
-              <path d="M86 147v-24a14 14 0 0 1 28 0v24m31 0v-24a14 14 0 0 1 28 0v24" stroke="currentColor" strokeOpacity=".72" strokeWidth="3" />
-              <path d="M91 91c0-25 16-45 39-59 23 14 39 34 39 59H91Z" fill="url(#wholesale-dome-fill)" />
-              <path d="M130 32V20m-5 0h10m-5-7v7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-              <path d="M64 90V47h14v43m104 0V47h14v43" fill="#f59e0b" fillOpacity=".76" />
-              <path d="m60 48 11-18 11 18m96 0 11-18 11 18" fill="#fbbf24" />
-              <path d="M69 58h4m100 0h4" stroke="#fff7ed" strokeWidth="3" strokeLinecap="round" />
-              <path d="M26 148c9-22 8-39-3-54m3 54c-12-17-20-20-25-20m25 20c-4-22 1-37 16-48" stroke="currentColor" strokeOpacity=".58" strokeWidth="3" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="wholesale-dome-fill" x1="91" y1="32" x2="169" y2="91" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#fcd34d" />
-                  <stop offset="1" stopColor="#d97706" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#fffaf0]/95 via-[#fffaf0]/55 to-transparent dark:from-slate-900/95 dark:via-slate-900/55" />
+            <div className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full bg-amber-300/30 blur-3xl dark:bg-amber-500/10" />
+            <div className="absolute inset-y-0 left-0 w-[58%] overflow-hidden sm:w-[54%]">
+              <Image
+                src="/ضريح الامام.jpeg"
+                alt="مرقد الإمام الحسين في كربلاء"
+                fill
+                sizes="(max-width: 640px) 58vw, 520px"
+                className="object-cover object-[50%_48%]"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-white/10" />
+            </div>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#fffaf0] via-[#fffaf0]/95 to-[#fffaf0]/5 dark:from-slate-950 dark:via-slate-900/95 dark:to-slate-900/5" />
 
-            <div className="relative z-10 flex min-h-[142px] items-center justify-between px-4 py-4 sm:min-h-[164px] sm:px-6">
-              <div className="max-w-[76%] space-y-2 sm:max-w-[68%] sm:space-y-2.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-white/75 px-2.5 py-1 text-[10px] font-black text-amber-800 shadow-sm dark:border-amber-400/30 dark:bg-slate-800/80 dark:text-amber-300 sm:text-xs">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  كربلاء المقدسة
+            <div className="relative z-10 flex min-h-[174px] items-center justify-end px-4 py-4 sm:min-h-[194px] sm:px-7">
+              <div className="w-[82%] space-y-2 text-right sm:w-[67%] sm:space-y-2.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-white/85 px-2.5 py-1 text-[10px] font-black text-amber-800 shadow-sm dark:border-amber-400/30 dark:bg-slate-800/90 dark:text-amber-300 sm:text-xs">
+                  <Sparkles className="h-3.5 w-3.5 text-[#d97706]" />
+                  سوق الجملة في كربلاء
                 </span>
-                <h2 id="merchant-directory-title" className="text-lg font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-2xl">
-                  دليل تجار الجملة الكبار
+                <h2 id="merchant-directory-title" className="text-[17px] font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-2xl">
+                  دليل <span className="text-[#c85d08] dark:text-amber-400">تجار الجملة الكبار</span>
                 </h2>
-                <p className="max-w-md text-[11px] font-bold leading-relaxed text-amber-950/80 dark:text-slate-200 sm:text-sm">
-                  كل ما يحتاجه متجرك، من مجهزين معتمدين وبأسعار تنافسية.
+                <p className="max-w-md text-[11px] font-bold leading-relaxed text-slate-700 dark:text-slate-200 sm:text-sm">
+                  تعرّف على كبار المجهّزين، وتصفّح ما يناسب احتياج متجرك.
                 </p>
+                <div className="flex flex-wrap items-center justify-end gap-1.5 text-[9px] font-extrabold text-amber-950/80 dark:text-amber-200 sm:text-[10px]">
+                  <span className="rounded-full bg-white/75 px-2 py-1 dark:bg-slate-800/80">خيارات متنوعة</span>
+                  <span className="h-1 w-1 rounded-full bg-[#d97706]" />
+                  <span className="rounded-full bg-white/75 px-2 py-1 dark:bg-slate-800/80">أسعار جملة</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setViewTab("products")}
-                  className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#0c1c2e] px-2.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 sm:h-8 sm:px-3 sm:text-xs"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#c85d08] px-3 text-[10px] font-black text-white shadow-[0_4px_12px_rgba(200,93,8,0.28)] transition hover:bg-[#a94d06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c85d08] sm:h-9 sm:px-4 sm:text-xs"
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
                   العودة للمواد
                 </button>
               </div>
             </div>
+            <span className="pointer-events-none absolute bottom-3 left-3 rounded-full border border-white/25 bg-slate-950/55 px-2.5 py-1 text-[9px] font-black text-white shadow-sm backdrop-blur-sm sm:bottom-4 sm:left-4 sm:text-[10px]">
+              كربلاء المقدسة
+            </span>
           </section>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
