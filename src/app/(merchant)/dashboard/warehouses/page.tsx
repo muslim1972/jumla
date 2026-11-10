@@ -14,7 +14,18 @@ import type { StaffMember } from "@/features/warehouse/lib/types"
 
 export const dynamic = "force-dynamic"
 
-export default async function WarehousesPage() {
+export default async function WarehousesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[]; status?: string | string[] }>
+}) {
+  const params = await searchParams
+  const requestedTab = params.tab === "deductions" ? "deductions" : undefined
+  const requestedDeductionStatus =
+    params.status === "pending" || params.status === "approved" || params.status === "rejected"
+      ? params.status
+      : undefined
+
   const ctx = await getActorContext()
   if (!ctx) redirect("/login")
   // محصور بصاحب المتجر أو موظف بصلاحية العمل على المخازن
@@ -202,6 +213,8 @@ export default async function WarehousesPage() {
       canManageStaff={!ctx.isStaff}
       currentUserId={ctx.userId}
       deductionRequests={deductionRequests}
+      initialTab={requestedTab}
+      initialDeductionStatus={requestedDeductionStatus}
     />
   )
 }

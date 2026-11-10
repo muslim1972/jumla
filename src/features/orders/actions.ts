@@ -105,7 +105,7 @@ export async function createOrder(data: {
       await supabaseAdmin.from("notifications").insert({
         user_id: data.merchantId,
         title: "طلب جديد!",
-        message: `وصلك طلب جديد من ${data.storeName} بقيمة ${secureTotalRounded.toLocaleString('en-US')} د.ع — رقم القائمة #${invoiceNumber}.`,
+        message: `وصلك طلب جديد من ${data.storeName} بقيمة ${secureTotalRounded.toLocaleString('en-US')} د.ع — رقم القائمة #${invoiceNumber}.\n[order_id:${orderId}]`,
       })
     } catch (notifyError) {
       console.error("Order notification error:", notifyError)
@@ -229,7 +229,7 @@ export async function editOrder(orderId: string) {
     await supabase.from('notifications').insert({
       user_id: order.merchant_id,
       title: "تعديل طلب",
-      message: message
+      message: `${message}\n[order_id:${order.id}]`
     })
 
     revalidatePath('/cart')
@@ -345,7 +345,7 @@ export async function respondToOrderEdits(orderId: string, decision: "approve" |
       await supabase.from('notifications').insert({
         user_id: order.merchant_id,
         title: "وافق المشتري على التعديلات",
-        message: `وافق المشتري على التعديلات المقترحة على القائمة رقم #${order.invoice_number} الجديدة بقيمة ${newTotal.toLocaleString('en-US')} د.ع — يمكنك الآن النقر على «تجهيز للمندوب».`
+        message: `وافق المشتري على التعديلات المقترحة على القائمة رقم #${order.invoice_number} الجديدة بقيمة ${newTotal.toLocaleString('en-US')} د.ع — يمكنك الآن النقر على «تجهيز للمندوب».\n[order_id:${order.id}]`
       })
       await sendNotificationToUser(
         order.merchant_id,
@@ -376,7 +376,7 @@ export async function respondToOrderEdits(orderId: string, decision: "approve" |
     await supabase.from('notifications').insert({
       user_id: order.merchant_id,
       title: "ألغى المشتري عملية الشراء",
-      message: `ألغى المشتري عملية الشراء للقائمة رقم #${order.invoice_number} بعد مراجعة تعديلاتك، وأُعيدت الكميات إلى مخزنك.`
+      message: `ألغى المشتري عملية الشراء للقائمة رقم #${order.invoice_number} بعد مراجعة تعديلاتك، وأُعيدت الكميات إلى مخزنك.\n[order_id:${order.id}]`
     })
     await sendNotificationToUser(
       order.merchant_id,

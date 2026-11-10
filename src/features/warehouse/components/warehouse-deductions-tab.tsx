@@ -11,12 +11,15 @@ interface Props {
   requests: WarehouseDeductionRequest[]
   currentUserId: string
   isMerchant: boolean
+  initialStatus?: "pending" | "approved" | "rejected"
 }
 
 type Filter = "all" | "pending" | "approved" | "rejected"
 
-export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant }: Props) {
-  const [filter, setFilter] = useState<Filter>("all")
+export function WarehouseDeductionsTab({ requests, currentUserId, isMerchant, initialStatus }: Props) {
+  const [filter, setFilter] = useState<Filter>(
+    initialStatus === "approved" || initialStatus === "rejected" ? initialStatus : "all",
+  )
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState("")
   const [actionOk, setActionOk] = useState("")

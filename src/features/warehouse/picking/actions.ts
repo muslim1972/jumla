@@ -138,7 +138,7 @@ export async function sendOrderToWarehouse(orderId: string) {
   await supabase.from("notifications").insert({
     user_id: order.user_id,
     title: "طلبك قيد التجهيز",
-    message: `بدأ تجهيز فاتورتك رقم #${order.invoice_number} في مخازن التاجر.`,
+    message: `بدأ تجهيز فاتورتك رقم #${order.invoice_number} في مخازن التاجر.\n[order_id:${order.id}]`,
   })
 
   refresh()
@@ -395,7 +395,7 @@ export async function confirmPickupByRep(orderId: string) {
   await supabase.from("notifications").insert({
     user_id: order.merchant_id,
     title: "المندوب استلم القائمة",
-    message: `استلم المندوب قائمة تجهيز الفاتورة #${order.invoice_number} (عامل التجهيز: ${list.picker_name || "غير معيَّن"}).`,
+    message: `استلم المندوب قائمة تجهيز الفاتورة #${order.invoice_number} (عامل التجهيز: ${list.picker_name || "غير معيَّن"}).\n[order_id:${order.id}]`,
   })
 
   revalidatePath("/")

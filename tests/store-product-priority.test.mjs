@@ -8,6 +8,7 @@ const { prioritizeSelectedProduct } = storeProductHelpers
 const {
   extractOrderNotificationReference,
   getOrderEditNotificationHref,
+  getNotificationHref,
 } = orderNotificationRouting
 
 const storeClientSource = readFileSync(
@@ -139,6 +140,63 @@ test("routes legacy order-edit notifications by invoice and preserves a safe fal
   assert.equal(
     getOrderEditNotificationHref("طلب جديد", "القائمة رقم #23"),
     null,
+  )
+})
+
+test("routes known notification types to the recipient's relevant screen", () => {
+  const orderId = "123e4567-e89b-12d3-a456-426614174000"
+
+  assert.equal(
+    getNotificationHref(
+      "وافق المشتري على التعديلات",
+      "وافق المشتري على تعديلات القائمة رقم #23",
+      orderId,
+    ),
+    `/dashboard/orders?openOrder=${orderId}`,
+  )
+  assert.equal(
+    getNotificationHref("تعديل طلب", "تم تعديل القائمة رقم #23", orderId),
+    `/dashboard/orders?openOrder=${orderId}`,
+  )
+  assert.equal(
+    getNotificationHref("تم تجهيز طلبك!", "تم تجهيز فاتورتك رقم #23"),
+    "/cart?openInvoice=23",
+  )
+  assert.equal(
+    getNotificationHref("نعتذر، تم رفض طلبك", "تم رفض فاتورتك رقم #23"),
+    "/cart?openInvoice=23",
+  )
+  assert.equal(
+    getNotificationHref("إشعار بشأن تفعيل الحساب ⚠️", "تعذر تفعيل الحساب"),
+    "/awaiting-approval",
+  )
+  assert.equal(
+    getNotificationHref("طلب تسجيل حساب جديد 🔔", "طلب جديد"),
+    "/admin?tab=users&approval=pending",
+  )
+  assert.equal(
+    getNotificationHref("طلب تأييد طرح مخزني", "يرجى تأييد الطلب"),
+    "/dashboard/warehouses?tab=deductions&status=pending",
+  )
+  assert.equal(
+    getNotificationHref("تم رفض طلب الطرح المخزني", "تم رفض طلب الطرح"),
+    "/dashboard/warehouses?tab=deductions&status=rejected",
+  )
+  assert.equal(
+    getNotificationHref("اكتمل اعتماد وتنفيذ الطرح المخزني", "تم التنفيذ"),
+    "/dashboard/warehouses?tab=deductions&status=approved",
+  )
+  assert.equal(
+    getNotificationHref("فاتورة مستحقة", "لديك فاتورة جديدة"),
+    "/dashboard/billing",
+  )
+  assert.equal(
+    getNotificationHref("طلب قديم", "هناك طلب يحتاج إلى المراجعة"),
+    "/dashboard/orders",
+  )
+  assert.equal(
+    getNotificationHref("نوع إشعار غير معروف", "تفاصيل"),
+    "/",
   )
 })
 

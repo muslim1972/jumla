@@ -6,7 +6,7 @@ import { Bell, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
 import { getNotifications, markAllNotificationsAsRead } from "@/features/notifications/actions"
-import { getOrderEditNotificationHref } from "@/features/notifications/order-routing"
+import { getNotificationHref } from "@/features/notifications/order-routing"
 
 interface NotificationItem {
   id: string
@@ -108,27 +108,7 @@ export function NotificationCenter() {
     const title = n.title || ""
     const message = n.message || ""
 
-    const orderHref = getOrderEditNotificationHref(title, message, n.order_id)
-    if (orderHref) {
-      router.push(orderHref)
-      return
-    }
-    
-    // توجيه ذكي حسب نوع الإشعار
-    if (title.includes("تسجيل") || title.includes("تفعيل") || message.includes("بانتظار موافقتك")) {
-      router.push("/admin?tab=users&approval=pending")
-      return
-    }
-
-    if (title.includes("فاتورة") || message.includes("فاتورة")) {
-      router.push("/dashboard/billing")
-      return
-    }
-
-    if (title.includes("طلب") || message.includes("طلب")) {
-      router.push("/dashboard/orders")
-      return
-    }
+    router.push(getNotificationHref(title, message, n.order_id))
   }
 
   return (

@@ -8,7 +8,23 @@ import type { StaffMember } from "@/features/warehouse/lib/types"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-export default async function MerchantOrdersPage() {
+export default async function MerchantOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ openOrder?: string | string[]; openInvoice?: string | string[] }>
+}) {
+  const params = await searchParams
+  const requestedOrderId = typeof params.openOrder === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.openOrder)
+    ? params.openOrder
+    : undefined
+  const invoiceValue = typeof params.openInvoice === "string" && /^\d+$/.test(params.openInvoice)
+    ? Number(params.openInvoice)
+    : undefined
+  const requestedInvoiceNumber = invoiceValue !== undefined && Number.isSafeInteger(invoiceValue)
+    ? invoiceValue
+    : undefined
+
   const ctx = await getActorContext()
   if (!ctx) redirect("/login")
   if (ctx.role === "merchant_staff" && !hasPermission(ctx, "sales") && !hasPermission(ctx, "warehouse") && !hasPermission(ctx, "picking")) {
@@ -60,6 +76,8 @@ export default async function MerchantOrdersPage() {
       canPick={!ctx.isStaff || hasPermission(ctx, "picking") || hasPermission(ctx, "warehouse")}
       canReceiveMoney={!ctx.isStaff}
       pickers={pickers}
+      requestedOrderId={requestedOrderId}
+      requestedInvoiceNumber={requestedInvoiceNumber}
     />
   )
 }

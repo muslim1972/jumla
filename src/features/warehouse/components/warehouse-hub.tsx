@@ -45,6 +45,8 @@ interface Props {
   canManageStaff: boolean
   currentUserId: string
   deductionRequests?: WarehouseDeductionRequest[]
+  initialTab?: "items" | "deductions"
+  initialDeductionStatus?: "pending" | "approved" | "rejected"
 }
 
 type HubTab = "items" | "add" | "deductions" | "staff" | "movements" | "activity"
@@ -54,7 +56,7 @@ export function WarehouseHub(props: Props) {
     merchantId,
     actorName, actorRole, isStaff, canPricing, canWarehouse, warehouseEnabled,
     storeName, warehouses, items, poolProducts, catalogCategories, staff, movements, activeLists, pickerStats, canManageStaff,
-    currentUserId, deductionRequests = [],
+    currentUserId, deductionRequests = [], initialTab = "items", initialDeductionStatus,
   } = props
 
   useWarehouseRealtime(merchantId)
@@ -69,7 +71,7 @@ export function WarehouseHub(props: Props) {
   }, [deductionRequests, isStaff, currentUserId])
 
 
-  const [tab, setTab] = useState<HubTab>("items")
+  const [tab, setTab] = useState<HubTab>(initialTab)
   const [warehouseFilter, setWarehouseFilter] = useState<string>("all")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | StockStatus>("all")
@@ -444,6 +446,7 @@ export function WarehouseHub(props: Props) {
               requests={deductionRequests}
               currentUserId={currentUserId}
               isMerchant={!isStaff}
+              initialStatus={initialDeductionStatus}
             />
           )}
 

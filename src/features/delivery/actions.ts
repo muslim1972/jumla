@@ -318,12 +318,12 @@ export async function confirmDelivery(orderId: string, amountReceived?: number) 
       {
         user_id: order.merchant_id,
         title: "تم التوصيل!",
-        message: `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري. المستلم: ${finalReceived.toLocaleString('en-US')} د.ع${remaining > 0 ? ` — الباقي: ${remaining.toLocaleString('en-US')} د.ع بانتظار التسديد.` : " — المبلغ كامل."}`,
+        message: `القائمة رقم #${order.invoice_number} تم توصيلها للمشتري. المستلم: ${finalReceived.toLocaleString('en-US')} د.ع${remaining > 0 ? ` — الباقي: ${remaining.toLocaleString('en-US')} د.ع بانتظار التسديد.` : " — المبلغ كامل."}\n[order_id:${order.id}]`,
       },
       {
         user_id: order.user_id,
         title: "تم التوصيل بنجاح!",
-        message: `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!`,
+        message: `تم تسليم طلبك رقم #${order.invoice_number} بنجاح. شكراً لتسوقك معنا!\n[order_id:${order.id}]`,
       }
     ])
   } catch (notifError) {

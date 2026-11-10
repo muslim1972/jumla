@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { getMerchantOrders, approveOrder, rejectOrder, receiveOrderAmount, approveOrderDeletion, proposeOrderEdits } from "./actions"
 import { CheckCircle, ChevronDown, ChevronUp, XCircle, Clock, Package, MapPin, Phone, Truck, Loader2, Printer, BellRing, ClipboardList, Warehouse } from "lucide-react"
@@ -27,11 +28,16 @@ interface OrdersClientProps {
   canPick: boolean
   canReceiveMoney: boolean
   pickers: StaffMember[]
+  requestedOrderId?: string
+  requestedInvoiceNumber?: number
 }
 
-export function OrdersClient({ initialOrders = [], merchantId, currentUserId, warehouseEnabled, isStaff, canManagePicking, canPick, canReceiveMoney, pickers }: OrdersClientProps) {
+export function OrdersClient({ initialOrders = [], merchantId, currentUserId, warehouseEnabled, isStaff, canManagePicking, canPick, canReceiveMoney, pickers, requestedOrderId, requestedInvoiceNumber }: OrdersClientProps) {
+  const router = useRouter()
+  const handledOrderLinkRef = useRef<string | null>(null)
   const [orders, setOrders] = useState<any[]>(initialOrders)
   const [isLoading, setIsLoading] = useState(false)
+  const [hasResolvedOrders, setHasResolvedOrders] = useState(initialOrders.length > 0)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
@@ -103,8 +109,55 @@ export function OrdersClient({ initialOrders = [], merchantId, currentUserId, wa
 
     if (fetchedOrders) setOrders(fetchedOrders)
     if (error) setErrorMsg(error.message)
+    setHasResolvedOrders(true)
     setIsLoading(false)
   }
+
+  useEffect(() => {
+    const targetKey = requestedOrderId
+      ? `order:${requestedOrderId}`
+      : requestedInvoiceNumber !== undefined
+        ? `invoice:${requestedInvoiceNumber}`
+        : null
+
+    if (!targetKey) {
+      handledOrderLinkRef.current = null
+      return
+    }
+    if (!hasResolvedOrders || handledOrderLinkRef.current === targetKey) return
+
+    handledOrderLinkRef.current = targetKey
+    const matches = requestedOrderId
+      ? orders.filter(order => order.id === requestedOrderId)
+      : orders.filter(order => Number(order.invoice_number) === requestedInvoiceNumber)
+
+    if (matches.length !== 1) {
+      setErrorMsg(matches.length > 1
+        ? "تعذر تحديد القائمة من رقم الفاتورة وحده لوجود أكثر من تطابق."
+        : "تعذر العثور على القائمة المطلوبة ضمن الطلبات النشطة.")
+      router.replace("/dashboard/orders", { scroll: false })
+      return
+    }
+
+    const order = matches[0]
+    const section = order.cancel_requested
+      ? "cancellation"
+      : order.status === "preparing"
+        ? "preparing"
+        : order.status === "approved"
+          ? "approved"
+          : order.status === "delivered"
+            ? "delivered"
+            : "pending"
+
+    setActiveSection(section)
+    if (order.status === "preparing") {
+      setPickingOrderId(order.id)
+    } else {
+      setSelectedOrder(order)
+    }
+    router.replace("/dashboard/orders", { scroll: false })
+  }, [hasResolvedOrders, orders, requestedInvoiceNumber, requestedOrderId, router])
 
   const handleApprove = async (orderId: string) => {
     setProcessingId(orderId)

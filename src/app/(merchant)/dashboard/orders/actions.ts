@@ -120,7 +120,7 @@ export async function approveOrder(orderId: string) {
     await supabaseAdmin.from("notifications").insert({
       user_id: order.user_id,
       title: "تم تجهيز طلبك!",
-      message: `تم تجهيز فاتورتك رقم #${order.invoice_number} من قبل التاجر وهي بانتظار المندوب.`,
+      message: `تم تجهيز فاتورتك رقم #${order.invoice_number} من قبل التاجر وهي بانتظار المندوب.\n[order_id:${orderId}]`,
     })
   }
 
@@ -171,7 +171,7 @@ export async function rejectOrder(orderId: string) {
     await supabaseAdmin.from("notifications").insert({
       user_id: order.user_id,
       title: "نعتذر، تم رفض طلبك",
-      message: `تم رفض فاتورتك رقم #${order.invoice_number} من قبل التاجر.`,
+      message: `تم رفض فاتورتك رقم #${order.invoice_number} من قبل التاجر.\n[order_id:${orderId}]`,
     })
   }
 
