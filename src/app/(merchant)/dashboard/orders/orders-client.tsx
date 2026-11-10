@@ -624,6 +624,14 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                 <Package className="w-5 h-5 shrink-0" />
                 <span className="truncate">{order.store_name}</span>
               </div>
+              <span className="shrink-0 flex items-center gap-1 text-[9px] sm:text-xs font-medium text-muted-foreground" dir="ltr">
+                <Clock className="w-3 h-3 shrink-0" />
+                {new Date(order.created_at).toLocaleString('ar-IQ', {
+                  timeZone: 'Asia/Baghdad',
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
+              </span>
             </DialogTitle>
           </DialogHeader>
 
@@ -656,7 +664,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                      <tr className="bg-muted/50 text-muted-foreground border-b border-border/50">
                        <th className="text-right p-2 sm:p-2.5 font-semibold">المنتج</th>
                        <th className="text-center p-2 sm:p-2.5 font-semibold">الكمية</th>
-                       <th className="text-center p-2 sm:p-2.5 font-semibold">المتوفر</th>
+                       <th className="text-center p-2 sm:p-2.5 font-semibold">الكمية المقترحة</th>
                        <th className="text-left p-2 sm:p-2.5 font-semibold">المجموع</th>
                      </tr>
                    </thead>
@@ -688,7 +696,7 @@ function OrderDialog({ order, open, onOpenChange, isProcessing, warehouseEnabled
                                value={availableQty[item.id] ?? String(item.quantity)}
                                onChange={(e) => setAvailableQty(prev => ({ ...prev, [item.id]: e.target.value }))}
                                className="w-12 sm:w-14 text-center font-black tabular-nums text-brand-blue border border-border rounded-md py-1 bg-background focus:outline-none focus:ring-1 focus:ring-brand-blue/50"
-                               aria-label={`الكمية المتوفرة من ${item.product_name}`}
+                               aria-label={`الكمية المقترحة من ${item.product_name}`}
                              />
                            ) : (
                              <span className="font-bold tabular-nums text-muted-foreground text-[10px] sm:text-xs">

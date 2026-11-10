@@ -38,7 +38,7 @@
   "src/app/(merchant)/dashboard/debts/page.tsx": "6231202c2f14e5621a3a8c22608bd805",
   "src/app/(merchant)/dashboard/loading.tsx": "f4a105628c63075507607a89c2ccb9ca",
   "src/app/(merchant)/dashboard/orders/actions.ts": "6a925b4f9bf1c19384c6d4752969253f",
-  "src/app/(merchant)/dashboard/orders/orders-client.tsx": "397f20e42e4185e0daba1a86f2efb83e",
+  "src/app/(merchant)/dashboard/orders/orders-client.tsx": "8a0dee9a1719e78d9aa188fb4f85fc55",
   "src/app/(merchant)/dashboard/orders/page.tsx": "4a3ab5fbba996f3ffd8fe27078a8b0cd",
   "src/app/(merchant)/dashboard/page.tsx": "851415c0e3d603665611cd935c530899",
   "src/app/(merchant)/dashboard/trusted-buyers/page.tsx": "b2b89526f66509aa1bda3ae91509fa56",
