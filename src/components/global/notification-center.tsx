@@ -6,6 +6,16 @@ import { Bell, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/client"
 import { getNotifications, markAllNotificationsAsRead } from "@/features/notifications/actions"
+import { getOrderEditNotificationHref } from "@/features/notifications/order-routing"
+
+interface NotificationItem {
+  id: string
+  title?: string | null
+  message?: string | null
+  is_read?: boolean | null
+  created_at: string
+  order_id?: string | null
+}
 
 // صيغة الوقت النسبي بالعربية (منذ ...)
 function timeAgo(dateStr: string) {
@@ -23,7 +33,7 @@ function timeAgo(dateStr: string) {
 export function NotificationCenter() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -93,10 +103,16 @@ export function NotificationCenter() {
     }
   }
 
-  const handleItemClick = (n: any) => {
+  const handleItemClick = (n: NotificationItem) => {
     setIsOpen(false)
     const title = n.title || ""
     const message = n.message || ""
+
+    const orderHref = getOrderEditNotificationHref(title, message, n.order_id)
+    if (orderHref) {
+      router.push(orderHref)
+      return
+    }
     
     // توجيه ذكي حسب نوع الإشعار
     if (title.includes("تسجيل") || title.includes("تفعيل") || message.includes("بانتظار موافقتك")) {

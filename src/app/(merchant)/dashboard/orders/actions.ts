@@ -334,7 +334,7 @@ export async function proposeOrderEdits(orderId: string, edits: { item_id: strin
   await supabase.from("notifications").insert({
     user_id: order.user_id,
     title: "تم تعديل قائمة مشترياتك",
-    message: `عدّل التاجر كميات القائمة رقم #${order.invoice_number}: ${changedList}. افتح «تتبع مشترياتي» لمراجعة القائمة المعدلة والموافقة عليها أو إلغاء الشراء.`,
+    message: `عدّل التاجر كميات القائمة رقم #${order.invoice_number}: ${changedList}. افتح «تتبع مشترياتي» لمراجعة القائمة المعدلة والموافقة عليها أو إلغاء الشراء.\n[order_id:${order.id}]`,
   })
 
   // إشعار فوري (Push) للمشتري
@@ -347,4 +347,3 @@ export async function proposeOrderEdits(orderId: string, edits: { item_id: strin
   revalidatePath("/dashboard/orders")
   return { success: true, pending_edits: pendingEdits }
 }
-

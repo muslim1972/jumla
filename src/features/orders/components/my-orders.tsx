@@ -77,6 +77,7 @@ interface MyOrdersProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   orders: OrderData[]
+  focusOrderId?: string | null
 }
 
 // دالة طباعة القائمة
@@ -220,8 +221,9 @@ function handlePrintOrder(order: OrderData, dateStr: string, deliveryDateStr?: s
 }
 
 // مكون بطاقة الطلب الفردي
-function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null }) {
-  const [expanded, setExpanded] = useState(false)
+function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhone, autoExpand = false }: { order: OrderData, onOrderEdited?: () => void, isArchiveView?: boolean, appSupportPhone?: string | null, autoExpand?: boolean }) {
+  const [expandedOverride, setExpandedOverride] = useState<boolean | null>(null)
+  const expanded = expandedOverride ?? autoExpand
   const [isArchiving, setIsArchiving] = useState(false)
   const [isResponding, setIsResponding] = useState(false)
   
@@ -315,8 +317,8 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
   }, [order.created_at])
 
   const toggleExpand = useCallback(() => {
-    setExpanded(prev => !prev)
-  }, [])
+    setExpandedOverride(prev => !(prev ?? autoExpand))
+  }, [autoExpand])
 
   return (
     <div className="bg-white dark:bg-card border rounded-xl overflow-hidden max-w-full shadow-sm hover:shadow-md transition-shadow">
@@ -736,7 +738,7 @@ function OrderCard({ order, onOrderEdited, isArchiveView = false, appSupportPhon
 }
 
 // المكون الرئيسي
-export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
+export function MyOrders({ open, onOpenChange, orders, focusOrderId }: MyOrdersProps) {
   const [appSupportPhone, setAppSupportPhone] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"pending" | "completed">("pending")
 
@@ -764,13 +766,15 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
   // التبديل التلقائي إلى التبويب المتاح
   useEffect(() => {
     if (open) {
-      if (pendingOrders.length === 0 && completedOrders.length > 0) {
+      if (focusOrderId) {
+        setActiveTab(pendingOrders.some(order => order.id === focusOrderId) ? "pending" : "completed")
+      } else if (pendingOrders.length === 0 && completedOrders.length > 0) {
         setActiveTab("completed")
       } else {
         setActiveTab("pending")
       }
     }
-  }, [open, pendingOrders.length, completedOrders.length])
+  }, [open, focusOrderId, pendingOrders, completedOrders.length])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -836,7 +840,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
               ) : (
                 <div className="space-y-2">
                   {pendingOrders.map(order => (
-                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
+                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} autoExpand={order.id === focusOrderId} />
                   ))}
                 </div>
               )
@@ -854,7 +858,7 @@ export function MyOrders({ open, onOpenChange, orders }: MyOrdersProps) {
                     <span>يمكنك هنا تقييم التجار والمندوبين لكل طلب مكتمل، أو تعديل تقييمك السابق في أي وقت!</span>
                   </div>
                   {completedOrders.map(order => (
-                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} />
+                    <OrderCard key={order.id} order={order} onOrderEdited={() => onOpenChange(false)} appSupportPhone={appSupportPhone} autoExpand={order.id === focusOrderId} />
                   ))}
                 </div>
               )

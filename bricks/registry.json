@@ -30,6 +30,7 @@
         "src/components/global/install-app-button.tsx",
         "src/components/global/mode-toggle.tsx",
         "src/components/global/notification-center.tsx",
+        "src/features/notifications/order-routing.ts",
         "src/components/global/onesignal-provider.tsx",
         "src/components/global/promo-banners.tsx",
         "src/components/global/scroll-to-top.tsx",

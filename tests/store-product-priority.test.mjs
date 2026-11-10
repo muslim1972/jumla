@@ -2,8 +2,13 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import * as storeProductHelpers from "../src/app/(app)/store/[merchantId]/prioritize-selected-product.ts"
+import * as orderNotificationRouting from "../src/features/notifications/order-routing.ts"
 
 const { prioritizeSelectedProduct } = storeProductHelpers
+const {
+  extractOrderNotificationReference,
+  getOrderEditNotificationHref,
+} = orderNotificationRouting
 
 const storeClientSource = readFileSync(
   new URL("../src/app/(app)/store/[merchantId]/store-client.tsx", import.meta.url),
@@ -97,6 +102,44 @@ test("treats products without completed invoices as zero sales", () => {
   const ordered = prioritizeSelectedProduct(products, undefined, invoiceCounts)
 
   assert.deepEqual(ordered.map((product) => product.id), ["product-b", "product-a", "product-c"])
+})
+
+test("routes order-edit notifications to the exact order and hides its stored reference", () => {
+  const orderId = "123e4567-e89b-12d3-a456-426614174000"
+  const message = `تم تعديل القائمة رقم #17\n[order_id:${orderId}]`
+  const reference = extractOrderNotificationReference(message)
+
+  assert.deepEqual(reference, {
+    message: "تم تعديل القائمة رقم #17",
+    orderId,
+  })
+  assert.equal(
+    getOrderEditNotificationHref("تم تعديل قائمة مشترياتك", reference.message, reference.orderId),
+    `/cart?openOrder=${orderId}`,
+  )
+})
+
+test("routes legacy order-edit notifications by invoice and preserves a safe fallback", () => {
+  assert.equal(
+    getOrderEditNotificationHref("تم تعديل قائمة مشترياتك", "القائمة رقم #23"),
+    "/cart?openInvoice=23",
+  )
+  assert.equal(
+    getOrderEditNotificationHref("تم تعديل قائمة مشترياتك", "تم تعديل إحدى قوائمك"),
+    "/cart?openOrders=1",
+  )
+  assert.equal(
+    getOrderEditNotificationHref(
+      "تم تعديل قائمة مشترياتك",
+      "القائمة رقم #23",
+      "https://example.invalid",
+    ),
+    "/cart?openInvoice=23",
+  )
+  assert.equal(
+    getOrderEditNotificationHref("طلب جديد", "القائمة رقم #23"),
+    null,
+  )
 })
 
 test("removes the redundant home button and moves store content below the global header", () => {

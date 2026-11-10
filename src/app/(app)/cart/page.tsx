@@ -4,13 +4,27 @@ import { CartClient } from "./cart-client"
 
 export const revalidate = 0
 
-export default async function CartPage() {
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ openOrder?: string | string[]; openInvoice?: string | string[]; openOrders?: string | string[] }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const params = await searchParams
 
   if (!user) {
     redirect("/login?message=" + encodeURIComponent("يجب تسجيل الدخول للوصول إلى السلة"))
   }
+
+  const openOrderId = typeof params.openOrder === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.openOrder)
+    ? params.openOrder
+    : undefined
+  const openInvoiceNumber = typeof params.openInvoice === "string" && /^\d+$/.test(params.openInvoice)
+    ? Number(params.openInvoice)
+    : undefined
+  const shouldOpenOrders = Boolean(openOrderId || openInvoiceNumber !== undefined || params.openOrders === "1")
 
   const [profileResponse, cartResponse, notificationsResponse, trustedResponse] = await Promise.all([
     // Fetch buyer profile for checkout info & role check
@@ -77,6 +91,9 @@ export default async function CartPage() {
         userId={user.id} 
         initialUnreadNotificationsCount={unreadCount || 0}
         trustedMerchantIds={trustedMerchantIds}
+        requestedOrderId={openOrderId}
+        requestedInvoiceNumber={openInvoiceNumber}
+        shouldOpenOrders={shouldOpenOrders}
       />
     </div>
   )

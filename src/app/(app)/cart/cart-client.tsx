@@ -7,10 +7,11 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { removeFromCart, updateQuantity } from "@/features/cart/actions"
 import { createOrder, getMyOrders } from "@/features/orders/actions"
 import { markAllNotificationsAsRead } from "@/features/notifications/actions"
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { createClient } from "@/utils/supabase/client"
 import { roundTo250 } from "@/lib/round-to-250"
@@ -83,6 +84,9 @@ interface CartClientProps {
   userId: string
   initialUnreadNotificationsCount?: number
   trustedMerchantIds?: string[]
+  requestedOrderId?: string
+  requestedInvoiceNumber?: number
+  shouldOpenOrders?: boolean
 }
 
 export function CartClient({ 
@@ -90,8 +94,13 @@ export function CartClient({
   buyerProfile,
   userId,
   initialUnreadNotificationsCount,
-  trustedMerchantIds = []
+  trustedMerchantIds = [],
+  requestedOrderId,
+  requestedInvoiceNumber,
+  shouldOpenOrders = false,
 }: CartClientProps) {
+  const router = useRouter()
+  const handledOrderLinkRef = useRef(false)
   const [items, setItems] = useState<CartItemType[]>(initialItems)
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(initialUnreadNotificationsCount || 0)
   const [isUpdating, setIsUpdating] = useState<string | null>(null)
@@ -116,6 +125,7 @@ export function CartClient({
   // حالة تتبع المشتريات
   const [showMyOrders, setShowMyOrders] = useState(false)
   const [myOrders, setMyOrders] = useState<OrderData[]>([])
+  const [focusOrderId, setFocusOrderId] = useState<string | null>(null)
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
 
   // حالة الأرشيف
@@ -290,12 +300,43 @@ export function CartClient({
   }, [])
 
   // فتح تتبع المشتريات
-  const handleOpenMyOrders = useCallback(async () => {
+  const handleOpenMyOrders = useCallback(async (target?: { orderId?: string; invoiceNumber?: number }) => {
     setIsLoadingOrders(true)
-    setShowMyOrders(true)
     try {
       const result = await getMyOrders()
-      setMyOrders(result.orders as OrderData[])
+      if (result.error) {
+        alert(result.error)
+        return
+      }
+
+      const orders = (result.orders || []) as OrderData[]
+      setMyOrders(orders)
+
+      let targetOrder: OrderData | undefined
+      let ambiguousInvoice = false
+      if (target?.orderId) {
+        targetOrder = orders.find(order => order.id === target.orderId)
+      } else if (target?.invoiceNumber !== undefined) {
+        const invoiceMatches = orders.filter(order => Number(order.invoice_number) === target.invoiceNumber)
+        const pendingEditMatches = invoiceMatches.filter(order => order.pending_edits)
+        if (pendingEditMatches.length === 1) {
+          targetOrder = pendingEditMatches[0]
+        } else if (pendingEditMatches.length > 1 || invoiceMatches.length > 1) {
+          ambiguousInvoice = true
+        } else {
+          targetOrder = invoiceMatches[0]
+        }
+      }
+
+      setFocusOrderId(targetOrder?.id ?? null)
+      if (target && !targetOrder) {
+        alert(ambiguousInvoice
+          ? "تعذر تحديد القائمة المقصودة من رقمها وحده. افتح القائمة المعدلة من تتبع مشترياتك."
+          : "تعذر العثور على القائمة. ربما تمت مراجعتها أو لم تعد متاحة.")
+      } else if (targetOrder && !targetOrder.pending_edits) {
+        alert("تمت مراجعة تعديل هذه القائمة أو إلغاؤه مسبقاً.")
+      }
+      setShowMyOrders(true)
       
       // Mark notifications as read if there are unread ones
       if (unreadNotificationsCount > 0) {
@@ -308,6 +349,26 @@ export function CartClient({
       setIsLoadingOrders(false)
     }
   }, [unreadNotificationsCount])
+
+  useEffect(() => {
+    if (!shouldOpenOrders) {
+      handledOrderLinkRef.current = false
+      return
+    }
+    if (handledOrderLinkRef.current) return
+
+    handledOrderLinkRef.current = true
+    const target = requestedOrderId
+      ? { orderId: requestedOrderId }
+      : requestedInvoiceNumber !== undefined
+        ? { invoiceNumber: requestedInvoiceNumber }
+        : undefined
+
+    void (async () => {
+      await handleOpenMyOrders(target)
+      router.replace("/cart", { scroll: false })
+    })()
+  }, [handleOpenMyOrders, requestedInvoiceNumber, requestedOrderId, router, shouldOpenOrders])
 
   // إتمام إصدار الفاتورة
   const handleConfirmOrder = useCallback(async (upfrontPayment: number) => {
@@ -418,7 +479,7 @@ export function CartClient({
             <Button
               variant="outline"
               size="sm"
-              onClick={handleOpenMyOrders}
+              onClick={() => handleOpenMyOrders()}
               disabled={isLoadingOrders}
               className="relative overflow-visible gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
             >
@@ -453,6 +514,7 @@ export function CartClient({
           open={showMyOrders}
           onOpenChange={setShowMyOrders}
           orders={myOrders}
+          focusOrderId={focusOrderId}
         />
 
         {/* حوار الأرشيف */}
@@ -488,7 +550,7 @@ export function CartClient({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleOpenMyOrders}
+            onClick={() => handleOpenMyOrders()}
             disabled={isLoadingOrders}
             className="relative overflow-visible gap-1.5 rounded-xl border-primary/30 hover:bg-primary/5 shrink-0 h-9 px-3"
           >
@@ -758,6 +820,7 @@ export function CartClient({
         open={showMyOrders}
         onOpenChange={setShowMyOrders}
         orders={myOrders}
+        focusOrderId={focusOrderId}
       />
 
       {/* حوار الأرشيف */}

@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { extractOrderNotificationReference } from "@/features/notifications/order-routing"
 
 /**
  * تحديد كل الإشعارات الخاصة بالمستخدم كمقروءة
@@ -46,7 +47,10 @@ export async function getNotifications() {
 
     if (error) throw error
 
-    const notifications = data || []
+    const notifications = (data || []).map(notification => {
+      const { message, orderId } = extractOrderNotificationReference(notification.message)
+      return { ...notification, message, order_id: orderId }
+    })
     const unreadCount = notifications.filter(n => !n.is_read).length
 
     return { notifications, unreadCount }
