@@ -450,6 +450,19 @@ export function ProductExplorer({
 
       </div>
 
+      {viewTab === "merchants" && (
+        <button
+          type="button"
+          onClick={() => setViewTab("products")}
+          aria-label="العودة للمواد"
+          className="fixed left-11 top-2 z-[110] inline-flex h-8 items-center gap-1 rounded-full border border-amber-200/80 bg-background/95 px-1 text-[10px] font-black text-[#a94d06] shadow-sm backdrop-blur-md transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 min-[280px]:left-12 min-[280px]:px-2.5 sm:left-20 sm:top-3 sm:h-9 sm:px-3 sm:text-xs"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="hidden min-[280px]:inline sm:hidden">المواد</span>
+          <span className="hidden sm:inline">العودة للمواد</span>
+        </button>
+      )}
+
       {/* 3. عرض المحتوى: شبكة البضائع المباشرة أو دليل المجهزين */}
       {viewTab === "products" ? (
         
@@ -522,7 +535,7 @@ export function ProductExplorer({
         <div className="space-y-4">
           <section
             aria-labelledby="merchant-directory-title"
-            className="relative isolate min-h-[174px] overflow-hidden rounded-[24px] border border-amber-200/80 bg-gradient-to-br from-[#fff7e6] via-[#fffdf8] to-[#ffe5ad] shadow-[0_14px_34px_rgba(124,67,13,0.14)] dark:border-slate-700 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 sm:min-h-[194px]"
+            className="relative isolate min-h-[184px] overflow-hidden rounded-[24px] border border-amber-200/80 bg-gradient-to-br from-[#fff7e6] via-[#fffdf8] to-[#ffe5ad] shadow-[0_14px_34px_rgba(124,67,13,0.14)] dark:border-slate-700 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 min-[280px]:min-h-[148px] sm:min-h-[164px]"
           >
             <div className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full bg-amber-300/30 blur-3xl dark:bg-amber-500/10" />
             <div className="absolute inset-y-0 left-0 w-[58%] overflow-hidden sm:w-[54%]">
@@ -537,36 +550,30 @@ export function ProductExplorer({
             </div>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#fffaf0] via-[#fffaf0]/95 to-[#fffaf0]/5 dark:from-slate-950 dark:via-slate-900/95 dark:to-slate-900/5" />
 
-            <div className="relative z-10 flex min-h-[174px] items-center justify-end px-4 py-4 sm:min-h-[194px] sm:px-7">
-              <div className="w-[82%] space-y-2 text-right sm:w-[67%] sm:space-y-2.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-white/85 px-2.5 py-1 text-[10px] font-black text-amber-800 shadow-sm dark:border-amber-400/30 dark:bg-slate-800/90 dark:text-amber-300 sm:text-xs">
-                  <Sparkles className="h-3.5 w-3.5 text-[#d97706]" />
-                  سوق الجملة في كربلاء
-                </span>
-                <h2 id="merchant-directory-title" className="text-[17px] font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-2xl">
-                  دليل <span className="text-[#c85d08] dark:text-amber-400">تجار الجملة الكبار</span>
-                </h2>
-                <p className="max-w-md text-[11px] font-bold leading-relaxed text-slate-700 dark:text-slate-200 sm:text-sm">
-                  تعرّف على كبار المجهّزين، وتصفّح ما يناسب احتياج متجرك.
-                </p>
-                <div className="flex flex-wrap items-center justify-end gap-1.5 text-[9px] font-extrabold text-amber-950/80 dark:text-amber-200 sm:text-[10px]">
-                  <span className="rounded-full bg-white/75 px-2 py-1 dark:bg-slate-800/80">خيارات متنوعة</span>
-                  <span className="h-1 w-1 rounded-full bg-[#d97706]" />
-                  <span className="rounded-full bg-white/75 px-2 py-1 dark:bg-slate-800/80">أسعار جملة</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setViewTab("products")}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-[#c85d08] px-3 text-[10px] font-black text-white shadow-[0_4px_12px_rgba(200,93,8,0.28)] transition hover:bg-[#a94d06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c85d08] sm:h-9 sm:px-4 sm:text-xs"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  العودة للمواد
-                </button>
+            <div className="absolute right-3 top-3 z-10 w-[68%] space-y-1.5 text-right sm:right-6 sm:top-4 sm:w-[62%] sm:space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-white/85 px-2.5 py-1 text-[10px] font-black text-amber-800 shadow-sm dark:border-amber-400/30 dark:bg-slate-800/90 dark:text-amber-300 sm:text-xs">
+                <Sparkles className="h-3.5 w-3.5 text-[#d97706]" />
+                سوق الجملة في كربلاء
+              </span>
+              <h2 id="merchant-directory-title" className="text-[16px] font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-2xl">
+                دليل <span className="text-[#c85d08] dark:text-amber-400">تجار الجملة الكبار</span>
+              </h2>
+              <p className="max-w-md text-[10px] font-bold leading-snug text-slate-700 dark:text-slate-200 sm:text-sm">
+                تعرّف على كبار المجهّزين، وتصفّح ما يناسب احتياج متجرك.
+              </p>
+            </div>
+            <div
+              dir="ltr"
+              className="absolute inset-x-3 bottom-2.5 z-20 flex items-center text-[7px] font-extrabold sm:inset-x-4 sm:bottom-3 sm:text-[10px]"
+            >
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-white/25 bg-slate-950/55 px-0.5 py-1 text-white shadow-sm backdrop-blur-sm">
+                كربلاء المقدسة
+              </span>
+              <div className="absolute left-[clamp(4.5rem,calc(50vw-5.2rem),32rem)] flex items-center gap-0.5 text-amber-950/80 dark:text-amber-200">
+                <span className="whitespace-nowrap rounded-full bg-white/85 px-0.5 py-1 shadow-sm dark:bg-slate-800/90">خيارات متنوعة</span>
+                <span className="whitespace-nowrap rounded-full bg-white/85 px-0.5 py-1 shadow-sm dark:bg-slate-800/90">أسعار جملة</span>
               </div>
             </div>
-            <span className="pointer-events-none absolute bottom-3 left-3 rounded-full border border-white/25 bg-slate-950/55 px-2.5 py-1 text-[9px] font-black text-white shadow-sm backdrop-blur-sm sm:bottom-4 sm:left-4 sm:text-[10px]">
-              كربلاء المقدسة
-            </span>
           </section>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

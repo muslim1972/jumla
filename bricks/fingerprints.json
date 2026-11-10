@@ -117,7 +117,7 @@
   "src/features/orders/components/my-orders.tsx": "fa5a298768e1f8642ae7d0832b22e516",
   "src/features/orders/components/rating-dialog.tsx": "00a8f273dcf38492f7fa234726fca4ff",
   "src/features/products/components/product-card.tsx": "8b73f1565a019fbfe2bc2704b1792151",
-  "src/features/products/components/product-explorer.tsx": "220269720bf9f09409d3543007a4fc59",
+  "src/features/products/components/product-explorer.tsx": "182dd649ea6892f225a8f5bd0f83eb84",
   "src/features/products/lib/taxonomy.ts": "cf1603e10b0aee0720a305d473c610e1",
   "src/features/staff/actions.ts": "86c6273a99a6a39829c1465c8a841b87",
   "src/features/staff/lib/guard.ts": "768a2850b1e340732f5a4bf64afd4b02",
