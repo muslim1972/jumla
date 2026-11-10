@@ -465,27 +465,27 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, isPreparing
     >
       <div
         className={cn(
-          "w-full text-right p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3 transition-colors",
+          "w-full text-right p-2 sm:p-3 flex flex-col gap-1 transition-colors",
           isCancellation ? "bg-purple-500/5" :
           isDelivered ? "bg-red-500/5" :
           isApproved ? "bg-emerald-500/5" :
           isPreparing ? "bg-brand-orange/5" : "bg-amber-500/5"
         )}
       >
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] min-[460px]:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1">
+          <div className="col-span-2 min-[460px]:col-span-1 flex items-center gap-2 min-w-0">
             <div className={cn(
-              "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner",
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner",
               isCancellation ? "bg-purple-500/10 text-purple-600" :
               isDelivered ? "bg-red-500/10 text-red-600" :
               isApproved ? "bg-emerald-500/10 text-emerald-600" :
               isPreparing ? "bg-brand-orange/10 text-brand-orange" : "bg-amber-500/10 text-amber-600"
             )}>
-              <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Package className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h3 className={cn(
-                "font-bold text-xs sm:text-sm truncate",
+                "font-bold text-sm sm:text-base truncate",
                 isCancellation ? "text-purple-700 dark:text-purple-500" :
                 isDelivered ? "text-red-700 dark:text-red-500" :
                 isApproved ? "text-emerald-700 dark:text-emerald-500" :
@@ -493,48 +493,53 @@ function OrderCard({ order, isApproved, isDelivered, isCancellation, isPreparing
               )}>
                 {order.store_name}
               </h3>
-              <p className="text-[9px] sm:text-[11px] text-muted-foreground font-mono mt-0.5 truncate flex items-center gap-1" dir="ltr">
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground font-mono mt-0.5 truncate flex items-center gap-1" dir="ltr">
                 <Clock className="w-2.5 h-2.5 shrink-0" />
-                {new Date(order.created_at).toLocaleTimeString('ar-IQ')}
+                {new Date(order.created_at).toLocaleString('ar-IQ', {
+                  timeZone: 'Asia/Baghdad',
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
               </p>
             </div>
           </div>
 
-          <div className="shrink-0 flex flex-row-reverse sm:flex-col justify-between items-center sm:items-end mt-1 sm:mt-0">
-             <div className="font-black text-brand-orange text-xs sm:text-sm">
-               {(order.is_credit ? order.amount_paid : order.total_rounded).toLocaleString('en-US')} د.ع
-             </div>
+          <div className="justify-self-center shrink-0 flex items-center">
             {isCancellation ? (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-purple-500/10 text-purple-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 font-bold text-[8px] sm:text-[9px] whitespace-nowrap">
                 <XCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 طلب إلغاء
               </div>
             ) : isDelivered ? (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-500/10 text-red-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-600 font-bold text-[8px] sm:text-[9px] whitespace-nowrap">
                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 تم التوصيل
               </div>
             ) : isApproved ? (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-emerald-500/10 text-emerald-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-bold text-[8px] sm:text-[9px] whitespace-nowrap">
                 <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 مجهز للمندوب
               </div>
             ) : isPreparing ? (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-brand-orange/10 text-brand-orange font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-orange/10 text-brand-orange font-bold text-[8px] sm:text-[9px] whitespace-nowrap">
                 <ClipboardList className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 قائمة التجهيز ←
               </div>
             ) : order.pending_edits ? (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-blue-500/10 text-blue-600 font-bold text-[8px] sm:text-[10px] mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 font-bold text-[8px] sm:text-[9px] whitespace-nowrap">
                 <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
                 بانتظار موافقة المشتري
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-amber-500/10 text-amber-600 font-bold text-[8px] sm:text-[10px] shadow-sm mt-0 sm:mt-1">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold text-[8px] sm:text-[9px] shadow-sm whitespace-nowrap">
                 <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" />
-                بانتظار المراجعة
+                قائمة بانتظار المراجعة
               </div>
             )}
+          </div>
+
+          <div className="justify-self-end shrink-0 whitespace-nowrap font-black text-brand-orange text-[10px] sm:text-sm">
+            {(order.is_credit ? order.amount_paid : order.total_rounded).toLocaleString('en-US')} د.ع
           </div>
         </div>
       </div>
