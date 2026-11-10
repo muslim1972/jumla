@@ -44,7 +44,7 @@ interface CartItemType {
     name: string
     price: number
     unit_type: string
-    units?: any[]
+    units?: { type?: string; price?: number | string; multiplier_to_base?: number }[]
     image_url: string | null
     profiles?: {
       delivery_fee: number | null
@@ -289,6 +289,26 @@ export function CartClient({
     setShowInvoice(true)
   }, [])
 
+  // فتح تتبع المشتريات
+  const handleOpenMyOrders = useCallback(async () => {
+    setIsLoadingOrders(true)
+    setShowMyOrders(true)
+    try {
+      const result = await getMyOrders()
+      setMyOrders(result.orders as OrderData[])
+      
+      // Mark notifications as read if there are unread ones
+      if (unreadNotificationsCount > 0) {
+        await markAllNotificationsAsRead()
+        setUnreadNotificationsCount(0)
+      }
+    } catch {
+      alert("خطأ في جلب الطلبات")
+    } finally {
+      setIsLoadingOrders(false)
+    }
+  }, [unreadNotificationsCount])
+
   // إتمام إصدار الفاتورة
   const handleConfirmOrder = useCallback(async (upfrontPayment: number) => {
     if (!checkoutMerchantId || !deliveryInfo) return
@@ -339,7 +359,7 @@ export function CartClient({
 
     // فتح تتبع المشتريات تلقائياً
     handleOpenMyOrders()
-  }, [checkoutMerchantId, deliveryInfo, merchantGroups])
+  }, [checkoutMerchantId, deliveryInfo, merchantGroups, handleOpenMyOrders])
 
   // إلغاء عملية الشراء
   const handleCancelOrder = useCallback(() => {
@@ -347,26 +367,6 @@ export function CartClient({
     setCheckoutMerchantId(null)
     setDeliveryInfo(null)
   }, [])
-
-  // فتح تتبع المشتريات
-  const handleOpenMyOrders = useCallback(async () => {
-    setIsLoadingOrders(true)
-    setShowMyOrders(true)
-    try {
-      const result = await getMyOrders()
-      setMyOrders(result.orders as OrderData[])
-      
-      // Mark notifications as read if there are unread ones
-      if (unreadNotificationsCount > 0) {
-        await markAllNotificationsAsRead()
-        setUnreadNotificationsCount(0)
-      }
-    } catch {
-      alert("خطأ في جلب الطلبات")
-    } finally {
-      setIsLoadingOrders(false)
-    }
-  }, [unreadNotificationsCount])
 
   // بيانات المجموعة الحالية للفاتورة
   const currentGroup = useMemo(() =>

@@ -7,7 +7,11 @@
     "build": "next build",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/store-product-priority.test.mjs",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "bricks:verify": "node scripts/verify-bricks.mjs",
+    "bricks:strict": "node scripts/verify-bricks.mjs --strict",
+    "bricks:snapshot": "node scripts/verify-bricks.mjs --snapshot",
+    "gate": "node scripts/verify-bricks.mjs --strict && npx tsc --noEmit && npm test"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

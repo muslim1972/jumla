@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+echo "=== بوابة الاعتماد الحتمي B.R.I.C.K (Pre-Commit Gate) ==="
+node scripts/verify-bricks.mjs --strict
+npx tsc --noEmit
+npm test
+echo "✓ جميع بوابات B.R.I.C.K والفحص والاختبارات ناجحة. يُسمح بالاعتماد."

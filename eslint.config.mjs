@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Non-production diagnostic/archive folders:
+    "_archive/**",
+    "backups/**",
+    ".brick-cache/**",
   ]),
 ]);
 

@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,9 +26,12 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 const REGISTRY_FILE = path.join(ROOT_DIR, 'bricks', 'registry.json');
 const FINGERPRINTS_FILE = path.join(ROOT_DIR, 'bricks', 'fingerprints.json');
+const ARCH_MEMORY_FILE = path.join(ROOT_DIR, '.agents', 'skills', 'jumla-architecture', 'SKILL.md');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 
 const updateSnapshot = process.argv.includes('--snapshot');
+const strictMode = process.argv.includes('--strict');
+const skipChecks = process.argv.includes('--skip-checks');
 
 function normalizePath(p) {
   return p.replace(/\\/g, '/');
@@ -127,33 +131,7 @@ function run() {
     hasErrors = true;
   }
 
-  // 3. فحص البصمات ومطابقة الحالة التشفيرية (المسلمة 3)
-  if (updateSnapshot) {
-    const newFingerprints = {};
-    for (const f of actualSrcFiles) {
-      newFingerprints[f] = computeMd5(f);
-    }
-    fs.writeFileSync(FINGERPRINTS_FILE, JSON.stringify(newFingerprints, null, 2), 'utf-8');
-    console.log(`\n📸 تم تحديث البصمات التشفيرية بنجاح (${actualSrcFiles.length} ملف) في bricks/fingerprints.json`);
-  } else {
-    if (fs.existsSync(FINGERPRINTS_FILE)) {
-      const savedFingerprints = JSON.parse(fs.readFileSync(FINGERPRINTS_FILE, 'utf-8'));
-      let changedFilesCount = 0;
-      for (const f of actualSrcFiles) {
-        const currentHash = computeMd5(f);
-        if (savedFingerprints[f] !== currentHash) {
-          changedFilesCount++;
-        }
-      }
-      if (changedFilesCount > 0) {
-        console.log(`ℹ ملاحظة: ${changedFilesCount} ملفات معدلة عن آخر بصمة معتمدة (طبيعي أثناء التطوير؛ حدّث بـ --snapshot بعد الاعتماد).`);
-      }
-    } else {
-      console.log('ℹ لا يوجد ملف بصمات سابق. شغّل --snapshot لإنشاء نقطة الأساس.');
-    }
-  }
-
-  // 4. فحص المناعة السيادية من تسريب الأسرار والإنتروبيا (المسلمة 7 - v0.4)
+  // 3. فحص المناعة السيادية من تسريب الأسرار والإنتروبيا (المسلمة 7 - v0.4)
   const SECRET_PATTERNS = [
     { name: 'Supabase Service Key (sb_secret_*)', regex: /sb_secret_[a-zA-Z0-9_\-]{16,}/g },
     { name: 'GitHub Token (ghp_*)', regex: /ghp_[a-zA-Z0-9]{36}/g },
@@ -196,12 +174,102 @@ function run() {
     hasErrors = true;
   }
 
+  // 4. فحص سلامة ذاكرة المشروع المعمارية ونقاء المصطلحات (المسلمة 8 - v4.1)
+  if (fs.existsSync(ARCH_MEMORY_FILE)) {
+    const archBuf = fs.readFileSync(ARCH_MEMORY_FILE);
+    const badOffsets = [];
+    for (let i = 0; i < archBuf.length; i++) {
+      const b = archBuf[i];
+      if ((b < 32 && b !== 10 && b !== 13 && b !== 9) || b === 127) {
+        badOffsets.push(i);
+      }
+    }
+    if (badOffsets.length > 0) {
+      console.error(`\n❌ خطأ حوكمة جسيم: ملف .agents/skills/jumla-architecture/SKILL.md يحتوي ${badOffsets.length} بايت تحكم تالفة تمنع قراءته كنص سليم.`);
+      hasErrors = true;
+    }
+  }
+
+  const bannedTermRegex = /\u0637\u0627\u0628\u0648\u0642/;
+  const registryRaw = fs.readFileSync(REGISTRY_FILE, 'utf-8');
+  if (bannedTermRegex.test(registryRaw)) {
+    console.error('\n❌ خطأ مصطلحات حوكمة: ملف bricks/registry.json يحتوي اللفظ المحظور خلافاً لدستور B.R.I.C.K.');
+    hasErrors = true;
+  }
+
+  // 5. فحص البصمات ومطابقة الحالة التشفيرية (المسلمة 3 - تشديد v4.1)
+  if (updateSnapshot && strictMode) {
+    console.error('\n❌ خطأ تشغيل: لا يجوز الجمع بين --snapshot و --strict في نفس الأمر؛ نفّذ --snapshot أولاً ثم --strict مستقلاً.');
+    process.exit(1);
+  }
+
+  if (updateSnapshot) {
+    if (hasErrors) {
+      console.error('\n❌ مرفوض أخذ اللقطة (--snapshot): عالج الأخطاء الهيكلية والأمنية أعلاه أولاً.');
+      process.exit(1);
+    }
+
+    if (!skipChecks) {
+      console.log('⏳ التحقق الإلزامي قبل تثبيت اللقطة: فحص الأنواع (tsc --noEmit) والاختبارات (npm test)...');
+      try {
+        execSync('npx tsc --noEmit', { cwd: ROOT_DIR, stdio: 'inherit' });
+        execSync('npm test', { cwd: ROOT_DIR, stdio: 'inherit' });
+      } catch {
+        console.error('\n❌ فشل التحقق الإلزامي (TypeScript أو الاختبارات): تم حظر تحديث bricks/fingerprints.json لمنع تثبيت حالة معطوبة!');
+        process.exit(1);
+      }
+    } else {
+      console.warn('⚠️ تحذير: تم تجاوز فحوصات tsc/test عبر --skip-checks.');
+    }
+
+    const newFingerprints = {};
+    for (const f of actualSrcFiles) {
+      newFingerprints[f] = computeMd5(f);
+    }
+    fs.writeFileSync(FINGERPRINTS_FILE, JSON.stringify(newFingerprints, null, 2), 'utf-8');
+    console.log(`\n📸 تم تحديث البصمات التشفيرية بنجاح (${actualSrcFiles.length} ملف) في bricks/fingerprints.json`);
+  } else {
+    if (fs.existsSync(FINGERPRINTS_FILE)) {
+      const savedFingerprints = JSON.parse(fs.readFileSync(FINGERPRINTS_FILE, 'utf-8'));
+      const changedFiles = [];
+      const extraEntries = [];
+      const actualSet = new Set(actualSrcFiles);
+
+      for (const f of actualSrcFiles) {
+        const currentHash = computeMd5(f);
+        if (savedFingerprints[f] !== currentHash) {
+          changedFiles.push(f);
+        }
+      }
+      for (const f of Object.keys(savedFingerprints)) {
+        if (!actualSet.has(f)) {
+          extraEntries.push(f);
+        }
+      }
+
+      if (changedFiles.length > 0 || extraEntries.length > 0) {
+        const prefix = strictMode ? '❌ خرق المسلمة 3 (--strict)' : '⚠️ تحذير بصمة غير معتمدة';
+        console.log(`\n${prefix}: يوجد اختلاف في البصمات التشفيرية (${changedFiles.length} ملف معدل/جديد، ${extraEntries.length} سجل زائد):`);
+        changedFiles.forEach(f => console.log(`  - [معدل/غير مطابق] ${f}`));
+        extraEntries.forEach(f => console.log(`  - [زائد في fingerprints.json] ${f}`));
+        if (strictMode) {
+          hasErrors = true;
+        } else {
+          console.log('ℹ شغّل: node scripts/verify-bricks.mjs --snapshot ثم --strict قبل الاعتماد.');
+        }
+      }
+    } else {
+      console.log('⚠️ لا يوجد ملف بصمات سابق (bricks/fingerprints.json).');
+      if (strictMode) hasErrors = true;
+    }
+  }
+
   if (hasErrors) {
     console.error('\n❌ فشل فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K! صحّح الأخطاء أعلاه قبل المتابعة.\n');
     process.exit(1);
   }
 
-  console.log('\n✓ نجح فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K: كافة ملفات النظام محصية ومعزولة سيادياً دون أي تداخل.\n');
+  console.log(`\n✓ نجح فحص محرك الإنفاذ الحتمي لإطار B.R.I.C.K${strictMode ? ' (الوضع الصارم --strict)' : ''}: كافة ملفات النظام محصية ومعزولة سيادياً دون أي تداخل.\n`);
 }
 
 run();

@@ -9,11 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Store,
-  Star,
-  Truck,
   CheckCircle2,
   Sparkles,
-  SlidersHorizontal,
   X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -36,7 +33,7 @@ interface Product {
   } | null
   category_id?: string | null
   stock_quantity?: number
-  units?: any[]
+  units?: { type?: string; price?: number | string; multiplier_to_base?: number }[]
 }
 
 // دالة تسوية الحروف العربية للبحث الذكي المرن (الهمزات، التاء المربوطة، التشكيل)
@@ -53,13 +50,12 @@ function normalizeArabic(text: string): string {
 export function ProductExplorer({ 
   products, 
   user,
-  profile,
   dbCategories = []
 }: { 
   products: Product[] | null,
-  user: any,
-  profile?: any,
-  dbCategories?: { id: string; name: string; icon_url: string | null }[]
+  user: unknown,
+  profile?: unknown,
+  dbCategories?: { id: string; name: string; icon_url: string | null; emoji?: string }[]
 }) {
   const [searchQuery, setSearchQuery] = useState("")
   const deferredSearchQuery = useDeferredValue(searchQuery)
@@ -346,11 +342,11 @@ export function ProductExplorer({
 
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          {viewTab === "products" && (
+        {viewTab === "products" && (
+          <div className="flex items-center justify-between gap-2">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "price_asc" | "popular" | "price_desc" | "newest")}
               aria-label="ترتيب عروض الجملة"
               className="h-9 sm:h-10 px-2 sm:px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] sm:text-xs font-bold focus:outline-none focus:border-[#d97706] cursor-pointer"
             >
@@ -359,25 +355,19 @@ export function ProductExplorer({
               <option value="price_desc">💎 الأعلى سعراً</option>
               <option value="newest">✨ الأحدث</option>
             </select>
-          )}
 
-          <button
-            type="button"
-            aria-pressed={viewTab === "merchants"}
-            onClick={() => setViewTab(viewTab === "products" ? "merchants" : "products")}
-            className={cn(
-              "h-9 sm:h-10 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-black shrink-0 transition-all cursor-pointer flex items-center gap-2",
-              viewTab === "merchants"
-                ? "bg-[#0c1c2e] text-white border-[#0c1c2e] shadow-xs"
-                : "bg-amber-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-amber-200 dark:border-slate-800 hover:bg-amber-100"
-            )}
-            title={viewTab === "products" ? "عرض دليل كبار تجار الجملة" : "العودة إلى البضائع"}
-          >
-            <Store className="w-5 h-5 text-[#d97706]" />
-            <span>كبار تجار الجملة</span>
-            <span className="text-[10px] font-bold opacity-75">({groupedMerchants.length})</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setViewTab("merchants")}
+              className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-black shrink-0 transition-all cursor-pointer flex items-center gap-2 bg-amber-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-amber-200 dark:border-slate-800 hover:bg-amber-100"
+              title="عرض دليل كبار تجار الجملة"
+            >
+              <Store className="w-5 h-5 text-[#d97706]" />
+              <span>كبار تجار الجملة</span>
+              <span className="text-[10px] font-bold opacity-75">({groupedMerchants.length})</span>
+            </button>
+          </div>
+        )}
 
         {/* شريط الأقسام السريع مع أسهم التمرير الأفقية الذكية (Horizontal Micro-Ribbon with Scroll Controls) */}
         <div className="relative flex items-center gap-1 w-full pt-0.5">
@@ -435,7 +425,7 @@ export function ProductExplorer({
                       : "bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300"
                   )}
                 >
-                  <span className="text-xs">{(cat as any).emoji || "🏷️"}</span>
+                  <span className="text-xs">{"emoji" in cat && cat.emoji ? cat.emoji : "🏷️"}</span>
                   <span>{cat.name.replace(/شوال/g, 'كيس')}</span>
                 </button>
               )
@@ -530,12 +520,60 @@ export function ProductExplorer({
 
         /* تبويب دليل المجهزين في كربلاء */
         <div className="space-y-4">
-          <div className="flex justify-between items-center px-1">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-              <span className="w-2 h-5 bg-[#d97706] rounded-full inline-block" />
-              <span>دليل كبار مجهزي وتجار الجملة المعتمدين في كربلاء</span>
-            </h2>
-          </div>
+          <section
+            aria-labelledby="merchant-directory-title"
+            className="relative isolate min-h-[142px] overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-l from-[#fff0c2] via-[#fffaf0] to-[#ffe1a3] shadow-[0_10px_28px_rgba(217,119,6,0.12)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 sm:min-h-[164px]"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_18%_80%,rgba(249,115,22,0.22),transparent_48%)]" />
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              viewBox="0 0 260 160"
+              className="pointer-events-none absolute bottom-0 left-0 h-full w-[45%] text-amber-600/80 dark:text-amber-400/70"
+              fill="none"
+            >
+              <path d="M22 150h220" stroke="currentColor" strokeOpacity=".32" strokeWidth="3" />
+              <path d="M60 148V91h140v57" fill="#d97706" fillOpacity=".14" />
+              <path d="M60 96h140M70 112h120M70 132h120" stroke="currentColor" strokeOpacity=".45" strokeWidth="2" />
+              <path d="M86 147v-24a14 14 0 0 1 28 0v24m31 0v-24a14 14 0 0 1 28 0v24" stroke="currentColor" strokeOpacity=".72" strokeWidth="3" />
+              <path d="M91 91c0-25 16-45 39-59 23 14 39 34 39 59H91Z" fill="url(#wholesale-dome-fill)" />
+              <path d="M130 32V20m-5 0h10m-5-7v7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              <path d="M64 90V47h14v43m104 0V47h14v43" fill="#f59e0b" fillOpacity=".76" />
+              <path d="m60 48 11-18 11 18m96 0 11-18 11 18" fill="#fbbf24" />
+              <path d="M69 58h4m100 0h4" stroke="#fff7ed" strokeWidth="3" strokeLinecap="round" />
+              <path d="M26 148c9-22 8-39-3-54m3 54c-12-17-20-20-25-20m25 20c-4-22 1-37 16-48" stroke="currentColor" strokeOpacity=".58" strokeWidth="3" strokeLinecap="round" />
+              <defs>
+                <linearGradient id="wholesale-dome-fill" x1="91" y1="32" x2="169" y2="91" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#fcd34d" />
+                  <stop offset="1" stopColor="#d97706" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[#fffaf0]/95 via-[#fffaf0]/55 to-transparent dark:from-slate-900/95 dark:via-slate-900/55" />
+
+            <div className="relative z-10 flex min-h-[142px] items-center justify-between px-4 py-4 sm:min-h-[164px] sm:px-6">
+              <div className="max-w-[76%] space-y-2 sm:max-w-[68%] sm:space-y-2.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-white/75 px-2.5 py-1 text-[10px] font-black text-amber-800 shadow-sm dark:border-amber-400/30 dark:bg-slate-800/80 dark:text-amber-300 sm:text-xs">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  كربلاء المقدسة
+                </span>
+                <h2 id="merchant-directory-title" className="text-lg font-black leading-tight tracking-tight text-slate-950 dark:text-white sm:text-2xl">
+                  دليل تجار الجملة الكبار
+                </h2>
+                <p className="max-w-md text-[11px] font-bold leading-relaxed text-amber-950/80 dark:text-slate-200 sm:text-sm">
+                  كل ما يحتاجه متجرك، من مجهزين معتمدين وبأسعار تنافسية.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewTab("products")}
+                  className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#0c1c2e] px-2.5 text-[10px] font-black text-white shadow-sm transition-colors hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 sm:h-8 sm:px-3 sm:text-xs"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  العودة للمواد
+                </button>
+              </div>
+            </div>
+          </section>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {groupedMerchants.map((m) => (

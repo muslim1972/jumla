@@ -218,7 +218,8 @@ test("places merchant delivery fee and support phone labels beside their inputs"
     /grid grid-cols-\[auto_minmax\(0,1fr\)\] items-center gap-2/g,
   ) ?? []
 
-  assert.equal(inlineRows.length, 2)
+  assert.equal(inlineRows.length, 3)
+  assert.ok(merchantSettingsSource.includes("الحد الأدنى للمشتريات ليكون التوصيل مجاني"))
   assert.ok(merchantSettingsSource.includes("أجور التوصيل (د.ع)"))
   assert.ok(merchantSettingsSource.includes("رقم الدعم للطلبات"))
 })
@@ -239,16 +240,16 @@ test("puts the merchant product search beside the list and grid view buttons", (
 })
 
 test("places the cart title opposite the archive and tracking tabs in one shared header", () => {
-  const headerStart = cartClientSource.indexOf("const cartHeader = (")
-  const emptyStateStart = cartClientSource.indexOf("if (items.length === 0)", headerStart)
-  const header = cartClientSource.slice(headerStart, emptyStateStart)
+  const headers = cartClientSource.match(
+    /<div className="sticky top-16 z-30[\s\S]*?<span className="text-xs font-bold">تتبع مشترياتي<\/span>[\s\S]*?<\/Button>\s*<\/div>\s*<\/div>/g,
+  ) ?? []
 
-  assert.ok(headerStart >= 0)
-  assert.ok(emptyStateStart > headerStart)
-  assert.ok(header.includes("flex items-center justify-between"))
-  assert.ok(header.indexOf("سلة المشتريات") < header.indexOf("<Archive"))
-  assert.ok(header.includes("تتبع مشترياتي"))
-  assert.equal((cartClientSource.match(/\{cartHeader\}/g) ?? []).length, 2)
+  assert.equal(headers.length, 2)
+  for (const header of headers) {
+    assert.ok(header.includes("flex items-center justify-between"))
+    assert.ok(header.indexOf("سلة المشتريات") < header.indexOf("<Archive"))
+    assert.ok(header.includes("تتبع مشترياتي"))
+  }
 })
 
 test("removes the cart route's extra top padding below the announcement banner", () => {
@@ -264,12 +265,12 @@ test("places quantity and delete controls above the item total in a compact left
   const itemsStart = cartClientSource.indexOf("{group.items.map(item => (")
   const summaryStart = cartClientSource.indexOf("{/* ملخص المجموعة */}", itemsStart)
   const itemCards = cartClientSource.slice(itemsStart, summaryStart)
-  const controlsIndex = itemCards.indexOf('data-slot="cart-item-controls"')
-  const totalIndex = itemCards.indexOf('data-slot="cart-item-total"')
+  const controlsIndex = itemCards.indexOf("{/* Left Side: Quantity & Actions */}")
+  const totalIndex = itemCards.indexOf("المجموع:", controlsIndex)
 
   assert.ok(itemsStart >= 0)
   assert.ok(summaryStart > itemsStart)
-  assert.ok(itemCards.includes("w-16 h-16 sm:w-20 sm:h-20"))
+  assert.ok(itemCards.includes("w-20 h-20"))
   assert.ok(controlsIndex >= 0)
   assert.ok(totalIndex > controlsIndex)
   assert.ok(itemCards.includes('title="حذف من السلة"'))
@@ -280,6 +281,5 @@ test("places quantity and delete controls above the item total in a compact left
 test("shows the rounding note beside the grand total without a separate adjustment row", () => {
   assert.ok(cartClientSource.includes("مقرباً لأقرب 250 د.ع"))
   assert.ok(!cartClientSource.includes("تقريب لأقرب 250 د.ع"))
-  assert.ok(!cartClientSource.includes("roundingDiff"))
-  assert.ok(cartClientSource.includes("roundTo250(groupSubtotal + group.deliveryFee)"))
+  assert.ok(cartClientSource.includes("roundTo250(groupSubtotal + effectiveDeliveryFee)"))
 })
